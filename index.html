@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高洁丝内容智能审核</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --g1:#6D28D9;--g2:#A855F7;--g3:#EC4899;--g4:#F97316;
+  --bg:#F5F3FF;--surface:#fff;
+  --text:#1E1B4B;--sub:#6B7280;--border:#E5E7EB;
+  --ok:#10B981;--warn:#F59E0B;--err:#EF4444;
+  --r:12px;--rl:18px;
+  --sh:0 4px 24px rgba(109,40,217,.08);
+  --font:'PingFang SC','Microsoft YaHei',-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+nav{background:linear-gradient(120deg,var(--g1) 0%,var(--g2) 40%,var(--g3) 75%,var(--g4) 100%);
+  height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(109,40,217,.35)}
+.nav-left{display:flex;align-items:center;gap:12px}
+.logo{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.45);border-radius:9px;
+  padding:3px 12px;font-size:19px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.logo sup{font-size:11px;vertical-align:super}
+.nav-title{color:rgba(255,255,255,.92);font-size:14px;font-weight:500}
+.nav-right{display:flex;gap:10px;align-items:center}
+.nav-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
+  padding:6px 16px;border-radius:20px;font-size:13px;cursor:pointer;transition:.2s;font-family:var(--font)}
+.nav-btn:hover{background:rgba(255,255,255,.3)}
+#model-chip{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 58px);overflow:hidden}
+
+/* SIDEBAR NAV */
+aside{width:200px;min-width:180px;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-logo{padding:14px 16px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px}
+.sb-brand{font-size:14px;font-weight:700;color:var(--text)}
+.sb-nav{flex:1;padding:10px 0;overflow-y:auto}
+.sb-section{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:1px;
+  padding:8px 16px 4px;margin-top:4px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;
+  font-weight:500;color:#374151;cursor:pointer;transition:.15s;
+  border-left:3px solid transparent;user-select:none}
+.sb-item:hover{background:rgba(109,40,217,.04);color:var(--text)}
+.sb-item.active{color:var(--g1);background:rgba(109,40,217,.06);
+  border-left-color:var(--g1);font-weight:600}
+
+/* MAIN */
+main{flex:1;overflow-y:auto;background:var(--bg)}
+
+/* PAGE */
+.page{display:none;padding:22px 24px}
+.page.on{display:block}
+.page-hd{margin-bottom:20px}
+.page-hd h2{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
+.page-hd p{font-size:12px;color:var(--sub)}
+
+/* AGENT CARDS */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px}
+.agent-card{background:var(--surface);border-radius:var(--rl);padding:24px 20px;cursor:pointer;
+  border:1.5px solid var(--border);transition:.2s}
+.agent-card:hover{border-color:var(--g2);box-shadow:0 8px 28px rgba(109,40,217,.12);
+  transform:translateY(-2px)}
+.ac-icon{font-size:28px;margin-bottom:12px}
+.ac-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.ac-desc{font-size:12px;color:var(--sub);line-height:1.65;margin-bottom:10px}
+.ac-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;
+  font-weight:600;background:rgba(109,40,217,.08);color:var(--g1)}
+
+/* AGENT PANEL HEADER */
+.panel-hd{display:flex;align-items:center;gap:12px;margin-bottom:18px;
+  padding-bottom:14px;border-bottom:1px solid var(--border)}
+.back-btn{background:none;border:1px solid var(--border);color:var(--sub);padding:5px 14px;
+  border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--font);transition:.15s}
+.back-btn:hover{border-color:var(--g1);color:var(--g1)}
+.panel-title{font-size:15px;font-weight:700;color:var(--text)}
+
+/* KB PAGE */
+.kb-stats{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.kb-stat{background:var(--surface);border-radius:var(--r);padding:14px 20px;
+  border:1px solid var(--border);min-width:100px}
+.kb-stat-num{font-size:22px;font-weight:800;
+  background:linear-gradient(135deg,var(--g1),var(--g3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.kb-stat-label{font-size:11px;color:var(--sub);margin-top:2px}
+.kb-official{background:rgba(109,40,217,.03);border:1px dashed rgba(109,40,217,.2);
+  border-radius:var(--r);padding:16px;margin-bottom:16px}
+.kb-official-label{font-size:11px;font-weight:700;color:var(--g1);margin-bottom:8px}
+.kb-content-pre{font-size:11.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;
+  font-family:var(--font);max-height:480px;overflow-y:auto}
+
+/* LIB PAGE */
+.lib-stats{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.lib-stat{background:var(--surface);border-radius:var(--r);padding:14px 20px;
+  border:1px solid var(--border)}
+.lib-stat-num{font-size:22px;font-weight:800;color:var(--g1)}
+.lib-stat-label{font-size:11px;color:var(--sub);margin-top:2px}
+.lib-empty{text-align:center;padding:32px 20px;color:var(--sub);font-size:13px}
+.lib-empty-icon{font-size:28px;margin-bottom:8px}
+
+/* CARD */
+.card{background:var(--surface);border-radius:var(--rl);padding:22px;margin-bottom:18px;
+  box-shadow:var(--sh);border:1px solid rgba(109,40,217,.07)}
+.ch{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.ch.click{cursor:pointer;user-select:none}
+.step{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--g1),var(--g3));
+  color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ch-title{font-size:14px;font-weight:600}
+.ch-sub{font-size:12px;color:var(--sub);margin-left:auto}
+.arrow{transition:.2s;color:var(--sub);font-size:11px}
+.arrow.open{transform:rotate(180deg)}
+.coll{display:none;margin-top:14px}
+.coll.open{display:block}
+
+/* FORM */
+.frow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.fg{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px}
+.flabel{font-size:12px;font-weight:500;color:var(--sub)}
+select.fi,input.fi{border:1px solid var(--border);border-radius:8px;padding:8px 11px;
+  font-size:13px;font-family:var(--font);color:var(--text);background:var(--bg);
+  outline:none;transition:border-color .2s;width:100%}
+select.fi:focus,input.fi:focus{border-color:var(--g1)}
+textarea.ft{border:1px solid var(--border);border-radius:var(--r);padding:12px;
+  font-size:13px;line-height:1.7;font-family:var(--font);color:var(--text);
+  background:var(--bg);resize:vertical;outline:none;width:100%;transition:border-color .2s}
+textarea.ft:focus{border-color:var(--g1)}
+.cc{text-align:right;font-size:11px;color:var(--sub);margin-top:3px}
+
+/* TOGGLE */
+.tgrp{display:flex;gap:8px;flex-wrap:wrap}
+.tbtn{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
+  font-size:13px;cursor:pointer;transition:.2s;font-family:var(--font);color:var(--sub)}
+.tbtn.on{border-color:var(--g1);background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff}
+
+/* BUTTONS */
+.btn-pri{background:linear-gradient(135deg,var(--g1),var(--g3));color:#fff;border:none;
+  padding:11px 30px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;
+  font-family:var(--font);transition:.2s;box-shadow:0 4px 14px rgba(109,40,217,.3)}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(109,40,217,.4)}
+.btn-pri:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-sec{background:#fff;color:var(--g1);border:1.5px solid var(--g1);padding:7px 18px;
+  border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:.2s}
+.btn-sec:hover{background:rgba(109,40,217,.04)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.abar{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+.cbns{display:flex;gap:8px}
+
+/* SUB TABS */
+.sub-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px}
+.sub-tab{padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;color:var(--sub);
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:.2s}
+.sub-tab.on{color:var(--g1);border-bottom-color:var(--g1);font-weight:600}
+.sub-panel{display:none}
+.sub-panel.on{display:block}
+
+/* EXCEL UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:32px;
+  text-align:center;cursor:pointer;transition:.2s;background:var(--bg);position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--g2);background:rgba(109,40,217,.03)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-hint{font-size:12px;color:var(--sub)}
+
+/* LIBRARY BAR */
+.lib-bar{display:flex;align-items:center;justify-content:space-between;
+  background:rgba(109,40,217,.04);border:1px solid rgba(109,40,217,.12);
+  border-radius:8px;padding:8px 14px;margin:10px 0;font-size:12px;color:var(--sub)}
+.lib-bar strong{color:var(--g1)}
+
+/* COLUMN MAP */
+.col-map{background:rgba(109,40,217,.03);border:1px solid rgba(109,40,217,.12);
+  border-radius:var(--r);padding:14px;margin:14px 0}
+.col-map h4{font-size:12px;font-weight:700;color:var(--g1);margin-bottom:10px}
+.col-map-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px}
+.col-map-row label{width:80px;color:var(--sub);flex-shrink:0}
+.col-map-row select{flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;
+  font-size:12px;font-family:var(--font);outline:none;background:#fff}
+
+/* PREVIEW TABLE */
+.tbl-wrap{overflow-x:auto;margin:14px 0;border-radius:var(--r);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:linear-gradient(135deg,rgba(109,40,217,.08),rgba(236,72,153,.05))}
+th{padding:10px 12px;text-align:left;font-weight:600;color:var(--g1);white-space:nowrap;
+  border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;max-width:240px;
+  word-break:break-all}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(109,40,217,.02)}
+
+/* PROGRESS */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin:8px 0;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--g1),var(--g3));
+  border-radius:2px;transition:width .3s}
+
+/* BATCH ACTIONS */
+.batch-actions{display:none;margin-top:16px;gap:8px;flex-wrap:wrap;align-items:center;
+  padding-top:14px;border-top:1px solid var(--border)}
+
+/* 一句话总结 */
+.analyze-summary{display:none;background:linear-gradient(135deg,rgba(109,40,217,.06),rgba(236,72,153,.05));
+  border-left:3px solid var(--g2);border-radius:0 var(--r) var(--r) 0;
+  padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.75;color:var(--text);
+  font-weight:500}
+.analyze-summary-label{font-size:11px;color:var(--g2);font-weight:700;margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:.5px}
+
+/* 共性分析卡片 */
+.commonality-card{display:none}
+
+/* RESULT (审核) */
+.vbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--r);
+  margin-bottom:18px;background:linear-gradient(135deg,rgba(109,40,217,.05),rgba(236,72,153,.05))}
+.vbadge{padding:5px 16px;border-radius:20px;font-size:13px;font-weight:700}
+.vpass{background:#DCFCE7;color:#16A34A}
+.vrev{background:#FEF3C7;color:#D97706}
+.vfail{background:#FEE2E2;color:#DC2626}
+.vscore{font-size:26px;font-weight:800;
+  background:linear-gradient(135deg,var(--g1),var(--g3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.vsummary{font-size:13px;color:var(--sub);flex:1;padding-left:8px}
+
+/* 爆文参考提示 */
+.ref-analysis-bar{display:none;background:rgba(109,40,217,.05);border:1px solid rgba(109,40,217,.15);
+  border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:12px;color:var(--g1)}
+
+.rc{font-size:13px;line-height:1.8;color:var(--text)}
+.rc h2{font-size:14px;font-weight:700;color:var(--g1);margin:16px 0 7px;
+  padding-bottom:5px;border-bottom:1px solid rgba(109,40,217,.1)}
+.rc h3{font-size:13px;font-weight:600;margin:11px 0 5px}
+.rc ul,.rc ol{padding-left:18px;margin:5px 0}
+.rc li{margin-bottom:4px}
+.rc strong{font-weight:600}
+.rc code{background:rgba(109,40,217,.08);padding:1px 5px;border-radius:4px;font-size:12px}
+.rc blockquote{border-left:3px solid var(--g2);padding-left:11px;margin:7px 0;color:var(--sub)}
+.rwbox{background:linear-gradient(135deg,rgba(109,40,217,.03),rgba(236,72,153,.03));
+  border:1px solid rgba(109,40,217,.15);border-radius:var(--r);padding:16px;margin-top:16px}
+.rwbox h3{font-size:14px;font-weight:700;color:var(--g1);margin-bottom:10px}
+.rwtext{font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
+
+/* 打标 RESULT CARD */
+.tag-result{background:linear-gradient(135deg,rgba(109,40,217,.04),rgba(236,72,153,.04));
+  border:1px solid rgba(109,40,217,.12);border-radius:var(--r);padding:18px;margin-top:16px}
+.tag-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.tag-lbl{font-size:12px;color:var(--sub);width:60px;flex-shrink:0}
+.tag-val{font-size:13px;font-weight:600;color:var(--text)}
+.tag-sub{font-size:11px;color:var(--sub);padding-left:4px}
+
+/* LEVEL BADGE */
+.lv{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.lv-s{background:#FEE2E2;color:#DC2626}
+.lv-a{background:#FEF3C7;color:#D97706}
+.lv-b{background:#DCFCE7;color:#16A34A}
+.lv-c{background:#EDE9FE;color:var(--g1)}
+.lv-d{background:#F3F4F6;color:var(--sub)}
+
+/* LOADING */
+.dots{display:inline-flex;gap:4px;align-items:center;padding:16px 0}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--g2);animation:bk 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bk{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);
+  z-index:200;display:none;align-items:center;justify-content:center}
+.ov.show{display:flex}
+.modal{background:#fff;border-radius:var(--rl);padding:26px;width:440px;max-width:92vw;
+  box-shadow:0 20px 60px rgba(0,0,0,.14)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:20px;
+  background:linear-gradient(135deg,var(--g1),var(--g3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.mf{margin-bottom:14px}
+.mf label{display:block;font-size:12px;font-weight:500;color:var(--sub);margin-bottom:5px}
+.mf input,.mf select{width:100%;border:1px solid var(--border);border-radius:8px;
+  padding:9px 13px;font-size:13px;font-family:var(--font);outline:none;transition:border-color .2s}
+.mf input:focus,.mf select:focus{border-color:var(--g1)}
+.mhint{font-size:11px;color:var(--sub);margin-top:3px}
+.macts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.modal-lg{width:600px;max-height:85vh;overflow-y:auto}
+
+/* TAG */
+.tag{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:500;margin:2px}
+.tg-p{background:rgba(109,40,217,.1);color:var(--g1)}
+.tg-ok{background:#DCFCE7;color:#16A34A}
+.tg-pk{background:rgba(236,72,153,.1);color:#BE185D}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;
+  padding:9px 18px;border-radius:20px;font-size:13px;z-index:300;
+  opacity:0;transform:translateY(8px);transition:.3s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(109,40,217,.18);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(109,40,217,.35)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left">
+    <div class="logo">A<sup>3</sup></div>
+    <span class="nav-title">高洁丝内容智能审核</span>
+  </div>
+  <div class="nav-right">
+    <span id="model-chip" class="tag tg-p" onclick="openModal()" style="cursor:pointer">DeepSeek · 未配置</span>
+    <button class="nav-btn" onclick="openModal()">⚙ 设置</button>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sb-logo">
+      <div class="logo">A<sup>3</sup></div>
+      <span class="sb-brand">高洁丝</span>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">创作</div>
+      <div class="sb-item active" data-page="studio" onclick="navigate('studio')">✦ AI 创作台</div>
+      <div class="sb-section">资产</div>
+      <div class="sb-item" data-page="kb" onclick="navigate('kb')">◆ 品牌知识库</div>
+      <div class="sb-item" data-page="library" onclick="navigate('library')">□ 素材库</div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ══ PAGE: AI 创作台 ══ -->
+    <div id="page-studio" class="page on">
+
+      <!-- Agent 主页 -->
+      <div id="agent-home">
+        <div class="page-hd"><h2>AI 创作台</h2><p>选择工作模式开始创作</p></div>
+        <div class="agent-grid">
+          <div class="agent-card" onclick="selectAgent('analyze')">
+            <div class="ac-icon">🔥</div>
+            <div class="ac-name">爆款爆文 Agent</div>
+            <div class="ac-desc">拆解爆文内容结构、打标圈层人设，提炼可直接复用的钩子词汇与创作模板</div>
+            <div class="ac-badge">单篇深度拆解 · 两步定制模板</div>
+          </div>
+          <div class="agent-card" onclick="selectAgent('copywrite')">
+            <div class="ac-icon">✍️</div>
+            <div class="ac-name">文案 Agent</div>
+            <div class="ac-desc">根据产品、类型、参考笔记，一键生成符合规范的完整稿件（Ao素人文 / SOSS）</div>
+            <div class="ac-badge">Ao · SOSS · 报备/非报备</div>
+          </div>
+          <div class="agent-card" onclick="selectAgent('review')">
+            <div class="ac-icon">✅</div>
+            <div class="ac-name">审核 Agent</div>
+            <div class="ac-desc">对照知识库标准审核稿件合规性，识别广告感，输出问题清单与重写稿</div>
+            <div class="ac-badge">合规审核 · 重写优化</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 爆款爆文 Agent 面板 -->
+      <div id="agent-analyze" style="display:none">
+        <div class="panel-hd">
+          <button class="back-btn" onclick="selectAgent(null)">← 返回</button>
+          <span class="panel-title">🔥 爆款爆文 Agent</span>
+        </div>
+
+      <!-- 输入卡 -->
+      <div class="card">
+        <div class="ch">
+          <div class="step">1</div>
+          <div class="ch-title">输入爆文内容</div>
+        </div>
+        <div class="frow" style="margin-bottom:10px">
+          <div class="fg">
+            <div class="flabel">拆解关联产品</div>
+            <select id="analyze-product" class="fi">
+              <option value="蔓越莓">高洁丝蔓越莓益生力</option>
+              <option value="海岛棉">高洁丝海岛奢宠棉</option>
+              <option value="阳光烘烘">高洁丝阳光烘烘抑菌</option>
+            </select>
+          </div>
+        </div>
+        <textarea id="single-post" class="ft" rows="8"
+          placeholder="粘贴小红书笔记内容（标题 + 正文 + Tag）&#10;可附上互动数据：点赞数、评论数、收藏数等"></textarea>
+        <div class="cc"><span id="sp-count">0</span> 字</div>
+        <div id="analyze-step-indicator" style="display:none;font-size:12px;color:var(--g2);margin-top:6px">
+          <span id="step-label">⏳ 正在拆解爆文套路...</span>
+        </div>
+        <div class="abar">
+          <div style="font-size:12px;color:var(--sub)">AI两步分析：先提炼爆文套路，再针对产品生成高洁丝合规模板</div>
+          <button class="btn-pri" id="analyze-btn" onclick="doSingleAnalyze()">开始拆解 ▶</button>
+        </div>
+      </div>
+
+      <!-- 单篇拆解结果 -->
+      <div class="card" id="single-result" style="display:none">
+        <div class="ch">
+          <div class="step">2</div>
+          <div class="ch-title">拆解结果</div>
+          <div class="cbns" style="margin-left:auto">
+            <button class="btn-sec btn-sm" onclick="sendToReview()">→ 用作参考笔记</button>
+            <button class="btn-sec btn-sm" onclick="doCopyAnalyze()">复制报告</button>
+          </div>
+        </div>
+        <!-- 一句话总结（拆解前摘要） -->
+        <div class="analyze-summary" id="analyze-summary">
+          <div class="analyze-summary-label">核心洞察</div>
+          <div id="analyze-summary-text"></div>
+        </div>
+        <!-- 三维打标 -->
+        <div class="tag-result" id="tag-badges"></div>
+        <!-- 深度内容 -->
+        <div class="rc" id="analyze-body" style="margin-top:16px"></div>
+      </div>
+
+      </div><!-- /agent-analyze -->
+
+      <!-- 文案 Agent 面板 -->
+      <div id="agent-copywrite" style="display:none">
+        <div class="panel-hd">
+          <button class="back-btn" onclick="selectAgent(null)">← 返回</button>
+          <span class="panel-title">✍️ 文案 Agent</span>
+        </div>
+
+        <!-- Step 1 参数 -->
+        <div class="card">
+          <div class="ch"><div class="step">1</div><div class="ch-title">创作参数</div></div>
+          <div class="frow">
+            <div class="fg">
+              <div class="flabel">项目类型</div>
+              <div class="tgrp" id="tg-write-type">
+                <button class="tbtn on" data-v="ao" onclick="setTog('tg-write-type',this)">Ao 素人文</button>
+                <button class="tbtn" data-v="soss" onclick="setTog('tg-write-type',this)">SOSS</button>
+              </div>
+            </div>
+            <div class="fg">
+              <div class="flabel">报备类型</div>
+              <div class="tgrp" id="tg-write-ad">
+                <button class="tbtn on" data-v="rep" onclick="setTog('tg-write-ad',this)">报备</button>
+                <button class="tbtn" data-v="unrep" onclick="setTog('tg-write-ad',this)">非报备</button>
+              </div>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg">
+              <div class="flabel">产品</div>
+              <select id="sel-write-product" class="fi">
+                <option value="蔓越莓">高洁丝蔓越莓益生力</option>
+                <option value="海岛棉">高洁丝海岛奢宠棉</option>
+                <option value="阳光烘烘">高洁丝阳光烘烘抑菌</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="flabel">平台</div>
+              <select id="sel-write-platform" class="fi">
+                <option value="小红书">小红书</option>
+                <option value="抖音">抖音</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg" id="fg-write-kw" style="display:none">
+              <div class="flabel">搜索词</div>
+              <input id="inp-write-kw" class="fi" type="text" placeholder="例：卫生巾哪个牌子好用安全"/>
+            </div>
+            <div class="fg" id="fg-write-form" style="display:none">
+              <div class="flabel">内容形式</div>
+              <select id="sel-write-form" class="fi">
+                <option value="随手po">随手po</option>
+                <option value="CPC">CPC</option>
+                <option value="大字报">大字报</option>
+                <option value="素人横测（全家福）">素人横测（全家福）</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 参考笔记 -->
+        <div class="card">
+          <div class="ch click" onclick="toggleColl('write-s2','write-a2')">
+            <div class="step">2</div>
+            <div class="ch-title">参考笔记</div>
+            <span class="tag tg-pk" style="font-size:11px">SOSS必填</span>
+            <div class="ch-sub">Ao素人文可跳过</div>
+            <span class="arrow open" id="write-a2">▼</span>
+          </div>
+          <div class="coll open" id="write-s2">
+            <textarea id="ref-write-post" class="ft" rows="5"
+              placeholder="粘贴参考小红书笔记（标题 + 正文 + Tag）&#10;SOSS必填，AI将仿照其结构创作"></textarea>
+            <div class="cc"><span id="write-rc1">0</span> 字</div>
+          </div>
+        </div>
+
+        <!-- Step 3 生成 -->
+        <div class="card">
+          <div class="ch"><div class="step">3</div><div class="ch-title">一键生成稿件</div></div>
+          <div class="abar">
+            <div style="font-size:12px;color:var(--sub)">AI将严格按知识库标准创作，标题≤20字，无广告感</div>
+            <button class="btn-pri" id="write-btn" onclick="doWrite()">生成稿件 ▶</button>
+          </div>
+        </div>
+
+        <!-- 生成结果 -->
+        <div class="card" id="write-result" style="display:none">
+          <div class="ch">
+            <div class="step">4</div><div class="ch-title">生成结果</div>
+            <div class="cbns" style="margin-left:auto">
+              <button class="btn-sec btn-sm" onclick="sendWriteToReview()">→ 送审核</button>
+              <button class="btn-sec btn-sm" onclick="copyWrite()">复制稿件</button>
+            </div>
+          </div>
+          <div class="rc" id="write-body"></div>
+        </div>
+
+      </div><!-- /agent-copywrite -->
+
+      <!-- 审核 Agent 面板 -->
+      <div id="agent-review" style="display:none">
+        <div class="panel-hd">
+          <button class="back-btn" onclick="selectAgent(null)">← 返回</button>
+          <span class="panel-title">✅ 审核 Agent</span>
+        </div>
+
+      <!-- Step 1 参考笔记 -->
+      <div class="card">
+        <div class="ch click" onclick="toggleColl('s1','a1')">
+          <div class="step">1</div>
+          <div class="ch-title">参考笔记</div>
+          <span class="tag tg-pk" style="font-size:11px">SOSS必填</span>
+          <div class="ch-sub">Ao素人文可跳过</div>
+          <span class="arrow open" id="a1">▼</span>
+        </div>
+        <div class="coll open" id="s1">
+          <textarea id="ref-post" class="ft" rows="5"
+            placeholder="粘贴参考小红书笔记（标题 + 正文 + Tag）&#10;也可从爆文拆解页点「用作参考笔记」自动填入"></textarea>
+          <div class="cc"><span id="rc1">0</span> 字</div>
+        </div>
+      </div>
+
+      <!-- Step 2 稿件 -->
+      <div class="card">
+        <div class="ch">
+          <div class="step">2</div>
+          <div class="ch-title">待审核稿件</div>
+          <!-- 爆文分析联动提示 -->
+          <div class="ref-analysis-bar" id="ref-analysis-bar">
+            📊 已关联爆文拆解分析，审核将参考其钩子结构和内容套路
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <div class="flabel">项目类型</div>
+            <div class="tgrp" id="tg-type">
+              <button class="tbtn on" data-v="ao" onclick="setTog('tg-type',this)">Ao 素人文</button>
+              <button class="tbtn" data-v="soss" onclick="setTog('tg-type',this)">SOSS</button>
+            </div>
+          </div>
+          <div class="fg">
+            <div class="flabel">报备类型</div>
+            <div class="tgrp" id="tg-ad">
+              <button class="tbtn on" data-v="rep" onclick="setTog('tg-ad',this)">报备</button>
+              <button class="tbtn" data-v="unrep" onclick="setTog('tg-ad',this)">非报备</button>
+            </div>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <div class="flabel">产品</div>
+            <select id="sel-product" class="fi">
+              <option value="蔓越莓">高洁丝蔓越莓益生力</option>
+              <option value="海岛棉">高洁丝海岛奢宠棉</option>
+              <option value="阳光烘烘">高洁丝阳光烘烘抑菌</option>
+            </select>
+          </div>
+          <div class="fg" id="fg-kw" style="display:none">
+            <div class="flabel">搜索词</div>
+            <input id="inp-kw" class="fi" type="text" placeholder="例：卫生巾哪个牌子好用安全"/>
+          </div>
+          <div class="fg" id="fg-form" style="display:none">
+            <div class="flabel">内容形式</div>
+            <select id="sel-form" class="fi">
+              <option value="随手po">随手po</option>
+              <option value="CPC">CPC</option>
+              <option value="大字报">大字报</option>
+              <option value="素人横测（全家福）">素人横测（全家福）</option>
+            </select>
+          </div>
+        </div>
+        <textarea id="draft" class="ft" rows="9" placeholder="粘贴写手创作的稿件内容（标题 + 正文 + Tag）"></textarea>
+        <div class="cc"><span id="rc2">0</span> 字</div>
+        <div class="abar">
+          <div style="font-size:12px;color:var(--sub)">审核将综合知识库标准和参考笔记进行分析</div>
+          <button class="btn-pri" id="rev-btn" onclick="doReview()">开始审核 ▶</button>
+        </div>
+      </div>
+
+      <!-- Step 3 审核结果 -->
+      <div class="card" id="result-card" style="display:none">
+        <div class="ch">
+          <div class="step">3</div>
+          <div class="ch-title">审核结果</div>
+          <div class="cbns" style="margin-left:auto">
+            <button class="btn-sec btn-sm" onclick="doCopy('report')">复制报告</button>
+            <button class="btn-sec btn-sm" onclick="doCopy('rewrite')">复制重写稿</button>
+          </div>
+        </div>
+        <div class="vbar" id="vbar">
+          <div class="vbadge" id="vbadge">分析中...</div>
+          <div class="vscore" id="vscore"></div>
+          <div class="vsummary" id="vsummary"></div>
+        </div>
+        <div class="rc" id="report-body"></div>
+        <div class="rwbox" id="rw-box" style="display:none">
+          <h3>✏️ 重写稿</h3>
+          <div class="rwtext" id="rw-text"></div>
+        </div>
+      </div>
+
+      </div><!-- /agent-review -->
+
+    </div><!-- /page-studio -->
+
+    <!-- ══ PAGE: 品牌知识库 ══ -->
+    <div id="page-kb" class="page">
+      <div class="page-hd">
+        <h2>品牌知识库</h2>
+        <p>官方规范 · 上传历史数据 · 提炼内容资产 → 自动注入 AI 创作台</p>
+      </div>
+      <div class="kb-stats">
+        <div class="kb-stat"><div class="kb-stat-num">3</div><div class="kb-stat-label">产品档案</div></div>
+        <div class="kb-stat"><div class="kb-stat-num">7</div><div class="kb-stat-label">规则分类</div></div>
+        <div class="kb-stat"><div class="kb-stat-num" id="lib-kb-count">0</div><div class="kb-stat-label">已打标笔记</div></div>
+        <div class="kb-stat"><div class="kb-stat-num" id="lib-patterns-count">0</div><div class="kb-stat-label">内容资产词条</div></div>
+      </div>
+
+      <!-- 官方知识库 -->
+      <div class="kb-official">
+        <div class="kb-official-label">📌 当前官方版本 · 刷新后自动恢复</div>
+        <pre class="kb-content-pre" id="kb-preview"></pre>
+      </div>
+
+      <!-- 上传 + 打标流程 -->
+      <div class="card">
+        <div class="ch">
+          <div class="step">1</div>
+          <div class="ch-title">上传历史数据（Y25/Y26）</div>
+        </div>
+        <div class="lib-bar">
+          <span>已存 <strong id="lib-count">0</strong> 篇打标笔记（注入爆文拆解和审核）</span>
+          <button class="btn-sec btn-sm" onclick="clearLibrary()">清空数据</button>
+        </div>
+        <div class="upload-zone" id="upload-zone"
+          ondragover="e=>{e.preventDefault();this.classList.add('drag')}"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="onFileDrop(event)">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="onFileSelect(this)">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">拖拽或点击上传 Excel / CSV</div>
+          <div class="upload-hint">支持 .xlsx / .xls / .csv · 笔记标题 + 互动量</div>
+        </div>
+        <div class="col-map" id="col-map" style="display:none">
+          <h4>📋 列映射 — 告诉我哪列是什么</h4>
+          <div class="col-map-row">
+            <label>笔记标题</label>
+            <select id="map-title" class="fi"></select>
+          </div>
+          <div class="col-map-row">
+            <label>互动量（可选）</label>
+            <select id="map-engage" class="fi"><option value="">不选</option></select>
+          </div>
+          <div class="col-map-row">
+            <label>笔记链接（可选）</label>
+            <select id="map-url" class="fi"><option value="">不选</option></select>
+          </div>
+        </div>
+        <div id="preview-wrap" style="display:none">
+          <div style="font-size:12px;color:var(--sub);margin-bottom:6px">
+            📄 共解析 <strong id="row-count">0</strong> 行 · 预览前5行
+          </div>
+          <div class="tbl-wrap" id="preview-tbl"></div>
+          <div class="abar" style="margin-top:12px">
+            <div style="font-size:12px;color:var(--sub)">AI将为每篇笔记提取圈层/人设/钩子词/情绪触发，完成后可提炼内容资产</div>
+            <button class="btn-pri" id="batch-btn" onclick="doBatchAnalyze()">批量打标 ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 批量打标结果 -->
+      <div class="card" id="batch-result" style="display:none">
+        <div class="ch">
+          <div class="step">2</div>
+          <div class="ch-title">批量打标结果</div>
+          <div style="margin-left:auto;font-size:12px;color:var(--sub)">点击「深度拆解」可补充正文做完整分析</div>
+        </div>
+        <div id="batch-progress" style="display:none">
+          <div style="font-size:12px;color:var(--sub);margin-bottom:6px">
+            正在处理第 <span id="prog-cur">0</span> / <span id="prog-tot">0</span> 组（每组10条）
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        </div>
+        <div class="tbl-wrap" id="batch-tbl"></div>
+        <div class="batch-actions" id="batch-actions">
+          <button class="btn-sec btn-sm" onclick="exportBatchCSV()">📥 导出 CSV</button>
+          <button class="btn-sec btn-sm" onclick="addToLibrary()">📚 保存打标数据</button>
+          <div style="flex:1"></div>
+          <button class="btn-pri" id="extract-btn" onclick="doExtractPatterns()" style="padding:9px 22px;font-size:13px">✦ 提炼内容资产 ▶</button>
+        </div>
+      </div>
+
+      <!-- 提炼内容资产结果 -->
+      <div class="card" id="patterns-card" style="display:none">
+        <div class="ch">
+          <div class="step" style="font-size:16px;width:30px;height:30px">✦</div>
+          <div class="ch-title">内容资产库</div>
+          <span class="tag tg-p" style="font-size:11px" id="patterns-src-label"></span>
+          <div class="cbns" style="margin-left:auto">
+            <button class="btn-sec btn-sm" onclick="copyPatterns()">复制全部</button>
+            <button class="btn-sec btn-sm" onclick="navigate('library')">→ 在素材库查看</button>
+          </div>
+        </div>
+        <div class="rc" id="patterns-body"></div>
+      </div>
+
+      <!-- 共性分析（辅助参考） -->
+      <div class="card commonality-card" id="commonality-card">
+        <div class="ch">
+          <div class="step" style="font-size:16px;width:30px;height:30px">◎</div>
+          <div class="ch-title">共性分析</div>
+          <span class="tag tg-p" style="font-size:11px" id="commonality-src-label"></span>
+          <div class="cbns" style="margin-left:auto">
+            <button class="btn-sec btn-sm" id="commonality-btn" onclick="doCommonalityAnalysis()">🧠 生成共性分析</button>
+            <button class="btn-sec btn-sm" onclick="copyCommonality()">复制</button>
+          </div>
+        </div>
+        <div class="rc" id="commonality-body"></div>
+      </div>
+    </div><!-- /page-kb -->
+
+    <!-- ══ PAGE: 素材库 ══ -->
+    <div id="page-library" class="page">
+      <div class="page-hd">
+        <h2>素材库</h2>
+        <p>品牌知识库提炼的内容资产 · 自动注入爆文拆解与审核</p>
+      </div>
+      <div class="lib-stats">
+        <div class="lib-stat">
+          <div class="lib-stat-num" id="lib-page-count">0</div>
+          <div class="lib-stat-label">已打标笔记</div>
+        </div>
+        <div class="lib-stat">
+          <div class="lib-stat-num" id="lib-patterns-count2">—</div>
+          <div class="lib-stat-label">内容资产状态</div>
+        </div>
+      </div>
+
+      <!-- 内容资产展示 -->
+      <div class="card">
+        <div class="ch">
+          <div class="step" style="font-size:16px;width:30px;height:30px">✦</div>
+          <div class="ch-title">内容资产库</div>
+          <div class="ch-sub">已自动注入爆文拆解与审核 AI 提示词</div>
+          <div class="cbns" style="margin-left:auto">
+            <button class="btn-sec btn-sm" onclick="copyPatterns()">复制全部</button>
+            <button class="btn-sec btn-sm" onclick="navigate('kb')">→ 去品牌知识库更新</button>
+          </div>
+        </div>
+        <div id="lib-patterns-display">
+          <div class="lib-empty">
+            <div class="lib-empty-icon">📦</div>
+            <div>暂无内容资产<br>请先在「品牌知识库」上传数据，批量打标后点击「提炼内容资产」</div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /page-library -->
+
+  </main>
+</div>
+
+<!-- 深度拆解弹窗 -->
+<div class="ov" id="deep-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">🔍 深度拆解</div>
+    <div class="mf">
+      <label>笔记标题（已从表格填入）</label>
+      <input id="deep-title" class="fi" type="text" placeholder="笔记标题"/>
+    </div>
+    <div class="mf">
+      <label>补充正文内容（可选，有正文分析更准确）</label>
+      <textarea id="deep-content" class="ft" rows="6" placeholder="粘贴笔记正文和Tag..."></textarea>
+    </div>
+    <div class="mf">
+      <label>互动数据（可选，例：点赞3200 评论45 收藏890）</label>
+      <input id="deep-engage" class="fi" type="text" placeholder="点赞数 评论数 收藏数"/>
+    </div>
+    <div class="macts">
+      <button class="btn-sec" onclick="closeDeep()">取消</button>
+      <button class="btn-pri" onclick="doDeepAnalyze()" style="padding:9px 22px;font-size:13px">开始深度拆解</button>
+    </div>
+    <div id="deep-result" style="margin-top:16px;display:none">
+      <div class="analyze-summary" id="deep-summary">
+        <div class="analyze-summary-label">核心洞察</div>
+        <div id="deep-summary-text"></div>
+      </div>
+      <div class="tag-result" id="deep-tag-badges"></div>
+      <div class="rc" id="deep-body" style="margin-top:14px"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-sec btn-sm" onclick="sendDeepToReview()">→ 用作参考笔记</button>
+        <button class="btn-sec btn-sm" onclick="closeDeep()">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="ov" id="modal">
+  <div class="modal">
+    <div class="modal-title">⚙ 模型与 API 设置</div>
+    <div class="mf">
+      <label>选择模型</label>
+      <select id="m-model" onchange="onModelSwitch()">
+        <option value="deepseek-chat">DeepSeek Chat（推荐 · 国内可用）</option>
+        <option value="deepseek-reasoner">DeepSeek Reasoner（深度推理）</option>
+        <option value="doubao-pro-32k">豆包 Pro 32K（国内可用）</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6（需代理）</option>
+      </select>
+    </div>
+    <div class="mf">
+      <label>API Key</label>
+      <input id="m-key" type="password" placeholder="输入 API Key"/>
+    </div>
+    <div class="mf">
+      <label>API 地址（Base URL）</label>
+      <input id="m-url" type="text" placeholder="https://api.deepseek.com"/>
+      <div class="mhint">DeepSeek / 豆包国内直接访问；Claude 需填代理地址</div>
+    </div>
+    <div class="macts">
+      <button class="btn-sec" onclick="closeModal()">取消</button>
+      <button class="btn-pri" onclick="saveSettings()" style="padding:9px 22px;font-size:13px">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── 共享代理配置（管理员填写后分享，用户无需配置 Key）──────────
+const PROXY_URL = 'https://kotex-ai.956322910.workers.dev';
+
+// ══════════════════════════════════════════════
+// DEFAULT KB
+// ══════════════════════════════════════════════
+const DEFAULT_KB = `你是精通小红书平台的高级内容运营，擅长小红书优质素人文和搜索词下高浮现笔记的内容拆解和审核。
+
+【常规要求】
+- 标题20字以内
+- 标题、文案、tag、图片需具备强相关性
+- 图片（重复性、相关性弱）问题仅标注，无需给出替代图片
+- Emoji：根据参考笔记风格；无参考则根据内容风格判断，不滥用
+- 内容须根据产品卖点特点针对性调整，不可套模板硬套
+
+【笔记类型】
+- 报备：可适当露出产品和品牌名称
+- 非报备：禁止在标题、文案、tag中提及产品和品牌名称
+
+【严禁事项】
+1. 禁止用"姨妈"替代"月经""经期"
+2. 禁止表现厌女情绪或负面月经羞耻
+3. 禁止在多篇稿件中反复出现"舒服到像没来月经"类似表述（单篇出现一次合规）
+4. 禁止产品特性与场景不匹配——按产品区分，不可混用：
+   · 海岛棉（棉中白金·高端定位）：不适合演唱会追星、学生省钱、价格敏感场景
+   · 蔓越莓（日常私护·大众定位）：适合演唱会、职场、旅行、运动等，无特殊场景限制
+   · 阳光烘烘（大健康·纯棉抑菌）：适合健康卫生意识场景，目标25-35岁高知女性
+   · 核心原则：只有海岛棉因高端定位需要限制场景；蔓越莓和阳光烘烘均可覆盖大众日常场景
+5. 禁止提到"性价比高"等价格相关表述
+6. 禁止出现明显夸张失真、脱离现实的场景（如摆拍痕迹过重、日常中根本不可能发生的行为描写、或与产品使用场景明显不符的设定）
+
+【Ao素人文】
+- 以真实素人用户分享口吻展开，绝不体现广告感
+- 谨慎提及或避免专业数据和术语（避免读起来像说明书）
+- 内容创意有趣，符合真实生活场景
+- 内容方向须经客户确认；报备/非报备决定是否可露出品牌产品名
+
+【SOSS搜索词下浮现内容】
+- 标题、正文前50字、tag必须包含搜索词
+- 必须严格仿照参考笔记的内容结构、段落划分、重点分布（仿写≠抄袭）
+- 内容须根据高洁丝产品卖点适配调整，产品信息自然融入
+- 报备稿件tag必须同时包含：搜索词tag + #高洁丝 + 产品名tag
+- 非报备SOSS：不带品牌tag和产品名tag
+
+【SOSS特定搜索词灵活植入】
+- 卫生巾：完整词原样植入标题、前50字、tag
+- 卫生巾哪个牌子安全好用：可拆成"卫生巾"+"安全"+"好用"分布，标题选其中两词；tag用完整词
+- 央视十大合格卫生巾：标题和正文开头只需埋"央视"即可；tag用完整词
+
+【SOSS内容形式】随手po / CPC / 大字报 / 素人横测（全家福）
+
+【产品特殊规则】
+- 海岛棉：强调柔软（触感像羊绒），不强调0敏；必带tag：#高洁丝海岛奢宠 #高洁丝海岛棉卫生巾
+- 阳光烘烘：强调99.9%抑菌+100%纯棉；必带tag：#高洁丝阳光烘烘
+- 蔓越莓：强调益生菌+蔓越莓精华去异味/维持菌群；tag：#高洁丝蔓越莓益生力
+
+【三款产品核心卖点】
+蔓越莓：4亿L19专利益生菌+蔓越莓精华，维持菌群平衡，抑制有害菌99%；去除90%+异味；pH弱酸面层；革新护翼1秒闭眼贴；医护级工厂
+海岛棉：全球仅0.3%珍稀海岛棉，纤维细度仅发丝1/5，触感柔滑软糯似羊绒，减少35%摩擦感；7大0添加医护级洁净；立体防漏软边
+阳光烘烘：99.9%抑菌+100%纯棉；12小时长效抑菌；抑制4大有害菌（含加德纳氏菌，行业首次）；婴儿级OEKO-TEX I级认证；1620小时阳光烘晒美棉；7大0添加
+
+【产品卖点口语化原则（重写稿必须遵守）】
+专业数据须转化为感受语言，不可照搬说明书表述：
+蔓越莓："专研成分守住私密菌群""久坐清爽无异味""小翅膀贴哪待哪"（适合演唱会/职场/旅行等大众场景）
+海岛棉："贴肤柔软触感像羊绒""上身几乎感觉不到它在"（仅适合居家/敏感肌场景，不适合演唱会/省钱场景；严禁写"不像卫生巾"）
+阳光烘烘："晒了67天太阳的棉不用化学消毒""第三方测过4种有害菌99.9%抑制"（适合健康觉醒/成分党场景）
+
+【Ao 与 SOSS 规则对照——审核时严格区分，不可混用】
+Ao报备：带品牌+产品tag，无需搜索词植入，无关键词位置要求
+Ao非报备：不带任何品牌/产品tag，无需搜索词植入
+SOSS报备：标题+正文前50字+tag均须含搜索词；tag同时带搜索词+#高洁丝+产品名
+SOSS非报备：只带搜索词tag，不带品牌/产品tag；标题+前50字+tag须含搜索词
+
+审核Ao稿件时：不得要求搜索词植入，不得要求加#高洁丝，不得要求tag含搜索词。
+审核SOSS稿件时：必须检查标题、前50字、tag三处是否含搜索词。`;
+
+// ── 打标专用 System Prompt ──────────────────────
+const ANALYZE_SYS = `你是小红书爆文内容分析专家，掌握完整的内容标签体系，专注卫生巾/女性健康类目。
+
+【圈层标签体系】
+产品评测：测评、避雷、红榜、黑榜、成分、对比、抓皮、踩雷
+健康科普：医生、女性健康、经血周期、经期知识、冷知识、私处护理
+社会议题：女性权益、觉醒、月经羞耻、月经正义、月经公开、公共场合
+个人日常：日常、碎碎念、今天、突然、谁懂我、记录、vlog
+情感关系：闺蜜、妈妈、爸爸、闺蜜互助、心窝、感动、陪伴
+母婴育儿：待产包、宝妈、新生儿、孕期、哺乳期、月子
+运动健身：健身、跑步、运动、经期运动、瑜伽、徒步、游泳
+时尚美妆：穿搭、美甲、护肤、好看、漂亮、颜值、显白
+校园生活：宿舍、开学、军训、上课、班主任、同学、考研
+外出应急：高铁、飞机、旅行、酒店、出差、外出、应急、旅游
+手工创作：手工、教程、DIY、折纸、手帐、自制、简单做
+笑搞幽默：搞笑、笑死、哈哈哈、段子、吐槽、沙雕、整活
+食物美食：食谱、家常菜、零食、下午茶、咖啡、减脂餐
+
+【人设标签体系】
+独立女性：女性主义、独立、自由、觉醒、权益、发声、不将就
+成分党/测评党：对产品负责、相信数据和体验、有专业感、测评、成分
+职场人：上班、公司、同事、请假、工位、职场、通勤、打工人
+宝妈：特产包、宝宝、孕妇、带娃、产褥垫、月子、哺乳
+工薪阶层：便宜、省钱、贵不贵、多少钱、省钱、平价
+青春期女生：初中、高中、第一次、青春期、成长、懵懂
+乐活一族：哈哈哈、段子、自嘲、治愈、日常、轻松、搞笑
+生活家/收纳控：收纳、整理、极简、囤货、攻略
+健身男女：健身、运动、跑步、瑜伽、徒步、养生
+
+【沟通策略标签（6种）】
+科普实验型(1)：有实验对比画面，展示产品效果或传递知识，收藏率高
+干货清单型(2)：提供可直接收藏的实用信息（清单、教程、步骤），用户有明显"存下来"行为
+态度输出型(3)：有鲜明立场和观点，表达态度或呼吁行动，评论两极化或形成讨论
+幽默吐槽型(4)：用段子、夸张、自嘲戳痛点，点赞率高，分享率高
+氛围治愈型(5)：通过画面、音乐、节奏营造舒适解压的氛围，点赞高
+真实故事型(6)：以第一人称讲述亲身经历（默认策略），评论多为个人经历分享
+
+【互动量级（卫生巾类目）】
+超爆文：总互动 ≥ 50,000
+大爆文：总互动 10,000–49,999
+中爆文：总互动 5,000–9,999
+小爆文：总互动 1,000–4,999
+普通：总互动 < 1,000
+
+【CES算法驱动力分析】
+2026年小红书算法权重：评论×4、转发×4、关注×8、点赞/收藏×1。
+拆解时必须识别这篇爆文靠什么驱动算法得分：
+- 评论驱动型：结尾有提问/选边站/晒经历设计，评论区高密度讨论
+- 收藏驱动型：清单/攻略/知识点密集，"这条留着用"
+- 关注驱动型：人设鲜明，垂类专业感强，持续同圈层输出
+
+【感受类 vs 科普类内容判断】
+卫生巾类目实测：感受类互动均值 9000+，科普类仅 75。
+- 感受类：以个人经历/情绪为主线，产品是"解决感受"的工具
+- 科普类：以知识信息为主线，产品是"知识佐证"的载体
+拆解时必须判断内容类型并说明为何能在该赛道爆。
+
+【标题钩子精确公式（可填空模板）】
+- 场景+危机+悬念：[具体场景]，我差点[负面结果]
+- 人群+翻转认知：作为[人群]，我再也不[旧行为]了
+- 数字+人群+痛点：X个[人群]必知的[痛点]
+- 反转认知：[看似无关的事]，其实决定了[关键结果]
+- 情绪宣泄：[强烈情绪词]+[核心矛盾]（"忍不了了""终于说了""绷不住了"）
+
+【素人真实感信号（7维度）】
+拆解时识别笔记的真实感来源：
+1. 时间锚点：有具体时间词（"前天""上周五"）vs 模糊（"最近""有一次"）
+2. 负面细节：真实分享含轻微缺点/吐槽，纯广告只有优点
+3. 产品出场时机：第3段以后自然引入 vs 开篇即推
+4. 语气词浓度："真的！！""说实话""谁懂我"等口语词
+5. 场景特异性：具体场景（"追XS演唱会第二天""公司卫生间"）vs 通用场景
+6. 评论空间：内容留有互动余地，读者能代入并分享自身经历
+7. 互动设计：有评论召唤/收藏诱饵/转发钩子（求推荐/选边站/晒经历）
+
+【复刻模板创作铁律】
+1. 标题模板严格控制在20字以内（含标点和emoji），超出即不合格
+2. 所有模板场景必须基于真实日常生活经验，符合普通人的实际行为常识
+3. 严禁出现：经血流在地上、把卫生巾藏进袖子/口袋、当众处理经血等不符合正常生活行为的夸张设定
+4. 可用的真实场景：高铁/飞机长途、演唱会、图书馆自习、公司上班、宿舍、运动后、追星、跨省旅行
+5. 产品出现的方式必须自然：是"刚好带了/备了/用了"，而非戏剧化的意外或刻意制造的危机
+6. 情绪真实：真实焦虑（怕漏/不舒适/异味）是可以的；夸张的戏剧化场面（流血、尴尬到无法收场）不符合素人内容标准
+7. 严禁在模板中使用"姨妈"（用"月经"或"经期"）；严禁出现"性价比"等价格相关表述`;
+
+// ── 批量打标专用（精简版，只含分类体系，不含深度技能）──────────
+const BATCH_SYS = `你是小红书内容打标专家，快速分析卫生巾/女性健康类笔记标题。
+圈层：产品评测/健康科普/社会议题/个人日常/情感关系/母婴育儿/运动健身/时尚美妆/校园生活/外出应急/笑搞幽默/食物美食
+人设：独立女性/成分党测评党/职场人/宝妈/工薪阶层/青春期女生/乐活一族/健身男女
+策略：科普实验型(1)/干货清单型(2)/态度输出型(3)/幽默吐槽型(4)/氛围治愈型(5)/真实故事型(6)
+互动量级（卫生巾类目）：超爆文≥50000/大爆文10000-49999/中爆文5000-9999/小爆文1000-4999/普通<1000`;
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const S = {
+  model:'deepseek-chat', key:'', url:'https://api.deepseek.com',
+  type:'ao', ad:'rep',
+  writeType:'ao', writeAd:'rep',
+  revBuf:'', analyzeBuf:'',
+  parsedRows:[], headers:[],
+  batchResults:[], chunks:[], resumeChunkIndex:0,
+  deepTitle:'', deepBuf:'',
+  library:[],
+  commonalityBuf:'',
+  refAnalysis:'',
+  stopBatch:false, batchPaused:false,
+  stopSingle:false,
+  stopReview:false,
+  stopCommonality:false,
+  writeBuf:'', stopWrite:false,
+  libraryPatterns:'',
+  stopExtract:false,
+  _singleAbort:null, _reviewAbort:null, _commonalityAbort:null, _extractAbort:null
+};
+
+// 三款产品专属规则（供 Step2 prompt 使用）
+const PRODUCT_RULES = {
+  '蔓越莓':`卖点：4亿L19专利益生菌+蔓越莓精华，维持菌群平衡，抑制有害菌99%；去除90%+异味；pH弱酸面层；1秒闭眼贴护翼
+适用场景：演唱会、职场、旅行、运动、追星等大众日常场景（无特殊限制）
+口语化表达："专研成分守住私密菌群""久坐清爽无异味""小翅膀贴哪待哪"
+必带tag：#高洁丝蔓越莓益生力
+禁止：价格相关词汇；不得与海岛棉/阳光烘烘卖点混用`,
+  '海岛棉':`卖点：全球仅0.3%珍稀海岛棉，触感柔滑软糯似羊绒，减少35%摩擦感；7大0添加医护级洁净；立体防漏软边
+适用场景：仅适合居家/敏感肌/需要极致舒适感场景（高端定位）
+严禁场景：演唱会追星、学生省钱、价格敏感场景——这些场景严禁使用此产品
+口语化表达："贴肤柔软触感像羊绒""上身几乎感觉不到它在"；严禁写"不像卫生巾"
+必带tag：#高洁丝海岛奢宠 #高洁丝海岛棉卫生巾
+禁止：价格相关词汇；不得与蔓越莓/阳光烘烘卖点混用`,
+  '阳光烘烘':`卖点：99.9%抑菌+100%纯棉；12小时长效抑菌；抑制4大有害菌（含加德纳氏菌，行业首次）；婴儿级OEKO-TEX I级认证；1620小时阳光烘晒美棉
+适用场景：健康卫生意识场景，目标25-35岁高知女性，健康觉醒/成分党场景
+口语化表达："晒了67天太阳的棉不用化学消毒""第三方测过4种有害菌99.9%抑制"
+必带tag：#高洁丝阳光烘烘
+禁止：价格相关词汇；不得与蔓越莓/海岛棉卖点混用`
+};
+
+const MODEL_MAP = {
+  'deepseek-chat':    {url:'https://api.deepseek.com',               label:'DeepSeek · 国内可用'},
+  'deepseek-reasoner':{url:'https://api.deepseek.com',               label:'DeepSeek · 国内可用'},
+  'doubao-pro-32k':   {url:'https://ark.cn-beijing.volces.com/api/v3',label:'豆包 · 国内可用'},
+  'claude-sonnet-4-6':{url:'https://api.anthropic.com',              label:'Claude · 需代理'},
+};
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.onload = () => {
+  const cfg = JSON.parse(localStorage.getItem('kx_cfg')||'{}');
+  if(cfg.model) S.model=cfg.model;
+  if(cfg.key)   S.key=cfg.key;
+  if(cfg.url)   S.url=cfg.url;
+  document.getElementById('kb-preview').textContent = DEFAULT_KB;
+  refreshChip();
+  loadLibrary();
+  try { S.libraryPatterns = localStorage.getItem('kx_lib_patterns') || ''; } catch {}
+  renderLibraryPatterns();
+  document.getElementById('single-post').addEventListener('input',e=>{
+    document.getElementById('sp-count').textContent=e.target.value.length;
+  });
+  ['ref-post','draft'].forEach((id,i)=>{
+    document.getElementById(id).addEventListener('input',e=>{
+      document.getElementById(['rc1','rc2'][i]).textContent=e.target.value.length;
+    });
+  });
+  document.getElementById('ref-write-post').addEventListener('input',e=>{
+    document.getElementById('write-rc1').textContent=e.target.value.length;
+  });
+};
+
+// ══════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════
+function navigate(page){
+  document.querySelectorAll('.sb-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.page===page);
+  });
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-'+page).classList.add('on');
+  if(page==='library'){
+    const lpc=document.getElementById('lib-page-count');
+    if(lpc) lpc.textContent=S.library.length;
+    const lkc=document.getElementById('lib-kb-count');
+    if(lkc) lkc.textContent=S.library.length;
+    renderLibraryPatterns();
+  }
+  if(page!=='studio') selectAgent(null);
+}
+
+function selectAgent(agent){
+  document.getElementById('agent-home').style.display=agent?'none':'';
+  ['analyze','copywrite','review'].forEach(a=>{
+    document.getElementById('agent-'+a).style.display=(a===agent)?'':'none';
+  });
+}
+
+function switchMainTab(tab){
+  // kept for backward compat (sendToReview calls)
+  navigate('studio');
+  selectAgent(tab==='analyze'?'analyze':'review');
+}
+
+function switchSubTab(showId, hideId, btn){
+  document.getElementById(showId).classList.add('on');
+  document.getElementById(hideId).classList.remove('on');
+  btn.parentElement.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ══════════════════════════════════════════════
+// MODAL / SETTINGS
+// ══════════════════════════════════════════════
+function openModal(){
+  document.getElementById('m-model').value=S.model;
+  document.getElementById('m-key').value=S.key;
+  document.getElementById('m-url').value=S.url;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function onModelSwitch(){
+  const m=document.getElementById('m-model').value;
+  document.getElementById('m-url').value=MODEL_MAP[m]?.url||'';
+}
+function saveSettings(){
+  S.model=document.getElementById('m-model').value;
+  S.key=document.getElementById('m-key').value.trim();
+  S.url=document.getElementById('m-url').value.trim();
+  localStorage.setItem('kx_cfg',JSON.stringify({model:S.model,key:S.key,url:S.url}));
+  refreshChip(); closeModal(); toast('设置已保存 ✓');
+}
+function refreshChip(){
+  const el=document.getElementById('model-chip');
+  if(S.key){
+    el.textContent=(MODEL_MAP[S.model]?.label||S.model)+' ✓';
+    el.className='tag tg-ok';
+  } else if(PROXY_URL){
+    el.textContent='共享模式 · 无需 Key';
+    el.className='tag tg-ok';
+  } else {
+    el.textContent=(MODEL_MAP[S.model]?.label||S.model)+' · 未配置';
+    el.className='tag tg-p';
+  }
+}
+
+// ══════════════════════════════════════════════
+// KB
+// ══════════════════════════════════════════════
+function saveKB(){toast('知识库为官方版本，刷新后自动恢复。如需永久修改请联系管理员。',3000);}
+function resetKB(){document.getElementById('kb-text').value=DEFAULT_KB;toast('已恢复官方版本');}
+
+// ══════════════════════════════════════════════
+// COLLAPSE
+// ══════════════════════════════════════════════
+function toggleColl(bid,aid){
+  document.getElementById(bid).classList.toggle('open');
+  document.getElementById(aid).classList.toggle('open');
+}
+function setTog(gid,btn){
+  document.querySelectorAll(`#${gid} .tbtn`).forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(gid==='tg-type'){
+    S.type=btn.dataset.v;
+    const s=S.type==='soss';
+    document.getElementById('fg-kw').style.display=s?'':'none';
+    document.getElementById('fg-form').style.display=s?'':'none';
+  }
+  if(gid==='tg-ad') S.ad=btn.dataset.v;
+  if(gid==='tg-write-type'){
+    S.writeType=btn.dataset.v;
+    const s=S.writeType==='soss';
+    document.getElementById('fg-write-kw').style.display=s?'':'none';
+    document.getElementById('fg-write-form').style.display=s?'':'none';
+  }
+  if(gid==='tg-write-ad') S.writeAd=btn.dataset.v;
+}
+
+// ══════════════════════════════════════════════
+// 内容铺 LIBRARY
+// ══════════════════════════════════════════════
+function loadLibrary(){
+  try{ S.library = JSON.parse(localStorage.getItem('kx_library')||'[]'); }catch{ S.library=[]; }
+  updateLibraryCounter();
+}
+function updateLibraryCounter(){
+  const el=document.getElementById('lib-count');
+  if(el) el.textContent=S.library.length;
+  const lpc=document.getElementById('lib-page-count');
+  if(lpc) lpc.textContent=S.library.length;
+  const lkc=document.getElementById('lib-kb-count');
+  if(lkc) lkc.textContent=S.library.length;
+}
+
+function getLibraryContext(maxItems=30){
+  const parts=[];
+  if(S.library.length){
+    const items=S.library.slice(0,maxItems);
+    const lines=items.map((r,i)=>{
+      const t=r.tags||{};
+      return `${i+1}. 「${r.title}」｜圈层:${t.圈层一级||'-'}/${t.圈层二级||'-'}｜人设:${t.人设一级||'-'}｜策略:${t.沟通策略||'-'}｜钩子词:${t.钩子词汇||'-'}`;
+    }).join('\n');
+    parts.push(`\n\n【素材库参考（已打标笔记 ${S.library.length} 篇，参考其圈层/人设/钩子词规律，但模板必须遵守高洁丝规范）】\n${lines}`);
+  }
+  if(S.libraryPatterns){
+    const truncated=S.libraryPatterns.slice(0,1500);
+    parts.push(`\n\n【内容资产库（从历史爆文提炼的可复用模板，参考钩子词汇/标题公式/内容骨架，但场景和规范以高洁丝规则为准）】\n${truncated}${S.libraryPatterns.length>1500?'\n...(已截断)':''}`);
+  }
+  return parts.join('');
+}
+function addToLibrary(){
+  const toAdd=S.batchResults.filter(r=>!S.library.some(l=>l.title===r.title));
+  S.library=[...S.library,...toAdd];
+  try{ localStorage.setItem('kx_library',JSON.stringify(S.library)); }catch(e){ toast('存储空间不足，请清空素材库后重试',3000);return; }
+  updateLibraryCounter();
+  toast(`已保存到素材库 +${toAdd.length} 篇（库中共 ${S.library.length} 篇）✓`);
+}
+function clearLibrary(){
+  if(!confirm('确认清空素材库中所有笔记？'))return;
+  S.library=[];
+  localStorage.removeItem('kx_library');
+  updateLibraryCounter();
+  toast('素材库已清空');
+}
+
+// ══════════════════════════════════════════════
+// EXCEL PARSING
+// ══════════════════════════════════════════════
+function onFileDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if(file) parseFile(file);
+}
+function onFileSelect(input){
+  if(input.files[0]) parseFile(input.files[0]);
+}
+function parseFile(file){
+  toast('正在解析文件...');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let wb;
+      if(file.name.endsWith('.csv')){
+        const text=new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+        wb=XLSX.read(text,{type:'string'});
+      } else {
+        wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      }
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(rows.length<2){toast('文件内容为空或格式不对',3000);return;}
+      S.headers=rows[0].map(String);
+      S.parsedRows=rows.slice(1).filter(r=>r.some(c=>String(c).trim()));
+      document.getElementById('row-count').textContent=S.parsedRows.length;
+      ['map-title','map-engage','map-url'].forEach(id=>{
+        const sel=document.getElementById(id);
+        const hasEmpty=id!=='map-title';
+        sel.innerHTML=(hasEmpty?'<option value="">不选</option>':'')+
+          S.headers.map((h,i)=>`<option value="${i}">${h||'列'+(i+1)}</option>`).join('');
+        const auto={
+          'map-title':['标题','笔记标题','title','name','内容标题'],
+          'map-engage':['互动量','总互动','点赞','点赞数','互动数','likes'],
+          'map-url':['链接','url','笔记链接','note_url','地址']
+        };
+        const found=S.headers.findIndex(h=>(auto[id]||[]).some(k=>String(h).toLowerCase().includes(k.toLowerCase())));
+        if(found>=0) sel.value=String(found);
+      });
+      buildPreview(S.headers, S.parsedRows.slice(0,5));
+      document.getElementById('col-map').style.display='';
+      document.getElementById('preview-wrap').style.display='';
+      toast(`解析成功：${S.parsedRows.length} 行数据 ✓`);
+    } catch(err){ toast('解析失败：'+err.message, 4000); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function buildPreview(headers, rows){
+  const cols=Math.min(headers.length,8);
+  let html=`<table><thead><tr>${headers.slice(0,cols).map(h=>`<th>${esc(String(h))}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(r=>{ html+=`<tr>${r.slice(0,cols).map(c=>`<td>${esc(String(c).slice(0,60))}</td>`).join('')}</tr>`; });
+  html+='</tbody></table>';
+  document.getElementById('preview-tbl').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// BATCH ANALYZE
+// ══════════════════════════════════════════════
+async function doBatchAnalyze(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  if(!S.parsedRows.length){toast('请先上传Excel文件',2500);return;}
+  const titleCol=parseInt(document.getElementById('map-title').value);
+  const engageCol=document.getElementById('map-engage').value;
+  const urlCol=document.getElementById('map-url').value;
+  if(isNaN(titleCol)){toast('请选择「笔记标题」对应的列',2500);return;}
+
+  S.batchResults=[];
+  S.stopBatch=false; S.batchPaused=false; S.resumeChunkIndex=0;
+  const btn=document.getElementById('batch-btn');
+  btn.disabled=false; btn.textContent='⏹ 停止'; btn.onclick=stopBatchAnalyze;
+  const tot=S.parsedRows.length;
+  document.getElementById('batch-actions').style.display='none';
+
+  const resultCard=document.getElementById('batch-result');
+  resultCard.style.display='';
+  resultCard.scrollIntoView({behavior:'smooth',block:'start'});
+  buildBatchTable([]);
+
+  const validRows=[];
+  for(let i=0;i<tot;i++){
+    const row=S.parsedRows[i];
+    const title=String(row[titleCol]||'').trim();
+    if(!title) continue;
+    validRows.push({
+      title,
+      engage:engageCol!==''?String(row[parseInt(engageCol)]||''):'',
+      url:urlCol!==''?String(row[parseInt(urlCol)]||''):'',
+      rowIdx:i
+    });
+  }
+  const CHUNK=10;
+  S.chunks=[];
+  for(let i=0;i<validRows.length;i+=CHUNK) S.chunks.push(validRows.slice(i,i+CHUNK));
+
+  document.getElementById('batch-progress').style.display='';
+  document.getElementById('prog-tot').textContent=S.chunks.length;
+
+  await _runBatchChunks(btn, 0);
+}
+
+async function resumeBatchAnalyze(){
+  if(!S.chunks.length){toast('请先上传并解析文件',2500);return;}
+  S.stopBatch=false; S.batchPaused=false;
+  const btn=document.getElementById('batch-btn');
+  btn.disabled=false; btn.textContent='⏹ 停止'; btn.onclick=stopBatchAnalyze;
+  document.getElementById('batch-progress').style.display='';
+  document.getElementById('batch-actions').style.display='none';
+  await _runBatchChunks(btn, S.resumeChunkIndex);
+}
+
+async function _runBatchChunks(btn, startIdx){
+  const total=S.chunks.length;
+  document.getElementById('prog-tot').textContent=total;
+  for(let ci=startIdx;ci<total;ci++){
+    if(S.stopBatch){ S.resumeChunkIndex=ci; break; }
+    const chunk=S.chunks[ci];
+    document.getElementById('prog-cur').textContent=ci+1;
+    document.getElementById('prog-fill').style.width=((ci+1)/total*100)+'%';
+    try{
+      const tagsList=await getBatchTagsMulti(chunk.map(r=>({title:r.title,engage:r.engage})));
+      chunk.forEach((r,idx)=>{
+        S.batchResults.push({title:r.title,engage:r.engage,url:r.url,tags:tagsList[idx],rowIdx:r.rowIdx});
+      });
+    }catch(e){
+      chunk.forEach(r=>{
+        S.batchResults.push({title:r.title,engage:r.engage,url:r.url,
+          tags:{圈层一级:'解析失败',人设一级:'-',沟通策略:'-',互动量级:'-'},rowIdx:r.rowIdx});
+      });
+    }
+    buildBatchTable(S.batchResults);
+    if(!S.stopBatch) S.resumeChunkIndex=ci+1;
+  }
+
+  document.getElementById('batch-progress').style.display='none';
+  if(S.stopBatch){
+    S.batchPaused=true;
+    btn.textContent='继续打标 ▶'; btn.onclick=resumeBatchAnalyze; btn.disabled=false;
+    if(S.batchResults.length){
+      document.getElementById('batch-actions').style.display='flex';
+      toast(`已暂停，已完成 ${S.batchResults.length} 篇 · 点「继续打标」恢复`,3500);
+    }
+  } else {
+    btn.textContent='批量打标 ▶'; btn.onclick=doBatchAnalyze; btn.disabled=false;
+    if(S.batchResults.length){
+      document.getElementById('batch-actions').style.display='flex';
+      toast(`批量分析完成：${S.batchResults.length} 篇 ✓`,3000);
+    }
+  }
+}
+
+function stopBatchAnalyze(){
+  S.stopBatch=true;
+  const btn=document.getElementById('batch-btn');
+  btn.textContent='停止中...'; btn.disabled=true;
+}
+
+async function getBatchTags(title, engage){
+  const engageNum=parseFloat(String(engage).replace(/[^0-9.]/g,''))||0;
+  const level=engageNum>=50000?'超爆文':engageNum>=10000?'大爆文':engageNum>=5000?'中爆文':engageNum>=1000?'小爆文':engageNum>0?'普通':'未知';
+
+  const usr=`分析以下小红书笔记标题，只输出JSON，不要任何其他文字：
+标题：${title}${engage?'\n互动量：'+engage:''}
+
+{"tier1":"圈层一级","tier2":"圈层二级","persona1":"人设一级","persona2":"人设二级","strategy":"沟通策略类型名(数字)","hook":"1-3个钩子词","emotion":"核心情绪一词"}`;
+
+  let result='';
+  await callAI(BATCH_SYS, usr, t=>{result+=t;});
+
+  let parsed={};
+  try{
+    const jsonStr=result.match(/\{[\s\S]*\}/)?.[0]||result;
+    parsed=JSON.parse(jsonStr);
+  }catch{
+    const p=(key)=>{const m=result.match(new RegExp(key+'[："\'](.*?)(?:[,"\'\\}\\n]|$)'));return m?m[1].trim():'-';};
+    parsed={tier1:p('tier1'),tier2:p('tier2'),persona1:p('persona1'),persona2:p('persona2'),strategy:p('strategy'),hook:p('hook'),emotion:p('emotion')};
+  }
+  return {
+    圈层一级:parsed.tier1||'-', 圈层二级:parsed.tier2||'-',
+    人设一级:parsed.persona1||'-', 人设二级:parsed.persona2||'-',
+    沟通策略:parsed.strategy||'-',
+    钩子词汇:parsed.hook||'-', 情绪触发:parsed.emotion||'-',
+    互动量级:level, 互动原始:engage
+  };
+}
+
+async function getBatchTagsMulti(rows){
+  // rows = [{title, engage}, ...] 最多 10 条，一次请求返回 JSON 数组
+  const list=rows.map((r,i)=>
+    `${i+1}. 标题：${r.title}${r.engage?'（互动量:'+r.engage+'）':''}`
+  ).join('\n');
+
+  const usr=`分析以下 ${rows.length} 篇小红书笔记标题，只输出JSON数组，数组长度必须等于 ${rows.length}，不要任何其他文字：
+${list}
+
+[{"tier1":"","tier2":"","persona1":"","persona2":"","strategy":"","hook":"","emotion":""},...]`;
+
+  let result='';
+  await callAI(BATCH_SYS, usr, t=>{result+=t;});
+
+  let arr=[];
+  try{
+    const jsonStr=result.match(/\[[\s\S]*\]/)?.[0]||'[]';
+    arr=JSON.parse(jsonStr);
+  }catch{ arr=[]; }
+
+  return rows.map((r,i)=>{
+    const engageNum=parseFloat(String(r.engage).replace(/[^0-9.]/g,''))||0;
+    const level=engageNum>=50000?'超爆文':engageNum>=10000?'大爆文':engageNum>=5000?'中爆文':engageNum>=1000?'小爆文':engageNum>0?'普通':'未知';
+    const p=arr[i]||{};
+    return{
+      圈层一级:p.tier1||'-', 圈层二级:p.tier2||'-',
+      人设一级:p.persona1||'-', 人设二级:p.persona2||'-',
+      沟通策略:p.strategy||'-',
+      钩子词汇:p.hook||'-', 情绪触发:p.emotion||'-',
+      互动量级:level, 互动原始:r.engage
+    };
+  });
+}
+
+function buildBatchTable(results){
+  if(!results.length){
+    document.getElementById('batch-tbl').innerHTML='<div class="dots" style="padding:20px"><span></span><span></span><span></span></div>';
+    return;
+  }
+  const lvClass={'超爆文':'lv-s','大爆文':'lv-a','中爆文':'lv-b','小爆文':'lv-c','普通':'lv-d','未知':'lv-d'};
+  let html=`<table><thead><tr>
+    <th>#</th><th>笔记标题 / 钩子</th><th>互动量级</th>
+    <th>圈层一级</th><th>人设一级</th><th>沟通策略</th><th>操作</th>
+  </tr></thead><tbody>`;
+  results.forEach((r,i)=>{
+    const lv=r.tags.互动量级||'未知';
+    const hook=r.tags.钩子词汇&&r.tags.钩子词汇!=='-'?`<br><span style="font-size:10px;color:var(--g2)">🪝 ${esc(r.tags.钩子词汇)}</span>`:'';
+    const emo=r.tags.情绪触发&&r.tags.情绪触发!=='-'?`<span style="font-size:10px;color:var(--sub)"> · ${esc(r.tags.情绪触发)}</span>`:'';
+    html+=`<tr>
+      <td>${i+1}</td>
+      <td style="max-width:200px">
+        ${esc(r.title.slice(0,50))}${r.title.length>50?'…':''}${hook}${emo}
+      </td>
+      <td><span class="lv ${lvClass[lv]||'lv-d'}">${lv}</span>
+        ${r.tags.互动原始?'<br><span style="font-size:10px;color:var(--sub)">'+esc(r.tags.互动原始)+'</span>':''}
+      </td>
+      <td><strong>${esc(r.tags.圈层一级)}</strong><br><span style="font-size:11px;color:var(--sub)">${esc(r.tags.圈层二级)}</span></td>
+      <td><strong>${esc(r.tags.人设一级)}</strong><br><span style="font-size:11px;color:var(--sub)">${esc(r.tags.人设二级)}</span></td>
+      <td>${esc(r.tags.沟通策略)}</td>
+      <td>
+        <button class="btn-sec btn-sm" onclick="openDeep('${esc(r.title.replace(/'/g,"\\'"))}','${esc((r.tags.互动原始||'').replace(/'/g,"\\'"))}')">深度拆解</button>
+        ${r.url?`<br><a href="${esc(r.url)}" target="_blank" style="font-size:11px;color:var(--g1)">查看原文</a>`:''}
+      </td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('batch-tbl').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// 导出 CSV
+// ══════════════════════════════════════════════
+function exportBatchCSV(){
+  if(!S.batchResults.length){toast('没有可导出的数据');return;}
+  const headers=['序号','笔记标题','互动量','互动量级','圈层一级','圈层二级','人设一级','人设二级','沟通策略','钩子词汇','情绪触发','链接'];
+  const data=S.batchResults.map((r,i)=>[
+    i+1, r.title, r.tags.互动原始||'', r.tags.互动量级,
+    r.tags.圈层一级, r.tags.圈层二级, r.tags.人设一级, r.tags.人设二级,
+    r.tags.沟通策略, r.tags.钩子词汇||'', r.tags.情绪触发||'', r.url||''
+  ]);
+  const csv=[headers,...data].map(row=>row.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`爆文打标_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('CSV导出成功 ✓');
+}
+
+// ══════════════════════════════════════════════
+// 共性分析
+// ══════════════════════════════════════════════
+async function doCommonalityAnalysis(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  // 优先用内容铺库，否则用本次批量结果
+  const src = S.library.length>=3 ? S.library : S.batchResults;
+  if(!src.length){toast('请先完成批量打标',2500);return;}
+
+  const label = S.library.length>=3 ? `素材库（共${S.library.length}篇）` : `本次批量（${src.length}篇）`;
+  document.getElementById('commonality-src-label').textContent = label;
+
+  const lines = src.map((r,i)=>{
+    const t=r.tags||{};
+    return `${i+1}. 「${r.title}」｜圈层:${t.圈层一级||'-'}/${t.圈层二级||'-'}｜人设:${t.人设一级||'-'}｜策略:${t.沟通策略||'-'}｜钩子词:${t.钩子词汇||'-'}｜情绪:${t.情绪触发||'-'}${r.engage?'｜互动:'+r.engage:''}`;
+  }).join('\n');
+
+  const sys=`你是小红书爆文内容策略专家，专注卫生巾/女性健康类目。提炼规律时输出必须具体到可直接套用的层面——不是"使用情感共鸣"，而是给出具体的句子模板和词汇。`;
+  const usr=`以下是${src.length}篇卫生巾/女性健康类目爆文的打标数据，请提炼具体的内容套路。输出必须可以直接被文案策划拿去用，避免泛泛而谈。
+
+【爆文数据】
+${lines}
+
+请严格按以下格式输出：
+
+## 可直接套用的标题钩子公式
+（至少5条，格式：**公式名** → 结构模板 → 改写示例）
+例：痛点+意外反转 → "[场景]，我差点[严重后果]……" → "高铁6小时，我差点血染座位……"
+
+## 高价值钩子词汇库
+分类列出：
+- 痛点词：（列出5-8个，附简短说明）
+- 情绪词：（列出5-8个，附适用场景）
+- 数字强化词：（如"6小时""90%+"等，列出3-5个）
+- 反转词：（列出3-5个）
+
+## 开头段落写法（前3行）
+（给出3种可直接改写的开头模板，每种附具体例子）
+
+## 爆款内容骨架（最有效的3条套路）
+（每条：**套路名** + 具体步骤描述 + 实际例子，步骤要具体到"第一句写什么，第二段写什么"）
+
+## 数据分析洞察
+（哪些圈层/人设/策略组合出现最多？对高洁丝内容创作的3条具体建议，带句子模板）`;
+
+  const card=document.getElementById('commonality-card');
+  const body=document.getElementById('commonality-body');
+  const cbtn=document.getElementById('commonality-btn');
+  card.style.display='block';
+  body.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+
+  S.stopCommonality=false;
+  if(S._commonalityAbort) S._commonalityAbort.abort();
+  S._commonalityAbort=new AbortController();
+  if(cbtn){
+    cbtn.textContent='⏹ 停止共性分析';
+    cbtn.onclick=()=>{
+      S.stopCommonality=true;
+      S._commonalityAbort?.abort();
+      cbtn.textContent='停止中...'; cbtn.disabled=true;
+    };
+  }
+
+  S.commonalityBuf='';
+  try{
+    await callAI(sys, usr, t=>{
+      if(S.stopCommonality) return;
+      S.commonalityBuf+=t; body.innerHTML=md(S.commonalityBuf);
+    }, S._commonalityAbort.signal);
+  } catch(e){
+    if(e.name!=='AbortError'&&!S.stopCommonality)
+      body.innerHTML=`<div style="color:var(--err)">❌ ${e.message}</div>`;
+  }
+  S.stopCommonality=false;
+  if(cbtn){
+    cbtn.disabled=false;
+    cbtn.textContent=S.commonalityBuf?'🔄 重新生成共性分析':'🧠 生成共性分析';
+    cbtn.onclick=doCommonalityAnalysis;
+  }
+}
+
+function copyCommonality(){
+  if(!S.commonalityBuf){toast('暂无报告');return;}
+  navigator.clipboard.writeText(S.commonalityBuf)
+    .then(()=>toast('共性分析报告已复制 ✓'))
+    .catch(()=>toast('请手动选择文字复制'));
+}
+
+// ══════════════════════════════════════════════
+// 提炼内容资产
+// ══════════════════════════════════════════════
+async function doExtractPatterns(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  const src=S.library.length>=3?S.library:S.batchResults;
+  if(!src.length){toast('请先完成批量打标并保存数据',2500);return;}
+
+  const btn=document.getElementById('extract-btn');
+  const pCard=document.getElementById('patterns-card');
+  const pBody=document.getElementById('patterns-body');
+  const pLabel=document.getElementById('patterns-src-label');
+
+  const label=S.library.length>=3?`素材库（${S.library.length}篇）`:`本次批量（${src.length}篇）`;
+  if(pLabel) pLabel.textContent=label;
+
+  S.stopExtract=false;
+  if(S._extractAbort) S._extractAbort.abort();
+  S._extractAbort=new AbortController();
+
+  if(btn){
+    btn.textContent='⏹ 停止提炼'; btn.disabled=false;
+    btn.onclick=()=>{
+      S.stopExtract=true;
+      S._extractAbort?.abort();
+      btn.textContent='停止中...'; btn.disabled=true;
+    };
+  }
+
+  pCard.style.display='';
+  pBody.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  pCard.scrollIntoView({behavior:'smooth',block:'start'});
+
+  const lines=src.map((r,i)=>{
+    const t=r.tags||{};
+    return `${i+1}. 「${r.title}」｜圈层:${t.圈层一级||'-'}/${t.圈层二级||'-'}｜人设:${t.人设一级||'-'}｜策略:${t.沟通策略||'-'}｜钩子词:${t.钩子词汇||'-'}｜情绪:${t.情绪触发||'-'}`;
+  }).join('\n');
+
+  const sys=`你是小红书爆文内容策略专家，专注卫生巾/女性健康类目。你的任务是从批量打标数据中提炼出可直接复用的内容资产——句子模板、标题公式、词汇库、内容骨架。所有输出必须是可直接填空使用的具体模板，禁止泛泛的策略建议。`;
+
+  const usr=`以下是${src.length}篇卫生巾/女性健康类目笔记的打标数据，请提炼出可直接复用的内容资产库。
+
+【打标数据】
+${lines}
+
+请严格按以下格式输出内容资产库：
+
+## 钩子词汇库
+按类别分组（每类5-8个，后附适用场景说明）：
+**痛点词**：
+**情绪词**：
+**感受词**：
+**场景词**：
+**数字强化词**：
+
+## 标题公式×6
+（每条格式：**公式名** → [填空模板] → 改写示例，填空模板≤20字）
+1.
+2.
+3.
+4.
+5.
+6.
+
+## 开头句模板×6
+（可直接填空使用的开头句，每条带场景说明）
+1.
+2.
+3.
+4.
+5.
+6.
+
+## 爆款内容骨架×3
+（每条：套路名称 + 开头/转折/高潮/结尾的具体写法模板）
+**骨架1：**
+
+**骨架2：**
+
+**骨架3：**
+
+## 圈层与人设规律
+（最高频出现的3个圈层×人设组合，附对高洁丝内容创作的具体建议，带句子模板）`;
+
+  S.libraryPatterns='';
+  try{
+    await callAI(sys,usr,t=>{
+      if(S.stopExtract) return;
+      S.libraryPatterns+=t; pBody.innerHTML=md(S.libraryPatterns);
+    },S._extractAbort.signal);
+  }catch(e){
+    if(e.name!=='AbortError'&&!S.stopExtract)
+      pBody.innerHTML=`<div style="color:var(--err)">❌ ${e.message}</div>`;
+  }
+
+  if(S.libraryPatterns&&!S.stopExtract){
+    try{ localStorage.setItem('kx_lib_patterns',S.libraryPatterns); }catch{}
+    renderLibraryPatterns();
+    toast('内容资产已提炼并保存 ✓',3000);
+  }
+
+  const stopped=S.stopExtract;
+  S.stopExtract=false;
+  if(btn){
+    btn.disabled=false;
+    btn.textContent=stopped?'继续提炼 ▶':'重新提炼 ▶';
+    btn.onclick=doExtractPatterns;
+  }
+}
+
+function renderLibraryPatterns(){
+  const display=document.getElementById('lib-patterns-display');
+  const count2=document.getElementById('lib-patterns-count2');
+  const count=document.getElementById('lib-patterns-count');
+  if(S.libraryPatterns){
+    if(display) display.innerHTML=`<div class="rc">${md(S.libraryPatterns)}</div>`;
+    const lines=S.libraryPatterns.split('\n').filter(l=>l.trim()).length;
+    if(count2) count2.textContent='已生成';
+    if(count) count.textContent=lines;
+  } else {
+    if(display) display.innerHTML=`<div class="lib-empty"><div class="lib-empty-icon">📦</div><div>暂无内容资产<br>请先在「品牌知识库」上传数据，批量打标后点击「提炼内容资产」</div></div>`;
+    if(count2) count2.textContent='—';
+    if(count) count.textContent='0';
+  }
+}
+
+function copyPatterns(){
+  if(!S.libraryPatterns){toast('暂无内容资产，请先提炼',2000);return;}
+  navigator.clipboard.writeText(S.libraryPatterns)
+    .then(()=>toast('内容资产已复制 ✓'))
+    .catch(()=>toast('请手动选择文字复制'));
+}
+
+// ══════════════════════════════════════════════
+// SINGLE ANALYZE（两步式：Step1 通用拆解 + Step2 高洁丝定制）
+// ══════════════════════════════════════════════
+function buildStep1Prompt(content){
+  return `请分析以下小红书笔记的核心爆款逻辑，提炼可复用的内容套路。只分析原文套路，不考虑任何特定品牌，结果将用于下一步的高洁丝内容定制。
+
+【笔记内容】
+${content}
+
+请输出：
+
+## 钩子与情绪分析
+- 钩子类型：（数字清单/悬念反转/痛点共鸣/身份认同/权威背书/场景代入/对比冲突/情绪宣泄）
+- 情绪触发词（从原文提炼，3-5个）：
+- 标题公式（填空模板，说明其结构）：
+- 算法驱动：（评论驱动/收藏驱动/关注驱动，说明依据）
+
+## 内容骨架
+- 叙事模型：
+- 开头策略（具体写法，引用原文核心词汇）：
+- 中段逻辑：
+- 结尾互动引导：
+
+## 高价值词汇（从原文提炼）
+- 情绪词（3-5个）：
+- 场景词（3-5个）：
+- 感受词（3-5个）：
+
+## 标题填空模板×3
+（基于原文标题公式，说明结构，暂不考虑产品限制）
+1.
+2.
+3.`;
+}
+
+function buildStep2Prompt(step1Result, product){
+  const rule=PRODUCT_RULES[product]||'';
+  return `基于以下爆文套路分析，为「高洁丝${product}」生成高质量合规创作模板。
+
+【第一步：爆文套路提炼结果】
+${step1Result}
+
+【当前产品：高洁丝${product}】
+${rule}
+
+【输出铁律——以下为最高优先级，违反即不合格】
+铁律1：标题模板每条严格≤20字（含标点emoji），这是硬性红线，超出不得输出
+铁律2：禁止使用"姨妈"，统一写"月经"或"经期"
+铁律3：禁止出现"性价比""便宜""划算"等价格相关词汇
+铁律4：场景必须符合高洁丝${product}的定位（见上方产品规则，场景禁令严格执行）
+铁律5：产品出场须在第2-3段之后自然融入，不可开篇即推产品
+铁律6：所有场景设定必须真实可信，禁止夸张失真场景
+
+请输出：
+
+## 一句话总结
+（1句话点出这篇爆文的核心套路，具体到结构层面）
+
+## 三维打标
+圈层一级：xxx
+圈层二级：xxx
+人设一级：xxx
+人设二级：xxx
+沟通策略：xxx
+互动量级：xxx（若无数据填"未提供"）
+钩子类型：xxx
+内容结构：xxx
+算法驱动：xxx
+
+## 直接可用素材
+**开头钩子句×3**（适配高洁丝${product}，场景真实，不出现品牌名，自然植入产品感受）：
+1.
+2.
+3.
+
+**高效词汇**（适配${product}卖点的情绪词/场景词/感受词各3个）：
+- 情绪词：
+- 场景词：
+- 感受词：
+
+**内容骨架**（可直接复刻，已适配${product}）：
+开头：___（场景/情绪设定，须符合${product}场景定位）
+转折：___（发现/对比/变化）
+产品出场：___（${product}的自然融入方式，第3段后）
+结尾：___（互动引导句）
+
+## 标题模板×3
+（≤20字，基于爆文套路 + ${product}适配场景，可直接填空复用）：
+1.
+2.
+3.
+
+## 推荐Tag`;
+}
+
+async function doSingleAnalyze(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  const content=document.getElementById('single-post').value.trim();
+  if(!content){toast('请输入笔记内容',2500);return;}
+  const product=document.getElementById('analyze-product')?.value||'蔓越莓';
+
+  S.stopSingle=false;
+  if(S._singleAbort) S._singleAbort.abort();
+  S._singleAbort=new AbortController();
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=false;
+  btn.innerHTML='⏹ 停止';
+  btn.onclick=()=>{
+    S.stopSingle=true;
+    S._singleAbort?.abort();
+    btn.innerHTML='停止中...';btn.disabled=true;
+  };
+
+  const rc=document.getElementById('single-result');
+  rc.style.display='';
+  document.getElementById('analyze-summary').style.display='none';
+  document.getElementById('analyze-summary-text').textContent='';
+  document.getElementById('tag-badges').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  document.getElementById('analyze-body').innerHTML='';
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+
+  const indicator=document.getElementById('analyze-step-indicator');
+  const stepLabel=document.getElementById('step-label');
+  if(indicator) indicator.style.display='';
+
+  // ─── Step 1: 通用爆文套路提炼 ───
+  if(stepLabel) stepLabel.textContent='⏳ Step 1/2：正在提炼爆文套路...';
+  let step1Result='';
+  try{
+    await callAI(ANALYZE_SYS, buildStep1Prompt(content), t=>{
+      if(S.stopSingle) return;
+      step1Result+=t;
+    }, S._singleAbort.signal);
+  } catch(e){
+    if(e.name==='AbortError'||S.stopSingle){
+      _finishSingleAnalyze(btn, true); return;
+    }
+    document.getElementById('analyze-body').innerHTML=`<div style="color:var(--err);padding:10px">❌ Step1 失败：${e.message}</div>`;
+    _finishSingleAnalyze(btn, false); return;
+  }
+  if(S.stopSingle){ _finishSingleAnalyze(btn, true); return; }
+
+  // ─── Step 2: 高洁丝定制模板生成 ───
+  if(stepLabel) stepLabel.textContent='⏳ Step 2/2：正在生成高洁丝合规模板...';
+  const analyzeSys=ANALYZE_SYS+'\n\n【高洁丝内容规范（生成模板和结构时必须遵守，与上方铁律同等优先级）】\n'+DEFAULT_KB+getLibraryContext();
+  S.analyzeBuf='';
+  try{
+    await callAI(analyzeSys, buildStep2Prompt(step1Result, product), t=>{
+      if(S.stopSingle) return;
+      S.analyzeBuf+=t; renderAnalyze(S.analyzeBuf);
+    }, S._singleAbort.signal);
+    if(!S.stopSingle) renderAnalyze(S.analyzeBuf, true);
+  } catch(e){
+    if(e.name==='AbortError'||S.stopSingle){
+      _finishSingleAnalyze(btn, true); return;
+    }
+    document.getElementById('analyze-body').innerHTML=`<div style="color:var(--err);padding:10px">❌ ${e.message}</div>`;
+  }
+  _finishSingleAnalyze(btn, false);
+}
+
+function _finishSingleAnalyze(btn, wasStopped){
+  const indicator=document.getElementById('analyze-step-indicator');
+  if(indicator) indicator.style.display='none';
+  S.stopSingle=false;
+  btn.disabled=false;
+  if(wasStopped){
+    btn.innerHTML='继续拆解 ▶';
+    btn.onclick=doSingleAnalyze;
+  } else {
+    btn.innerHTML='开始拆解 ▶';
+    btn.onclick=doSingleAnalyze;
+  }
+}
+
+function renderAnalyze(text){
+  // 提取一句话总结
+  const sumMatch=text.match(/## 一句话总结\n([\s\S]*?)(?=\n## |$)/);
+  if(sumMatch){
+    const summary=sumMatch[1].trim();
+    if(summary){
+      document.getElementById('analyze-summary-text').textContent=summary;
+      document.getElementById('analyze-summary').style.display='';
+    }
+  }
+
+  // 提取三维打标
+  const tagLines=['圈层一级','圈层二级','人设一级','人设二级','沟通策略','互动量级'];
+  const tagVals={};
+  tagLines.forEach(k=>{
+    const m=text.match(new RegExp(k+'[：:](.*?)(?:\\n|$)'));
+    if(m) tagVals[k]=m[1].trim();
+  });
+  const lvClass={'超爆文':'lv-s','大爆文':'lv-a','中爆文':'lv-b','小爆文':'lv-c','普通':'lv-d'};
+  const lv=tagVals['互动量级']||'';
+  document.getElementById('tag-badges').innerHTML=`
+    <div class="tag-row"><div class="tag-lbl">圈层</div>
+      <div class="tag-val">${esc(tagVals['圈层一级']||'…')}</div>
+      ${tagVals['圈层二级']?`<div class="tag-sub">▸ ${esc(tagVals['圈层二级'])}</div>`:''}
+    </div>
+    <div class="tag-row"><div class="tag-lbl">人设</div>
+      <div class="tag-val">${esc(tagVals['人设一级']||'…')}</div>
+      ${tagVals['人设二级']?`<div class="tag-sub">▸ ${esc(tagVals['人设二级'])}</div>`:''}
+    </div>
+    <div class="tag-row"><div class="tag-lbl">策略</div>
+      <div class="tag-val">${esc(tagVals['沟通策略']||'…')}</div>
+    </div>
+    ${lv?`<div class="tag-row"><div class="tag-lbl">量级</div><span class="lv ${lvClass[lv]||'lv-d'}">${esc(lv)}</span></div>`:''}`;
+
+  // 正文去掉已显示的部分
+  const bodyText=text
+    .replace(/## 一句话总结[\s\S]*?(?=\n## |$)/,'')
+    .replace(/## 三维打标[\s\S]*?(?=\n## |$)/,'')
+    .trim();
+  document.getElementById('analyze-body').innerHTML=md(bodyText);
+}
+
+// ══════════════════════════════════════════════
+// DEEP ANALYSIS (from batch row)
+// ══════════════════════════════════════════════
+function openDeep(title, engage){
+  S.deepTitle=title;
+  document.getElementById('deep-title').value=title;
+  document.getElementById('deep-engage').value=engage||'';
+  document.getElementById('deep-content').value='';
+  document.getElementById('deep-result').style.display='none';
+  document.getElementById('deep-summary').style.display='none';
+  document.getElementById('deep-tag-badges').innerHTML='';
+  document.getElementById('deep-body').innerHTML='';
+  document.getElementById('deep-modal').classList.add('show');
+}
+function closeDeep(){document.getElementById('deep-modal').classList.remove('show');}
+
+async function doDeepAnalyze(){
+  if(!S.key&&!PROXY_URL){toast('请先配置 API Key',3000);return;}
+  const title=document.getElementById('deep-title').value.trim();
+  const content=document.getElementById('deep-content').value.trim();
+  const engage=document.getElementById('deep-engage').value.trim();
+
+  const usr=`请对以下小红书笔记进行深度拆解分析。
+
+【笔记标题】${title}
+${content?'【笔记正文/Tag】\n'+content:'（仅凭标题分析，建议补充正文以提升准确度）'}
+${engage?'【互动数据】'+engage:''}
+
+请严格按以下格式输出：
+
+## 一句话总结
+（1-2句话直接点出最值得借鉴的爆款核心逻辑）
+
+## 三维打标
+圈层一级：xxx
+圈层二级：xxx
+人设一级：xxx
+人设二级：xxx
+沟通策略：xxx
+互动量级：xxx
+
+## 标题钩子分析
+- 钩子类型：
+- 情绪触发词：（具体词汇）
+- 标题公式：（可直接套用的模板）
+- 为什么有效：
+
+## 内容框架套路
+- 叙事模型：
+- 开头策略：（具体写法）
+- 中段价值点：
+- 结尾引导：
+
+## 爆款复刻模板
+**标题模板×3：**
+1.
+2.
+3.
+
+**内容框架：**
+[开头模板] → [中段结构] → [结尾引导]`;
+
+  document.getElementById('deep-result').style.display='';
+  document.getElementById('deep-summary').style.display='none';
+  document.getElementById('deep-tag-badges').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  document.getElementById('deep-body').innerHTML='';
+
+  const deepSys = ANALYZE_SYS + '\n\n【高洁丝内容规范（生成模板和结构时必须遵守）】\n' + DEFAULT_KB + getLibraryContext();
+  S.deepBuf='';
+  try{
+    await callAI(deepSys, usr, t=>{S.deepBuf+=t; renderDeep(S.deepBuf);});
+  } catch(e){
+    document.getElementById('deep-body').innerHTML=`<div style="color:var(--err)">❌ ${e.message}</div>`;
+  }
+}
+
+function renderDeep(text){
+  // 一句话总结
+  const sumMatch=text.match(/## 一句话总结\n([\s\S]*?)(?=\n## |$)/);
+  if(sumMatch){
+    const s=sumMatch[1].trim();
+    if(s){
+      document.getElementById('deep-summary-text').textContent=s;
+      document.getElementById('deep-summary').style.display='';
+    }
+  }
+  const tagLines=['圈层一级','圈层二级','人设一级','人设二级','沟通策略','互动量级'];
+  const tv={};
+  tagLines.forEach(k=>{const m=text.match(new RegExp(k+'[：:](.*?)(?:\\n|$)'));if(m)tv[k]=m[1].trim();});
+  const lvC={'超爆文':'lv-s','大爆文':'lv-a','中爆文':'lv-b','小爆文':'lv-c','普通':'lv-d'};
+  const lv=tv['互动量级']||'';
+  document.getElementById('deep-tag-badges').innerHTML=`
+    <div class="tag-row"><div class="tag-lbl">圈层</div>
+      <div class="tag-val">${esc(tv['圈层一级']||'…')}</div>
+      ${tv['圈层二级']?`<div class="tag-sub">▸ ${esc(tv['圈层二级'])}</div>`:''}
+    </div>
+    <div class="tag-row"><div class="tag-lbl">人设</div>
+      <div class="tag-val">${esc(tv['人设一级']||'…')}</div>
+      ${tv['人设二级']?`<div class="tag-sub">▸ ${esc(tv['人设二级'])}</div>`:''}
+    </div>
+    <div class="tag-row"><div class="tag-lbl">策略</div>
+      <div class="tag-val">${esc(tv['沟通策略']||'…')}</div>
+    </div>
+    ${lv?`<div class="tag-row"><div class="tag-lbl">量级</div><span class="lv ${lvC[lv]||'lv-d'}">${esc(lv)}</span></div>`:''}`;
+  const bodyText=text
+    .replace(/## 一句话总结[\s\S]*?(?=\n## |$)/,'')
+    .replace(/## 三维打标[\s\S]*?(?=\n## |$)/,'')
+    .trim();
+  document.getElementById('deep-body').innerHTML=md(bodyText);
+}
+
+function sendDeepToReview(){
+  const title=document.getElementById('deep-title').value.trim();
+  const content=document.getElementById('deep-content').value.trim();
+  document.getElementById('ref-post').value=title+(content?'\n\n'+content:'');
+  document.getElementById('rc1').textContent=document.getElementById('ref-post').value.length;
+  S.refAnalysis = S.deepBuf;
+  updateRefAnalysisBar();
+  closeDeep();
+  navigate('studio');
+  selectAgent('review');
+  toast('参考笔记已传入审核区 ✓', 2000);
+}
+
+// ══════════════════════════════════════════════
+// SEND TO REVIEW（联动）
+// ══════════════════════════════════════════════
+function sendToReview(){
+  const content=document.getElementById('single-post').value.trim();
+  document.getElementById('ref-post').value=content;
+  document.getElementById('rc1').textContent=content.length;
+  S.refAnalysis = S.analyzeBuf;
+  updateRefAnalysisBar();
+  navigate('studio');
+  selectAgent('review');
+  toast('参考笔记已传入审核区 ✓', 2000);
+}
+
+function updateRefAnalysisBar(){
+  const bar=document.getElementById('ref-analysis-bar');
+  if(bar) bar.style.display=S.refAnalysis?'':'none';
+}
+
+function doCopyAnalyze(){
+  navigator.clipboard.writeText(S.analyzeBuf)
+    .then(()=>toast('拆解报告已复制 ✓'))
+    .catch(()=>toast('请手动选择文字复制'));
+}
+
+// ══════════════════════════════════════════════
+// 文案 AGENT
+// ══════════════════════════════════════════════
+const WRITE_SYS = `你是高洁丝品牌资深内容创作者，精通小红书和抖音的素人种草内容写作。
+
+【角色定位】写出来的文字必须像真实素人用户自己写的，有真实感和生活气息，绝不能有广告感。
+
+【输出格式】直接输出完整稿件，不加任何说明或解释：
+标题：（严格≤20字）
+正文：（完整内容）
+Tag：（#xxx #xxx #xxx）
+
+【写作铁律——与下方知识库同等优先级，两者冲突时从严执行】
+1. 标题严格≤20字（含标点和emoji），超出即不合格
+2. 禁止用"姨妈"，使用"月经"或"经期"
+3. 禁止"性价比""便宜""划算"等价格相关表述
+4. 产品出场须在第2-3段之后自然融入，不可开篇即推产品
+5. 内容须有轻微吐槽或小缺点让内容有真实感，不能全是优点
+6. 场景必须真实可信，符合普通人日常行为常识
+7. 严禁出现夸张失真场景（如经血流地/把卫生巾藏进袖子等）`;
+
+async function doWrite(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  const product=document.getElementById('sel-write-product').value;
+  const platform=document.getElementById('sel-write-platform').value;
+  const kw=document.getElementById('inp-write-kw')?.value.trim()||'';
+  const form=document.getElementById('sel-write-form')?.value||'';
+  const ref=document.getElementById('ref-write-post').value.trim();
+  const typeLabel=S.writeType==='soss'?'SOSS搜索词下浮现':'Ao素人文';
+  const adLabel=S.writeAd==='rep'?'报备':'非报备';
+
+  const usr=`请为以下需求创作一篇完整稿件：
+
+产品：高洁丝${product}
+类型：${typeLabel}（${adLabel}）
+平台：${platform}
+${S.writeType==='soss'&&kw?'搜索词：'+kw+'\n内容形式：'+form+'\n':''}${ref?'\n参考笔记（须仿照其结构和段落划分）：\n'+ref+'\n':''}
+要求：
+- 标题严格≤20字，这是硬性红线
+- 内容真实自然，以真实用户口吻，无广告感
+- ${S.writeType==='soss'?'搜索词须出现在标题、正文前50字、tag':'内容创意有趣，符合真实生活场景'}
+- ${S.writeAd==='rep'?'可露出品牌名称和产品名':'禁止在标题、文案、tag中提及产品和品牌名称'}
+
+直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+
+  S.stopWrite=false;
+  const btn=document.getElementById('write-btn');
+  btn.disabled=false; btn.innerHTML='⏹ 停止';
+  btn.onclick=()=>{S.stopWrite=true;btn.innerHTML='停止中...';btn.disabled=true;};
+
+  const rc=document.getElementById('write-result');
+  rc.style.display='';
+  document.getElementById('write-body').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+
+  const writeSys=WRITE_SYS+'\n\n'+DEFAULT_KB+getLibraryContext();
+  S.writeBuf='';
+  try{
+    await callAI(writeSys,usr,t=>{
+      if(S.stopWrite)return;
+      S.writeBuf+=t;
+      document.getElementById('write-body').innerHTML=md(S.writeBuf);
+    });
+  }catch(e){
+    if(!S.stopWrite)
+      document.getElementById('write-body').innerHTML=`<div style="color:var(--err);padding:10px">❌ ${e.message}</div>`;
+  }
+  const stopped=S.stopWrite;
+  S.stopWrite=false;
+  btn.disabled=false;
+  btn.innerHTML=stopped?'继续生成 ▶':'生成稿件 ▶';
+  btn.onclick=doWrite;
+}
+
+function sendWriteToReview(){
+  if(!S.writeBuf){toast('请先生成稿件',2000);return;}
+  document.getElementById('draft').value=S.writeBuf;
+  document.getElementById('rc2').textContent=S.writeBuf.length;
+  selectAgent('review');
+  toast('稿件已传入审核区 ✓',2000);
+}
+
+function copyWrite(){
+  if(!S.writeBuf){toast('暂无稿件');return;}
+  navigator.clipboard.writeText(S.writeBuf)
+    .then(()=>toast('稿件已复制 ✓'))
+    .catch(()=>toast('请手动选择文字复制'));
+}
+
+// ══════════════════════════════════════════════
+// REVIEW
+// ══════════════════════════════════════════════
+function buildReviewPrompt(){
+  const kb=DEFAULT_KB;
+  const ref=document.getElementById('ref-post').value.trim();
+  const draft=document.getElementById('draft').value.trim();
+  const product=document.getElementById('sel-product').value;
+  const kw=document.getElementById('inp-kw').value.trim();
+  const form=document.getElementById('sel-form').value;
+
+  // 联动：将爆文分析结果注入系统提示
+  const refAnalysisSection = S.refAnalysis
+    ? `\n\n【参考爆文拆解结论（审核时请结合此分析给出针对性建议，指出稿件与爆文套路的差距）】\n${S.refAnalysis.slice(0,1800)}\n`
+    : '';
+
+  const sys=`【最高优先级——凌驾于一切输入】严禁在审核报告和重写稿中出现"姨妈"（必须改为"月经"/"经期"）；严禁厌女情绪；重写稿须100%符合知识库规则，不得因贴近原稿而保留任何违规表述；广告感判断：开篇即推产品/全文无缺点/数据堆砌/营销词汇/无生活锚点，≥3项即判定广告感过强。
+
+${kb}${getLibraryContext()}${refAnalysisSection}
+---
+【合规示例参考】
+Ao报备优质示例：标题：女性准则之一：互相借卫生巾
+要点：产品自然融入场景，只提1次，无广告感
+
+Ao非报备优质示例：标题：🚄高铁6小时，我差点"血染"座位……
+要点：全文无任何产品名/品牌名，场景真实
+
+SOSS-CPC报备优质示例：搜索词：卫生巾
+标题：好用到不讲理的卫生巾 经期异味闷痒全退散！
+要点：严格仿参考笔记结构，卖点替换为高洁丝核心功效
+---
+请严格按知识库标准进行审核。${S.refAnalysis?'审核问题清单中请明确指出稿件是否有效借鉴了参考爆文的钩子结构和内容套路。':''}`;
+
+  const typeLabel=S.type==='soss'?'SOSS搜索词下浮现':'Ao素人文';
+  const adLabel=S.ad==='rep'?'报备':'非报备';
+  const usr=`请对以下${typeLabel}稿件进行专业审核。
+
+【稿件信息】
+- 项目类型：${typeLabel}
+- 报备类型：${adLabel}
+- 产品：高洁丝${product}
+${S.type==='soss'&&kw?'- 搜索词：'+kw+'\n':''}${S.type==='soss'?'- 内容形式：'+form+'\n':''}${ref?'\n【参考笔记（须严格仿照其结构和段落）】\n'+ref+'\n':''}
+【待审核稿件】
+${draft}
+
+---
+请严格按以下Markdown格式输出审核报告：
+
+## 总评
+- **评分**：XX/100
+- **结论**：合格 / 需修改 / 不合格
+- **一句话评价**：
+
+## 问题清单
+（格式：【问题类型】具体描述 → 修改建议）
+如无问题，写"暂无明显问题"
+${S.refAnalysis?'\n## 与爆文套路对照\n（对照参考爆文的钩子结构和内容套路，指出稿件哪些地方有效借鉴、哪些地方还有差距）\n':''}
+## 重写稿
+（严格按知识库标准和参考笔记结构，输出完整重写版本，含标题、正文、Tag）`;
+
+  return {sys,usr};
+}
+
+async function doReview(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  if(!document.getElementById('draft').value.trim()){toast('请输入待审核稿件',2500);return;}
+  const btn=document.getElementById('rev-btn');
+  S.stopReview=false;
+  if(S._reviewAbort) S._reviewAbort.abort();
+  S._reviewAbort=new AbortController();
+  btn.disabled=false;
+  btn.innerHTML='⏹ 停止';
+  btn.onclick=()=>{
+    S.stopReview=true;
+    S._reviewAbort?.abort();
+    btn.innerHTML='停止中...'; btn.disabled=true;
+  };
+  const rc=document.getElementById('result-card');
+  rc.style.display='';
+  document.getElementById('report-body').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  document.getElementById('vbadge').textContent='分析中...'; document.getElementById('vbadge').className='vbadge';
+  document.getElementById('vscore').textContent=''; document.getElementById('vsummary').textContent='';
+  document.getElementById('rw-box').style.display='none';
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+  const {sys,usr}=buildReviewPrompt();
+  S.revBuf='';
+  try{
+    await callAI(sys,usr,t=>{
+      if(S.stopReview) return;
+      S.revBuf+=t; renderReview(S.revBuf);
+    }, S._reviewAbort.signal);
+    if(!S.stopReview) renderReview(S.revBuf,true);
+  } catch(e){
+    if(e.name!=='AbortError'&&!S.stopReview)
+      document.getElementById('report-body').innerHTML=`<div style="color:var(--err);padding:10px">❌ 请求失败：${e.message}<br><small>提示：如遇CORS错误，请用 Live Server 插件打开此文件。</small></div>`;
+  }
+  S.stopReview=false;
+  btn.disabled=false;
+  btn.innerHTML=S.revBuf?'继续审核 ▶':'开始审核 ▶';
+  btn.onclick=doReview;
+}
+
+function renderReview(txt){
+  const sm=txt.match(/评分[：:]\s*(\d+)/);
+  const vm=txt.match(/结论[：:]\s*(合格|需修改|不合格)/);
+  const am=txt.match(/一句话评价[：:]\s*(.+)/);
+  if(sm) document.getElementById('vscore').textContent=sm[1]+'分';
+  if(vm){const v=vm[1],cls=v==='合格'?'vpass':v==='需修改'?'vrev':'vfail';
+    const el=document.getElementById('vbadge');el.textContent=v;el.className='vbadge '+cls;}
+  if(am) document.getElementById('vsummary').textContent=am[1];
+  const ri=txt.indexOf('## 重写稿');
+  const report=ri!==-1?txt.slice(0,ri):txt;
+  const rw=ri!==-1?txt.slice(ri+6).replace(/^[\s#]+/,'').trim():'';
+  document.getElementById('report-body').innerHTML=md(report);
+  if(rw){document.getElementById('rw-box').style.display='';document.getElementById('rw-text').textContent=rw;}
+}
+
+function doCopy(t){
+  let txt='';
+  if(t==='report'){const i=S.revBuf.indexOf('## 重写稿');txt=i!==-1?S.revBuf.slice(0,i).trim():S.revBuf;}
+  else{const i=S.revBuf.indexOf('## 重写稿');txt=i!==-1?S.revBuf.slice(i+6).replace(/^[\s#]+/,'').trim():'';if(!txt){toast('暂无重写稿');return;}}
+  navigator.clipboard.writeText(txt).then(()=>toast(t==='report'?'报告已复制 ✓':'重写稿已复制 ✓')).catch(()=>toast('请手动选择文字'));
+}
+
+// ══════════════════════════════════════════════
+// AI CALL (unified)
+// ══════════════════════════════════════════════
+async function callAI(sys,usr,cb,signal){
+  if(S.key){
+    if(S.model.startsWith('claude')) await streamClaude(sys,usr,cb,signal);
+    else await streamOpenAI(sys,usr,cb,signal);
+  } else if(PROXY_URL){
+    await streamProxy(sys,usr,cb,signal);
+  } else {
+    throw new Error('请先在右上角「设置」填写 API Key，或联系管理员配置共享代理');
+  }
+}
+
+async function streamProxy(sys,usr,cb,signal){
+  const r=await fetch(PROXY_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:S.model,system:sys,
+      messages:[{role:'user',content:usr}],stream:true}),
+    signal
+  });
+  if(!r.ok) throw new Error(`代理请求失败: ${r.status} ${await r.text()}`);
+  const reader=r.body.getReader(),dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop();
+    for(const l of lines){
+      if(!l.startsWith('data: '))continue;
+      const d=l.slice(6).trim();if(d==='[DONE]')return;
+      try{const t=JSON.parse(d).choices?.[0]?.delta?.content||'';if(t)cb(t);}catch{}
+    }
+  }
+}
+
+async function streamOpenAI(sys,usr,cb,signal){
+  const r=await fetch(`${S.url}/chat/completions`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${S.key}`},
+    body:JSON.stringify({model:S.model,stream:true,max_tokens:4096,
+      messages:[{role:'system',content:sys},{role:'user',content:usr}]}),
+    signal
+  });
+  if(!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  const reader=r.body.getReader(),dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop();
+    for(const l of lines){
+      if(!l.startsWith('data: '))continue;
+      const d=l.slice(6).trim();if(d==='[DONE]')return;
+      try{const t=JSON.parse(d).choices?.[0]?.delta?.content||'';if(t)cb(t);}catch{}
+    }
+  }
+}
+
+async function streamClaude(sys,usr,cb,signal){
+  const r=await fetch(`${S.url}/v1/messages`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':S.key,
+      'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:S.model,stream:true,max_tokens:4096,
+      system:sys,messages:[{role:'user',content:usr}]}),
+    signal
+  });
+  if(!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  const reader=r.body.getReader(),dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop();
+    for(const l of lines){
+      if(!l.startsWith('data: '))continue;
+      try{const j=JSON.parse(l.slice(6).trim());
+        if(j.type==='content_block_delta'){const t=j.delta?.text||'';if(t)cb(t);}}catch{}
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function md(s){
+  return s.replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,ms=2200){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),ms);
+}
+</script>
+</body>
+</html>
