@@ -42,6 +42,9 @@ aside{width:200px;min-width:180px;background:var(--surface);border-right:1px sol
 .sb-logo{padding:14px 16px 12px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:10px}
 .sb-brand{font-size:14px;font-weight:700;color:var(--text)}
+.brand-switcher{display:flex;gap:4px}
+.brand-btn{font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--sub);cursor:pointer;transition:all .15s}
+.brand-btn.active{background:var(--g1);color:#fff;border-color:var(--g1)}
 .sb-nav{flex:1;padding:10px 0;overflow-y:auto}
 .sb-section{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:1px;
   padding:8px 16px 4px;margin-top:4px;text-transform:uppercase}
@@ -171,9 +174,10 @@ textarea.ft:focus{border-color:var(--g1)}
 .upload-hint{font-size:12px;color:var(--sub)}
 
 /* LIBRARY BAR */
-.lib-bar{display:flex;align-items:center;justify-content:space-between;
+.lib-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;
   background:rgba(109,40,217,.04);border:1px solid rgba(109,40,217,.12);
   border-radius:8px;padding:8px 14px;margin:10px 0;font-size:12px;color:var(--sub)}
+.lib-bar-row{display:flex;align-items:center;gap:6px;width:100%;flex-wrap:wrap}
 .lib-bar strong{color:var(--g1)}
 
 /* COLUMN MAP */
@@ -325,7 +329,10 @@ tr:hover td{background:rgba(109,40,217,.02)}
   <aside id="sidebar">
     <div class="sb-logo">
       <div class="logo">A<sup>3</sup></div>
-      <span class="sb-brand">高洁丝</span>
+      <div class="brand-switcher">
+        <button class="brand-btn active" data-brand="kotex" onclick="switchBrand('kotex')">高洁丝</button>
+        <button class="brand-btn" data-brand="kangwang" onclick="switchBrand('kangwang')">康王</button>
+      </div>
     </div>
     <nav class="sb-nav">
       <div class="sb-section">创作</div>
@@ -373,6 +380,9 @@ tr:hover td{background:rgba(109,40,217,.02)}
           <button class="back-btn" onclick="selectAgent(null)">← 返回</button>
           <span class="panel-title">🔥 爆款爆文 Agent</span>
         </div>
+
+      <!-- 高洁丝打标面板 -->
+      <div id="kx-annotate-panel">
 
       <!-- 输入卡 -->
       <div class="card">
@@ -423,6 +433,48 @@ tr:hover td{background:rgba(109,40,217,.02)}
         <div class="rc" id="analyze-body" style="margin-top:16px"></div>
       </div>
 
+      </div><!-- /kx-annotate-panel -->
+
+      <!-- 康王批量复刻面板 -->
+      <div id="kw-batch-panel" style="display:none">
+        <div class="card">
+          <div class="ch">
+            <div class="step">1</div>
+            <div class="ch-title">上传参考笔记 Excel</div>
+            <span class="ch-sub">4列：URL（追踪）/ 参考内容 / 内容方向 / 类型</span>
+          </div>
+          <div style="margin-bottom:10px;font-size:12px;color:var(--sub)">
+            提示：小红书链接无法自动抓取，请在 B 列手动粘贴参考笔记正文
+          </div>
+          <div class="upload-zone" id="kw-upload-zone"
+            ondragover="event.preventDefault();this.classList.add('drag')"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="event.preventDefault();this.classList.remove('drag');handleKwFile(event.dataTransfer.files[0])">
+            <div>拖入 Excel / CSV 文件，或 <label style="color:var(--g1);cursor:pointer">点击选择<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleKwFile(this.files[0])"></label></div>
+          </div>
+          <div id="kw-preview-info" style="display:none;margin-top:8px;font-size:12px;color:var(--g2)"></div>
+        </div>
+        <div class="card" id="kw-batch-result" style="display:none">
+          <div class="ch">
+            <div class="step">2</div>
+            <div class="ch-title">批量生成进度</div>
+            <div class="cbns" style="margin-left:auto">
+              <button class="btn-sec btn-sm" id="kw-pause-btn" onclick="kwPauseBatch()">暂停</button>
+              <button class="btn-sec btn-sm" onclick="kwStopBatch()">终止</button>
+              <button class="btn-sec btn-sm" onclick="kwExportBatch()">导出结果</button>
+            </div>
+          </div>
+          <div id="kw-progress-bar" style="height:4px;background:var(--border);border-radius:2px;margin-bottom:12px">
+            <div id="kw-progress-fill" style="height:100%;background:var(--g1);border-radius:2px;width:0%;transition:width .3s"></div>
+          </div>
+          <div id="kw-progress-text" style="font-size:12px;color:var(--sub);margin-bottom:12px"></div>
+          <div id="kw-batch-table-wrap" style="overflow-x:auto"></div>
+        </div>
+        <div class="abar" id="kw-batch-actions" style="display:none">
+          <button class="btn-pri" id="kw-gen-btn" onclick="kwStartBatch()">批量生成 ▶</button>
+        </div>
+      </div><!-- /kw-batch-panel -->
+
       </div><!-- /agent-analyze -->
 
       <!-- 文案 Agent 面板 -->
@@ -432,6 +484,15 @@ tr:hover td{background:rgba(109,40,217,.02)}
           <span class="panel-title">✍️ 文案 Agent</span>
         </div>
 
+        <!-- 批量模式切换（康王专属） -->
+        <div id="write-mode-switcher" style="display:none;padding:8px 16px 4px">
+          <div class="tgrp" id="tg-write-mode">
+            <button class="tbtn on" data-v="single" onclick="setWriteMode('single')">单篇</button>
+            <button class="tbtn" data-v="batch" onclick="setWriteMode('batch')">批量</button>
+          </div>
+        </div>
+
+        <div id="write-single-wrap">
         <!-- Step 1 参数 -->
         <div class="card">
           <div class="ch"><div class="step">1</div><div class="ch-title">创作参数</div></div>
@@ -504,6 +565,11 @@ tr:hover td{background:rgba(109,40,217,.02)}
               </div>
             </div>
             <div id="dir-sub-chips" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+            <div id="dir-fact-box" style="display:none;margin-bottom:8px">
+              <div class="flabel">事实素材（选填）</div>
+              <div style="font-size:11px;color:var(--sub);margin-bottom:5px">填入真实信息，AI 将严格基于此创作，不虚构具体细节</div>
+              <textarea id="write-dir-fact" class="ft" rows="2" placeholder="例：五月天演唱会，2026年6月1日，济南奥体中心&#10;演唱歌曲包括《倔强》《温柔》《恋爱ing》"></textarea>
+            </div>
             <div>
               <div class="flabel">具体场景/细节（选填）</div>
               <input id="write-dir-detail" class="fi" type="text" placeholder="例：张学友演唱会 / 《玫瑰的故事》/ 和同事互借卫生巾"/>
@@ -547,6 +613,46 @@ tr:hover td{background:rgba(109,40,217,.02)}
           </div>
           <div class="rc" id="write-body"></div>
         </div>
+        </div><!-- /write-single-wrap -->
+
+        <!-- 批量模式区（康王专属） -->
+        <div id="write-batch-wrap" style="display:none">
+          <div class="card">
+            <div class="ch"><div class="step">1</div><div class="ch-title">上传 CSV 文件</div></div>
+            <div style="font-size:12px;color:var(--sub);margin-bottom:8px">格式：A列=参考笔记内容，B列=内容方向，C列=类型（随手po / 钓鱼贴 / 科普干货）</div>
+            <div class="upload-zone" id="wbatch-upload-zone"
+              ondragover="event.preventDefault();this.classList.add('drag')"
+              ondragleave="this.classList.remove('drag')"
+              ondrop="event.preventDefault();this.classList.remove('drag');handleWriteBatchFile(event.dataTransfer.files[0])">
+              <div>拖入 CSV 文件，或 <label style="color:var(--g1);cursor:pointer">点击选择<input type="file" accept=".csv" style="display:none" onchange="handleWriteBatchFile(this.files[0])"></label></div>
+            </div>
+            <div id="wbatch-preview" style="display:none;margin-top:8px;font-size:12px;color:var(--g2)"></div>
+          </div>
+          <div class="card" id="wbatch-progress-bar" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+                <div id="wbatch-progress-fill" style="height:100%;background:var(--g1);width:0%;transition:width .3s"></div>
+              </div>
+              <span id="wbatch-progress-text" style="font-size:12px;white-space:nowrap">0 / 0</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sec btn-sm" id="wbatch-pause-btn" onclick="wbatchPause()">暂停</button>
+              <button class="btn-sec btn-sm" onclick="wbatchStop()">终止</button>
+            </div>
+          </div>
+          <div class="card" id="wbatch-result" style="display:none">
+            <div class="ch">
+              <div class="ch-title">生成结果</div>
+              <div class="cbns" style="margin-left:auto">
+                <button class="btn-sec btn-sm" onclick="wbatchExport()">导出 CSV</button>
+              </div>
+            </div>
+            <div id="wbatch-table-wrap" style="overflow-x:auto"></div>
+          </div>
+          <div class="abar" id="wbatch-actions" style="display:none">
+            <button class="btn-pri" id="wbatch-gen-btn" onclick="wbatchStart()">批量生成 ▶</button>
+          </div>
+        </div><!-- /write-batch-wrap -->
 
       </div><!-- /agent-copywrite -->
 
@@ -713,9 +819,19 @@ tr:hover td{background:rgba(109,40,217,.02)}
           <div class="ch-title">上传历史数据（Y25/Y26）</div>
         </div>
         <div class="lib-bar">
-          <span>已存 <strong id="lib-count">0</strong> 篇打标笔记（注入爆文拆解和审核）</span>
-          <button class="btn-sec btn-sm" onclick="exportSharedData()">导出共享数据</button>
-          <button class="btn-sec btn-sm" onclick="clearLibrary()">清空数据</button>
+          <div class="lib-bar-row">
+            <span>已存 <strong id="lib-count">0</strong> 篇打标笔记（注入爆文拆解和审核）</span>
+            <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn-sec btn-sm" onclick="exportSharedData()">导出共享数据</button>
+              <button class="btn-sec btn-sm" onclick="importLibrary()">导入历史数据</button>
+              <button class="btn-sec btn-sm" onclick="clearLibrary()">清空数据</button>
+            </div>
+          </div>
+          <div class="lib-bar-row">
+            <span style="color:var(--sub)">评审记录：</span>
+            <button class="btn-sec btn-sm" onclick="exportHumanReviews_json()">导出评审 JSON</button>
+            <button class="btn-sec btn-sm" onclick="exportHumanReviews_admin_text()">导出完整文字稿</button>
+          </div>
         </div>
         <div class="upload-zone" id="upload-zone"
           ondragover="e=>{e.preventDefault();this.classList.add('drag')}"
@@ -1084,10 +1200,139 @@ const SHARED_LIBRARY = [];
 const SHARED_PATTERNS = "好的，作为专注卫生巾/女性健康类目的内容策略专家，我已对您提供的110篇笔记打标数据进行了深度分析，并提炼出以下可直接复用的内容资产库。\n\n---\n\n## 钩子词汇库\n\n**痛点词**：\n1. 卫生巾涨价（适用场景：呼吁反对、引发共鸣）\n2. 月经羞耻（适用场景：打破禁忌、鼓励发声）\n3. 品质差（适用场景：产品吐槽、对比推荐）\n4. 移位（适用场景：产品评测、解决问题）\n5. 闷潮（适用场景：产品体验、实用科普）\n6. 不够用/要花钱（适用场景：呼吁免费、省钱攻略）\n\n**情绪词**：\n1. 愤怒（适用场景：对不公现象的直接抗议）\n2. 感动（适用场景：分享暖心故事、品牌善举）\n3. 期待（适用场景：对美好未来的向往、政策呼吁）\n4. 共鸣（适用场景：引发情感认同、社群连接）\n5. 惊讶（适用场景：意外发现、反差故事）\n6. 自信（适用场景：输出态度、个人成长）\n\n**感受词**：\n1. 实用（适用场景：干货清单、科普实验）\n2. 好奇（适用场景：悬念式标题、新技法揭秘）\n3. 温暖（适用场景：治愈故事、生活日常）\n4. 坚定（适用场景：表达立场、呼吁行动）\n5. 轻松（适用场景：幽默吐槽、氛围治愈）\n6. 辛酸（适用场景：揭露困境、描述不易）\n\n**场景词**：\n1. 经期（适用场景：时间精准定位，如\"经期前后\"）\n2. 外出/应急（适用场景：产品需求场景，如\"户外徒步\"、\"五一出行\"）\n3. 运动（适用场景：垂直人群，如\"经期运动\"、\"瑜伽\"）\n4. 校园（适用场景：故事背景，如\"在清华\"、\"女儿第一次\"）\n5. 职场（适用场景：女性困境，如\"女性职场困境\"）\n6. 家里/宿舍（适用场景：生活化、个人化内容）\n\n**数字强化词**：\n1. 数字+时间：5min、1小时、30年（强调即时效果/长期愿景）\n2. 数字+人群：700000000人（制造宏大叙事感/共鸣）\n3. 数字+产品：4款、第99个（具体化/增加权威感）\n4. 数字+年龄：12岁、11岁（精准圈定人群，如宝妈）\n5. 数字+动作/场景：180元、100元（增加故事真实感/意外感）\n\n---\n\n## 标题公式×6\n\n1. **结果速成公式** → [动作/场景]+[数字]+时间+效果，如：[经期前后拍屁股] + [5分钟] + [相当于排瘀1小时]\n   - **改写示例**：睡前坚持3个动作，经期舒服一整天\n\n2. **颠覆认知公式** → [否定词/观点]+出乎意料的对比/结果，如：[我一直觉得太娘们了] + [是褒义词啊！]\n   - **改写示例**：别再骂\"卫生巾像尿不湿\"了，其实是你的姨妈巾不透气\n\n3. **悬念故事公式** → [引人好奇的事件]+[转折/意外]+[结果]，如：[在清华看到了免费发卫生巾…]\n   - **改写示例**：闺蜜来我家借卫生巾，我顺手多拿了几包，她当场哭了\n\n4. **情感共鸣公式** → [情绪词] + [特定群体/角色] + [集体记忆/心声]，如：[没有女性能平静地走出这期播客🥺]\n   - **改写示例**：来姨妈还要坚持上班？请对\"那个能忍的女人\"好一点\n\n5. **反面警示公式** → [负面后果] + [行动建议/解决方案]，如：[卫生巾价格砰砰涨 品质能不能也涨涨]\n   - **改写示例**：千万别这样用卫生巾，当心私处越来越痒\n\n6. **身份对比公式** → [身份A] + [反差场景/行为] + [身份B] + [结果/态度]，如：[当二次元穿越女性友好世界]\n   - **改写示例**：工薪阶层的我，用平价卫生巾，也能过上没羞耻的生活\n\n---\n\n## 开头句模板×6\n\n1. **态度表态型**：我不同意/我坚决反对 [描述具体行为/现象]！\n   - 适用场景：社会议题类，快速建立鲜明观点，引发讨论。\n   - **填空示例**：我坚决反对卫生巾涨价还偷偷减量！\n\n2. **情感回忆型**：终于知道为什么[小时候/以前]+ [某件让人困惑的事] + [现在的恍然大悟]\n   - 适用场景：情感关系/个人日常类，用个人经历拉近与用户的距离。\n   - **填空示例**：终于知道为什么我妈总要偷偷给我塞钱买卫生巾了🥹\n\n3. **场景描绘型**：在[具体场所] 看到了[反常识/惊喜事件]，我……\n   - 适用场景：真实故事型，用具体场景和反差即刻抓住读者好奇心。\n   - **填空示例**：在深夜的便利店，我看到了一个男生在主动给女朋友买卫生巾……\n\n4. **反问互动型**：你们[多久/如何] + 做[某个具体动作]！？\n   - 适用场景：健康科普/产品评测类，激发用户参与和讨论。\n   - **填空示例**：你们多久换一次卫生巾！？超过4小时的姐妹该注意了！\n\n5. **数字震惊型**：全球有[宏大数字]女性，她们都在/都需要[某件小事]。\n   - 适用场景：社会议题类，制造宏大叙事感，引发群体认同和使命感。\n   - **填空示例**：全球有35亿女性，可为什么连买包卫生巾都要\"羞耻\"？\n\n6. **情绪共鸣型**：没有[特定群体]能平静地走出/看完[某件事/场景] + [表情/省略号]\n   - 适用场景：情感关系/社会议题，快速建立群体情感连接。\n   - **填空示例**：没有女生能平静地走出经期第一天🥺\n\n---\n\n## 爆款内容骨架×3\n\n**骨架1：态度输出+情绪共鸣**\n- **套路名称**：反\"姨妈羞耻\"宣言\n- **开头**：用疑问句抛出核心痛点/反常识观点。例如：\"什么？都2025年了，还有人在偷偷摸摸地买卫生巾？/你还在为卫生巾涨价生气吗？\"\n- **转折**：指出大众习以为常的现象有多荒缪，并在肯定中带出\"我应该得到更好的\"。例如：\"我们都习惯了，但这种'习惯'本身就是问题。\"\n- **高潮**：用\"我\"句式或排比句，直接、强烈地表达个人态度和期望，重复核心主张。例如：\"我不同意涨价！我需要能安心使用的卫生巾！我值得被更好对待！\"\n- **结尾**：用一句金句或号召性评论收尾，并引导讨论。例如：\"为自己发声，就是为所有女性发声。/你同意吗？\"\n\n**骨架2：真实故事+反转感动**\n- **套路名称**：陌生人的善意时刻\n- **开头**：描述一个日常/尴尬的紧急场景。例如：\"啊，不小心在路上/公司/陌生地方，来姨妈了，没有带卫生巾！\"\n- **转折**：出现一个意想不到的帮助者（陌生女性、男同事、小店老板），提供帮助。例如：\"那个陌生的女生拉住了我，从包里递给我一片卫生巾。\"\n- **高潮**：描写被帮助后的感动，升华到\"善意\"和\"互相帮助\"的层面。例如：\"那一刻，我意识到这不是一片卫生巾，而是女性之间的互相体谅。\"\n- **结尾**：呼吁大家带着善意，在别人需要时也伸出援手。例如：\"下次出门别忘了带，也别忘了传给需要的人。\"\n\n**骨架3：科普实验+实用干货**\n- **套路名称**：3分钟教你如何选对卫生巾\n- **开头**：用\"你知道XX吗？\"或\"你踩过XX坑吗？\"提问式开头制造焦虑。例如：\"你知道市面上的卫生巾，哪些是'闷热火山'，哪些是'透气天使'吗？\"\n- **转折**：指出常见的认知误区或糟糕体验。例如：\"很多人觉得卫生巾就看厚度，其实透气性才是关键！\"\n- **高潮**：列出清晰的评判标准或进行直观的对比实验。例如：\"今天我们就来横向测评XX款高人气卫生巾，从'吸水速度'、'反渗能力'、'透气性'三个维度打分…\"\n- **结尾**：给出明确的推荐清单或实操建议。例如：\"所以，经期运动/睡觉/上班，分别该怎么选？这份清单建议收藏！\"\n\n---\n\n## 圈层与人设规律\n\n**最高频组合：**\n\n1. **【社会议题 × 独立女性】**（出现21次）\n   - 核心内容：表达对月经羞耻、价格、免费等社会议题的态度。\n   - 人设特质：理性、有主见、敢于发声。\n\n2. **【产品评测 × 成分党测评党】**（出现8次）\n   - 核心内容：横向测评、对比实验、使用教程、纠错科普。\n   - 人设特质：数据控、注重功效、行动力强。\n\n3. **【健康科普 × 独立女性】**（出现6次）\n   - 核心内容：经期调理、私处护理、运动排瘀等实用知识。\n   - 人设特质：关爱自己、乐于分享、实用主义。\n\n**对高洁丝内容创作的具体建议与句子模板：**\n\n1.  **针对【社会议题 × 独立女性】组合：**\n    - **策略**：呼应\"社会议题\"，借势营销，输出品牌价值观。\n    - **句子模板**：\"卫生巾涨价，是因为品牌忘了我们只是想要一份安心。@高洁丝，你们说呢？\"\n    - **句子模板**：\"从本子本机到卫生巾，免费的呼声越来越高。希望像@高洁丝这样的品牌，能率先迈出这一步。\"\n\n2.  **针对【产品评测 × 成分党测评党】组合：**\n    - **策略**：让产品\"说话\"，用数据和实验证明实力，消除用户疑虑。\n    - **句子模板**：\"全网测评高洁丝XX款！我们分别从'吸水量'、'反渗测试'、'棉柔度'三个方面，实测它的抗位移能力。\"\n    - **句子模板**：\"这款高洁丝的XX设计，解决了我姨妈巾总是'跑偏'的终极痛点。教程来了！\"\n\n3.  **针对【健康科普 × 独立女性】组合：**\n    - **策略**：内容【价值】先行，将产品作为解决方案自然融入。\n    - **句子模板**：\"经期久坐，私处闷热潮湿怎么办？除了定时站起来，你更需要一片'能呼吸'的卫生巾。@高洁丝 XX款，透气到起飞。\"\n    - **句子模板**：\"别再信'月经期间不能运动'的鬼话了！经期后三天可以做这套排瘀操，但一定记得要垫上透气防侧漏的卫生巾，比如@高洁丝新品。\"";
 
 // ══════════════════════════════════════════════
+// 康王专属常量
+// ══════════════════════════════════════════════
+const KW_SHARED_LIBRARY = [];
+const KW_SHARED_PATTERNS = '';
+
+const KW_KB = `你是精通小红书平台的高级内容运营，专注头皮护理/去屑洗发水垂直类目。
+
+【康王酮康唑洗发水产品信息】
+- 核心成分：2%酮康唑（广谱抗真菌，靶向抑制马拉色菌）
+- 主要功效：缓解脂溢性皮炎、去屑止痒、改善头皮环境
+- 适用场景：脂溢性皮炎、头皮油痒、大量头屑、头皮长痘
+
+【竞品对比规则】
+- 二硫化硒（如海飞丝去屑）：可对比，但绝不贬低。康王自身也有二硫化硒产品线，对比重点是"适用场景不同"：酮康唑更适合真菌引起的脂溢性皮炎，二硫化硒适合日常去屑
+- 薇姿洗发水：可对比，强调康王医学/专业成分的差异化，不攻击对方品质
+- 核心原则：横向对比只讲事实/成分差异，不说对方"不好""踩雷"
+
+【笔记类型说明】
+- 随手po：日常生活中自然使用的记录，轻描淡写，真实感最强
+- 钓鱼贴：以提问/求助/抱怨开头，引发评论互动，评论区做转化。例："头皮痒了一周，试了三款洗发水都没用，有姐妹推荐过康王吗？"
+- 科普干货：解释头皮问题成因 + 成分科普 + 给出康王方案，权威感强
+
+【素人文要求】
+- 全部素人文，必须仿照参考笔记的结构和段落节奏，但不得抄袭
+- 全部为非报备水下文，完全不能有推销感，产品顺带提及
+
+【严禁事项】
+1. 不得夸大医疗效果（不写"治好了""根治"等）
+2. 不得贬低竞品（不说"比XX好用""XX踩雷"）
+3. 不得出现价格相关表述
+4. 标题≤20字`;
+
+const KW_WRITE_SYS = `你是一个普通的小红书用户，正在分享真实的头皮护理经历。你不是品牌方，你只是在记录真实发生过的事情。
+
+【输出格式】直接输出完整稿件，不加任何说明或解释：
+标题：（严格≤20字）
+正文：（完整内容）
+Tag：（#xxx #xxx #xxx）
+
+【仿写铁律——必须严格仿照参考笔记的结构和段落划分】
+1. 段落数量和顺序必须与参考笔记一致
+2. 每段的情绪节奏和长度须对应参考笔记，不得自由发挥结构
+3. 内容用康王场景替换，但骨架不变
+
+【素人感铁律】
+1. 标题≤20字，不出现产品名或功效词
+2. 开头第一段：只写场景/情绪/问题，不出现产品
+3. 全文不出现"康王"，可用"用的这款""那个医用的"代替
+4. 横向对比类：只陈述成分事实，不说竞品"不好"
+5. 钓鱼贴：开头必须是问题/求助/抱怨，让人想回复
+6. 禁用词：推荐/安利/真的好用/强烈推荐/宝藏/坑了`;
+
+const KW_REVIEW_SYS_AO = `
+【康王素人文专项评分模型（100分制）】
+
+▌ 维度一：仿写还原度（35分）——最高权重
+必须对照参考笔记评分：
+- 段落数量与参考笔记不一致 → -10分/段差异
+- 某段情绪/节奏与参考笔记明显不符 → -8分/段
+- 整体结构自由发挥、未仿照参考 → -20分
+
+▌ 维度二：素人感/真实感（35分）
+- 开篇即介绍产品/功效 → -15分
+- 无生活场景/只有功效描述 → -15分
+- 使用推荐/安利/好用/宝藏等营销词 → -8分/词
+
+▌ 维度三：合规性（20分）
+- 出现"康王"或产品名 → -15分/次（全部为非报备）
+- 贬低竞品（说对方"不好""踩雷"）→ -15分
+- 夸大医疗效果（"治好""根治"）→ -15分
+- 标题超20字 → -5分
+
+▌ 维度四：结构完整性（10分）
+- 标题+正文+Tag是否完整
+
+【评分校准】
+90分以上：仿写还原准确，完全素人口吻，无广告感
+80–90分：仿写基本准确，少量结构偏差
+65–80分：仿写有明显偏差或仍有推销痕迹
+50分以下：未仿照参考笔记，或广告感明显`;
+
+const KW_DIR_SUBS = {
+  '横向对比二硫化硒': ['随手po','钓鱼贴','科普干货'],
+  '脂溢性皮炎洗发水': ['随手po','钓鱼贴','科普干货'],
+  '头皮长痘痘':       ['随手po','钓鱼贴','科普干货'],
+  '头皮痒':           ['随手po','钓鱼贴','科普干货'],
+  '横向对比薇姿洗发水':['随手po','钓鱼贴','科普干货'],
+};
+
+// ══════════════════════════════════════════════
+// 品牌配置
+// ══════════════════════════════════════════════
+const BRAND_CONFIG = {
+  kotex: {
+    name:'高洁丝', prefix:'kx',
+    products:[
+      {value:'蔓越莓', label:'高洁丝蔓越莓益生力'},
+      {value:'海岛棉', label:'高洁丝海岛奢宠棉'},
+      {value:'阳光烘烘', label:'高洁丝阳光烘烘抑菌'}
+    ],
+    hasTypeToggle:true,
+    refRequired:false,
+    kb:()=>DEFAULT_KB,
+    writeSys:()=>WRITE_SYS,
+    reviewSys:()=>REVIEW_SYS_AO,
+    dirSubs:()=>DIR_SUBS,
+    sharedLibrary:()=>SHARED_LIBRARY,
+    sharedPatterns:()=>SHARED_PATTERNS,
+  },
+  kangwang: {
+    name:'康王', prefix:'kw',
+    products:[
+      {value:'酮康唑', label:'康王酮康唑洗发水'}
+    ],
+    hasTypeToggle:false,
+    refRequired:true,
+    kb:()=>KW_KB,
+    writeSys:()=>KW_WRITE_SYS,
+    reviewSys:()=>KW_REVIEW_SYS_AO,
+    dirSubs:()=>KW_DIR_SUBS,
+    sharedLibrary:()=>KW_SHARED_LIBRARY,
+    sharedPatterns:()=>KW_SHARED_PATTERNS,
+  }
+};
+function BC(){ return BRAND_CONFIG[S.brand]; }
+function pfx(){ return BC().prefix; }
+
+// ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 const S = {
   model:'deepseek-chat', key:'', url:'https://api.deepseek.com',
+  brand:'kotex',
   type:'ao', ad:'rep',
   writeType:'ao', writeAd:'rep',
   revBuf:'', analyzeBuf:'',
@@ -1143,19 +1388,23 @@ window.onload = () => {
   if(cfg.model) S.model=cfg.model;
   if(cfg.key)   S.key=cfg.key;
   if(cfg.url)   S.url=cfg.url;
+  // 恢复品牌选择
+  try{ S.brand=localStorage.getItem('kx_cfg_brand')||'kotex'; }catch{}
   document.getElementById('kb-preview').textContent = DEFAULT_KB;
   refreshChip();
   loadLibrary();
-  try { S.libraryPatterns = localStorage.getItem('kx_lib_patterns') || ''; } catch {}
+  try { S.libraryPatterns = localStorage.getItem(pfx()+'_lib_patterns') || ''; } catch {}
   // 若本地无数据，加载共享基线（只读，不写入 localStorage）
-  if(S.library.length===0 && SHARED_LIBRARY.length>0){
-    S.library=SHARED_LIBRARY; updateLibraryCounter();
+  const bl=BC();
+  if(S.library.length===0 && bl.sharedLibrary().length>0){
+    S.library=bl.sharedLibrary(); updateLibraryCounter();
   }
-  if(!S.libraryPatterns && SHARED_PATTERNS){
-    S.libraryPatterns=SHARED_PATTERNS;
+  if(!S.libraryPatterns && bl.sharedPatterns()){
+    S.libraryPatterns=bl.sharedPatterns();
   }
   renderLibraryPatterns();
-  try { S.batchResults = JSON.parse(localStorage.getItem('kx_batch_results')||'[]'); } catch {}
+  try { S.batchResults = JSON.parse(localStorage.getItem(pfx()+'_batch_results')||'[]'); } catch {}
+  updateBrandUI();
   if(S.batchResults.length){
     buildBatchTable(S.batchResults);
     document.getElementById('batch-result').style.display='';
@@ -1190,8 +1439,121 @@ window.onload = () => {
     if(wr) wr.style.display='none';
   });
   // A4: 恢复人工评审记录
-  try{S.humanReviews=JSON.parse(localStorage.getItem('kx_human_reviews')||'[]');}catch{}
+  try{S.humanReviews=JSON.parse(localStorage.getItem(pfx()+'_human_reviews')||'[]');}catch{}
 };
+
+// ══════════════════════════════════════════════
+// BRAND SWITCHING
+// ══════════════════════════════════════════════
+function switchBrand(brandId){
+  if(S.brand===brandId) return;
+  const op=pfx();
+  try{localStorage.setItem(op+'_library',JSON.stringify(S.library));}catch{}
+  try{localStorage.setItem(op+'_lib_patterns',S.libraryPatterns);}catch{}
+  try{localStorage.setItem(op+'_batch_results',JSON.stringify(S.batchResults));}catch{}
+  try{localStorage.setItem(op+'_human_reviews',JSON.stringify(S.humanReviews));}catch{}
+  S.brand=brandId;
+  localStorage.setItem('kx_cfg_brand',brandId);
+  S.library=[]; S.libraryPatterns=''; S.batchResults=[];
+  S.humanReviews=[]; S.batchPaused=false; S.resumeChunkIndex=0;
+  S.revBuf=''; S.writeBuf=''; S.analyzeBuf=''; S.refAnalysis='';
+  const np=pfx();
+  try{S.library=JSON.parse(localStorage.getItem(np+'_library')||'[]');}catch{}
+  try{S.libraryPatterns=localStorage.getItem(np+'_lib_patterns')||'';}catch{}
+  try{S.batchResults=JSON.parse(localStorage.getItem(np+'_batch_results')||'[]');}catch{}
+  try{S.humanReviews=JSON.parse(localStorage.getItem(np+'_human_reviews')||'[]');}catch{}
+  const bl=BC();
+  if(!S.library.length && bl.sharedLibrary().length) S.library=bl.sharedLibrary();
+  if(!S.libraryPatterns && bl.sharedPatterns()) S.libraryPatterns=bl.sharedPatterns();
+  updateBrandUI();
+  navigate('studio');
+  selectAgent(null);
+  toast(`已切换到${bl.name} ✓`,1500);
+}
+
+function updateBrandUI(){
+  const bl=BC();
+  document.querySelectorAll('.brand-btn').forEach(b=>
+    b.classList.toggle('active',b.dataset.brand===S.brand));
+  ['sel-write-product','sel-product'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.innerHTML=bl.products.map(p=>`<option value="${p.value}">${p.label}</option>`).join('');
+  });
+  const tgType=document.getElementById('tg-write-type')?.closest('.fg');
+  if(tgType) tgType.style.display=bl.hasTypeToggle?'':'none';
+  const refCard=document.getElementById('write-s2')?.closest('.card');
+  if(refCard){
+    const tag=refCard.querySelector('.tg-pk');
+    if(tag) tag.style.display=bl.refRequired?'':'none';
+    const sub=refCard.querySelector('.ch-sub');
+    if(sub) sub.textContent=bl.refRequired?'必填，仿照结构创作':'Ao素人文可跳过';
+  }
+  // 内容方向卡片：康王时显示，但重置大类按钮
+  const dirCard=document.getElementById('write-dir-card');
+  if(dirCard){
+    if(S.brand==='kangwang'){
+      // 康王：5个方向按钮 + 3个类型
+      const catGrp=document.getElementById('tg-dir-cat');
+      if(catGrp){
+        catGrp.innerHTML=Object.keys(KW_DIR_SUBS).map(k=>
+          `<button class="tbtn" data-cat="${k}" onclick="setDirCat(this)">${k}</button>`
+        ).join('');
+      }
+      const fl=dirCard.querySelector('.flabel');
+      if(fl) fl.textContent='内容方向';
+      const sub=dirCard.querySelector('.ch-sub');
+      if(sub) sub.textContent='选填';
+      const detailBox=document.getElementById('write-dir-detail');
+      if(detailBox) detailBox.closest('div')?.style && (detailBox.closest('div').style.display='none');
+    } else {
+      // 高洁丝：恢复原3大类
+      const catGrp=document.getElementById('tg-dir-cat');
+      if(catGrp){
+        catGrp.innerHTML=
+          `<button class="tbtn" data-cat="圈层热点" onclick="setDirCat(this)">圈层热点</button>`+
+          `<button class="tbtn" data-cat="品类话题" onclick="setDirCat(this)">品类话题</button>`+
+          `<button class="tbtn" data-cat="情绪向" onclick="setDirCat(this)">情绪向</button>`;
+      }
+      const sub=dirCard.querySelector('.ch-sub');
+      if(sub) sub.textContent='Ao 素人文专属，选填';
+      const detailBox=document.getElementById('write-dir-detail');
+      if(detailBox) detailBox.closest('div')?.style && (detailBox.closest('div').style.display='');
+    }
+    document.getElementById('dir-sub-chips').style.display='none';
+    document.getElementById('dir-sub-chips').innerHTML='';
+  }
+  // 爆款爆文面板切换
+  const kxPanel=document.getElementById('kx-annotate-panel');
+  const kwPanel=document.getElementById('kw-batch-panel');
+  if(kxPanel) kxPanel.style.display=S.brand==='kotex'?'':'none';
+  if(kwPanel) kwPanel.style.display=S.brand==='kangwang'?'':'none';
+  // 文案 Agent 批量模式切换（康王专属）
+  const wms=document.getElementById('write-mode-switcher');
+  if(wms) wms.style.display=S.brand==='kangwang'?'':'none';
+  if(S.brand==='kotex'){
+    const sw=document.getElementById('write-single-wrap');
+    const bw=document.getElementById('write-batch-wrap');
+    if(sw) sw.style.display='';
+    if(bw) bw.style.display='none';
+    document.querySelectorAll('#tg-write-mode .tbtn').forEach(b=>
+      b.classList.toggle('on',b.dataset.v==='single'));
+  }
+  updateLibraryCounter();
+  renderLibraryPatterns();
+  if(S.batchResults.length){
+    buildBatchTable(S.batchResults);
+    const br=document.getElementById('batch-result');
+    const ba=document.getElementById('batch-actions');
+    if(br) br.style.display='';
+    if(ba) ba.style.display='flex';
+  } else {
+    const br=document.getElementById('batch-result');
+    const ba=document.getElementById('batch-actions');
+    if(br) br.style.display='none';
+    if(ba) ba.style.display='none';
+  }
+}
 
 // ══════════════════════════════════════════════
 // TAB SWITCHING
@@ -1311,7 +1673,7 @@ function setTog(gid,btn){
 // 内容铺 LIBRARY
 // ══════════════════════════════════════════════
 function loadLibrary(){
-  try{ S.library = JSON.parse(localStorage.getItem('kx_library')||'[]'); }catch{ S.library=[]; }
+  try{ S.library = JSON.parse(localStorage.getItem(pfx()+'_library')||'[]'); }catch{ S.library=[]; }
   updateLibraryCounter();
 }
 function updateLibraryCounter(){
@@ -1343,7 +1705,7 @@ function addToLibrary(){
   const toAdd=S.batchResults.filter(r=>!S.library.some(l=>l.title===r.title));
   if(!toAdd.length){toast('全部已在素材库中 ✓');return;}
   S.library=[...S.library,...toAdd];
-  try{ localStorage.setItem('kx_library',JSON.stringify(S.library)); }catch(e){ toast('存储空间不足，请清空素材库后重试',3000);return; }
+  try{ localStorage.setItem(pfx()+'_library',JSON.stringify(S.library)); }catch(e){ toast('存储空间不足，请清空素材库后重试',3000);return; }
   updateLibraryCounter();
   toast(`已保存到素材库 +${toAdd.length} 篇（库中共 ${S.library.length} 篇）✓`);
 }
@@ -1351,15 +1713,15 @@ function _autoMergeToLibrary(){
   const toAdd=S.batchResults.filter(r=>!S.library.some(l=>l.title===r.title));
   if(!toAdd.length) return;
   S.library=[...S.library,...toAdd];
-  try{ localStorage.setItem('kx_library',JSON.stringify(S.library)); }catch{}
+  try{ localStorage.setItem(pfx()+'_library',JSON.stringify(S.library)); }catch{}
   updateLibraryCounter();
 }
 function deleteBatchRow(title){
   S.batchResults=S.batchResults.filter(r=>r.title!==title);
   S.library=S.library.filter(r=>r.title!==title);
   try{
-    localStorage.setItem('kx_batch_results',JSON.stringify(S.batchResults));
-    localStorage.setItem('kx_library',JSON.stringify(S.library));
+    localStorage.setItem(pfx()+'_batch_results',JSON.stringify(S.batchResults));
+    localStorage.setItem(pfx()+'_library',JSON.stringify(S.library));
   }catch{}
   updateLibraryCounter();
   buildBatchTable(S.batchResults);
@@ -1383,8 +1745,8 @@ function clearLibrary(){
   if(!confirm('确认清空全部数据？（素材库 + 批量打标结果）'))return;
   S.library=[];
   S.batchResults=[];
-  localStorage.removeItem('kx_library');
-  localStorage.removeItem('kx_batch_results');
+  localStorage.removeItem(pfx()+'_library');
+  localStorage.removeItem(pfx()+'_batch_results');
   updateLibraryCounter();
   document.getElementById('batch-result').style.display='none';
   document.getElementById('batch-actions').style.display='none';
@@ -1528,7 +1890,7 @@ async function _runBatchChunks(btn, startIdx){
     if(!S.stopBatch){
       S.resumeChunkIndex=ci+1;
       _autoMergeToLibrary();
-      try{ localStorage.setItem('kx_batch_results',JSON.stringify(S.batchResults)); }catch{}
+      try{ localStorage.setItem(pfx()+'_batch_results',JSON.stringify(S.batchResults)); }catch{}
     }
   }
 
@@ -1859,7 +2221,7 @@ ${lines}
   }
 
   if(S.libraryPatterns&&!S.stopExtract){
-    try{ localStorage.setItem('kx_lib_patterns',S.libraryPatterns); }catch{}
+    try{ localStorage.setItem(pfx()+'_lib_patterns',S.libraryPatterns); }catch{}
     renderLibraryPatterns();
     toast('内容资产已提炼并保存 ✓',3000);
   }
@@ -1996,6 +2358,235 @@ ${rule}
 3.
 
 ## 推荐Tag`;
+}
+
+// ══════════════════════════════════════════════
+// 康王批量复刻
+// ══════════════════════════════════════════════
+let kwRows=[], kwPaused=false, kwStopped=false, kwIdx=0;
+
+function handleKwFile(file){
+  if(!file) return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    let rows=[];
+    if(ext==='csv'){
+      const lines=ev.target.result.split('\n').filter(l=>l.trim());
+      rows=lines.slice(1).map(l=>{
+        const cols=l.split(',');
+        return {url:cols[0]?.trim()||'',ref:cols[1]?.trim()||'',dir:cols[2]?.trim()||'',type:cols[3]?.trim()||''};
+      }).filter(r=>r.ref);
+    } else {
+      toast('请上传 CSV 格式文件（另存为 CSV 后上传）',3000); return;
+    }
+    kwRows=rows; kwIdx=0;
+    const info=document.getElementById('kw-preview-info');
+    info.style.display=''; info.textContent=`已解析 ${rows.length} 行，点击"批量生成"开始处理`;
+    document.getElementById('kw-batch-actions').style.display='flex';
+  };
+  if(ext==='csv') reader.readAsText(file,'utf-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+async function kwStartBatch(){
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  if(!kwRows.length){toast('请先上传 CSV 文件',2000);return;}
+  kwPaused=false; kwStopped=false;
+  document.getElementById('kw-batch-result').style.display='';
+  document.getElementById('kw-batch-actions').style.display='none';
+  // 初始化结果列
+  if(!kwRows[0]._result) kwRows.forEach(r=>{ r._result=''; r._status='待处理'; });
+  buildKwBatchTable();
+  await _kwRunChunks();
+}
+function kwPauseBatch(){
+  kwPaused=!kwPaused;
+  document.getElementById('kw-pause-btn').textContent=kwPaused?'继续':'暂停';
+  if(!kwPaused) _kwRunChunks();
+}
+function kwStopBatch(){ kwStopped=true; }
+async function _kwRunChunks(){
+  for(let i=kwIdx;i<kwRows.length;i++){
+    if(kwStopped) break;
+    while(kwPaused) await new Promise(r=>setTimeout(r,300));
+    kwIdx=i;
+    const r=kwRows[i];
+    r._status='生成中'; buildKwBatchTable();
+    const fill=document.getElementById('kw-progress-fill');
+    const txt=document.getElementById('kw-progress-text');
+    if(fill) fill.style.width=((i/kwRows.length)*100)+'%';
+    if(txt) txt.textContent=`${i+1} / ${kwRows.length}`;
+    const dir=r.dir||''; const tp=r.type||'';
+    const dirStr=(dir||tp)?`内容方向：${dir}\n内容类型：${tp}`:'';
+    const sys=KW_WRITE_SYS+'\n\n'+KW_KB;
+    const usr=`请创作一篇小红书帖子：\n\n产品：康王酮康唑洗发水（非报备水下文）\n${dirStr?'【内容方向】\n'+dirStr+'\n':''}\n【创作核心要求】\n- 标题≤20字，不出现产品名或功效词\n- 第一段完全建立场景/情绪/问题，不出现产品\n- 全文不出现"康王"，可用"用的这款""那个医用的"代替\n\n参考笔记（必须严格仿照其结构和段落划分，内容用康王场景替换）：\n${r.ref}\n\n直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+    let buf='';
+    try{
+      await callAI(sys,usr,chunk=>{ buf+=chunk; r._result=buf; buildKwBatchTable(); });
+      r._status='完成';
+    }catch(e){ r._status='错误'; }
+    buildKwBatchTable();
+    await new Promise(res=>setTimeout(res,800));
+  }
+  const fill=document.getElementById('kw-progress-fill');
+  if(fill) fill.style.width='100%';
+  const txt=document.getElementById('kw-progress-text');
+  if(txt) txt.textContent=`完成 ${kwRows.length} / ${kwRows.length}`;
+  document.getElementById('kw-batch-actions').style.display='flex';
+  document.getElementById('kw-gen-btn').textContent='重新生成 ▶';
+}
+function buildKwBatchTable(){
+  const wrap=document.getElementById('kw-batch-table-wrap');
+  if(!wrap) return;
+  wrap.innerHTML=`<table class="batch-tbl"><thead><tr>
+    <th>#</th><th>URL</th><th>内容方向</th><th>类型</th><th>生成文案</th><th>状态</th>
+  </tr></thead><tbody>${kwRows.map((r,i)=>`<tr>
+    <td>${i+1}</td>
+    <td style="max-width:120px;word-break:break-all;font-size:11px">${esc(r.url||'—')}</td>
+    <td>${esc(r.dir||'—')}</td>
+    <td>${esc(r.type||'—')}</td>
+    <td style="max-width:320px;white-space:pre-wrap;font-size:12px">${esc(r._result||'')}</td>
+    <td>${esc(r._status||'待处理')}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+function kwExportBatch(){
+  if(!kwRows.length) return;
+  const lines=['#,URL,内容方向,类型,生成文案,状态'];
+  kwRows.forEach((r,i)=>{
+    const col=[i+1,r.url||'',r.dir||'',r.type||'',(r._result||'').replace(/\n/g,' '),r._status||''];
+    lines.push(col.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`康王批量复刻_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('导出成功 ✓');
+}
+
+// ══════════════════════════════════════════════
+// 文案 Agent 批量模式（康王专属）
+// ══════════════════════════════════════════════
+let wbRows=[], wbPaused=false, wbStopped=false, wbIdx=0;
+
+function setWriteMode(mode){
+  document.getElementById('write-single-wrap').style.display=(mode==='single')?'':'none';
+  document.getElementById('write-batch-wrap').style.display=(mode==='batch')?'':'none';
+  document.querySelectorAll('#tg-write-mode .tbtn').forEach(b=>
+    b.classList.toggle('on',b.dataset.v===mode));
+}
+
+function splitCsvLine(line){
+  const cols=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){ cols.push(cur); cur=''; }
+    else cur+=c;
+  }
+  cols.push(cur);
+  return cols.map(c=>c.trim());
+}
+
+function handleWriteBatchFile(file){
+  if(!file) return;
+  if(!file.name.toLowerCase().endsWith('.csv')){ toast('请上传 CSV 格式文件',2500); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());
+    let start=0;
+    if(lines[0]&&/^["#参]/.test(lines[0].trimStart())) start=1;
+    wbRows=lines.slice(start).map(l=>{
+      const c=splitCsvLine(l);
+      return{ref:c[0]||'',dir:c[1]||'',type:c[2]||'',_result:'',_status:'待处理'};
+    }).filter(r=>r.ref.trim());
+    wbIdx=0;
+    const prev=document.getElementById('wbatch-preview');
+    prev.style.display=''; prev.textContent=`已解析 ${wbRows.length} 行，点击"批量生成"开始`;
+    document.getElementById('wbatch-actions').style.display='flex';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+async function wbatchStart(){
+  if(!S.key&&!PROXY_URL){ openModal(); toast('请先配置 API Key',3000); return; }
+  if(!wbRows.length){ toast('请先上传 CSV 文件',2000); return; }
+  wbPaused=false; wbStopped=false;
+  document.getElementById('wbatch-result').style.display='';
+  document.getElementById('wbatch-actions').style.display='none';
+  document.getElementById('wbatch-progress-bar').style.display='';
+  if(wbRows[0]&&!wbRows[0]._result) wbRows.forEach(r=>{r._result='';r._status='待处理';});
+  buildWbatchTable();
+  await _wbatchRunChunks();
+}
+
+function wbatchPause(){
+  wbPaused=!wbPaused;
+  document.getElementById('wbatch-pause-btn').textContent=wbPaused?'继续':'暂停';
+  if(!wbPaused) _wbatchRunChunks();
+}
+
+function wbatchStop(){ wbStopped=true; }
+
+async function _wbatchRunChunks(){
+  for(let i=wbIdx;i<wbRows.length;i++){
+    if(wbStopped) break;
+    while(wbPaused) await new Promise(r=>setTimeout(r,300));
+    wbIdx=i;
+    const r=wbRows[i];
+    r._status='生成中'; buildWbatchTable();
+    const fill=document.getElementById('wbatch-progress-fill');
+    const txt=document.getElementById('wbatch-progress-text');
+    if(fill) fill.style.width=((i/wbRows.length)*100)+'%';
+    if(txt) txt.textContent=`${i+1} / ${wbRows.length}`;
+    const dir=r.dir||''; const tp=r.type||'';
+    const dirStr=(dir||tp)?`内容方向：${dir}\n内容类型：${tp}`:'';
+    const sys=KW_WRITE_SYS+'\n\n'+KW_KB;
+    const usr=`请创作一篇小红书帖子：\n\n产品：康王酮康唑洗发水（非报备水下文）\n${dirStr?'【内容方向】\n'+dirStr+'\n':''}\n【创作核心要求】\n- 标题≤20字，不出现产品名或功效词\n- 第一段完全建立场景/情绪/问题，不出现产品\n- 全文不出现"康王"，可用"用的这款""那个医用的"代替\n\n参考笔记（必须严格仿照其结构和段落划分，内容用康王场景替换）：\n${r.ref}\n\n直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+    let buf='';
+    try{
+      await callAI(sys,usr,chunk=>{ buf+=chunk; r._result=buf; buildWbatchTable(); });
+      r._status='完成';
+    }catch(e){ r._status='错误'; }
+    buildWbatchTable();
+    await new Promise(res=>setTimeout(res,800));
+  }
+  const fill=document.getElementById('wbatch-progress-fill');
+  if(fill) fill.style.width='100%';
+  const txt=document.getElementById('wbatch-progress-text');
+  if(txt) txt.textContent=`完成 ${wbRows.length} / ${wbRows.length}`;
+  document.getElementById('wbatch-progress-bar').style.display='none';
+  document.getElementById('wbatch-actions').style.display='flex';
+  document.getElementById('wbatch-gen-btn').textContent='重新生成 ▶';
+}
+
+function buildWbatchTable(){
+  const wrap=document.getElementById('wbatch-table-wrap');
+  if(!wrap) return;
+  wrap.innerHTML=`<table class="batch-tbl"><thead><tr>
+    <th>#</th><th>内容方向</th><th>类型</th><th>生成文案</th><th>状态</th>
+  </tr></thead><tbody>${wbRows.map((r,i)=>`<tr>
+    <td>${i+1}</td>
+    <td>${esc(r.dir||'—')}</td>
+    <td>${esc(r.type||'—')}</td>
+    <td style="white-space:pre-wrap;max-width:400px;font-size:12px">${esc(r._result||'')}</td>
+    <td>${esc(r._status||'—')}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function wbatchExport(){
+  if(!wbRows.length) return;
+  const lines=['#,内容方向,类型,生成文案,状态'];
+  wbRows.forEach((r,i)=>{
+    const col=[i+1,r.dir||'',r.type||'',(r._result||'').replace(/\n/g,'↵'),r._status||''];
+    lines.push(col.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`康王批量文案_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('导出成功 ✓');
 }
 
 async function doSingleAnalyze(){
@@ -2286,8 +2877,7 @@ Tag：（#xxx #xxx #xxx）
 4. 非报备：全文不出现产品名/品牌名，可用"手边的那款""用的这个"代替
 5. 报备：产品名在第3段以后出现，全文最多1-2次，不连续出现
 6. 产品融入方式：是"刚好带了/一直在用的/用了之后感觉"——顺带一提，不是要推荐它
-7. 全文必须有一处轻微吐槽/不满/小缺点，让内容有真实感
-8. 禁用词：推荐/安利/真的好用/强烈推荐/宝藏/绝绝子，及任何直接产品评价词汇
+7. 禁用词：推荐/安利/真的好用/强烈推荐/宝藏/绝绝子，及任何直接产品评价词汇
 9. 严禁使用"姨妈"，统一写"月经"或"经期"
 10. 严禁价格相关词汇（性价比/便宜/划算）
 
@@ -2385,10 +2975,9 @@ const REVIEW_SYS_AO = `
 【Ao素人文专项评分模型（100分制）——覆盖DEFAULT_KB中未提及的素人感维度】
 
 ▌ 维度一：素人感/真实感（40分）
-真实感必备要素：有生活锚点（时间/地点/情绪瞬间）、有轻微吐槽或不完美细节、产品顺带提及而非推荐重点、语气像朋友说话
+真实感必备要素：有生活锚点（时间/地点/情绪瞬间）、产品顺带提及而非推荐重点、语气像朋友说话
 扣分规则（可叠加）：
 - 开篇即介绍产品/功效 → -15分
-- 全文无任何负面细节/吐槽/不完美 → -10分
 - 堆砌专业数据或说明书词汇 → -10分
 - 无真实生活场景（只有产品和功效）→ -15分
 - 使用推荐/安利/真的好用/宝藏/绝绝子/无敌/yyds等营销词 → -8分/词
@@ -2467,10 +3056,12 @@ const WRITE_VARIATION_SEEDS = [
 function setDirCat(btn){
   document.querySelectorAll('#tg-dir-cat .tbtn').forEach(b=>b.classList.toggle('on',b===btn));
   const cat=btn.dataset.cat;
-  const subs=DIR_SUBS[cat]||[];
+  // 康王：用 KW_DIR_SUBS；高洁丝：用 DIR_SUBS
+  const subsMap=S.brand==='kangwang'?KW_DIR_SUBS:DIR_SUBS;
+  const subs=subsMap[cat]||[];
   const chips=document.getElementById('dir-sub-chips');
   if(!chips) return;
-  chips.style.display='flex';
+  chips.style.display=subs.length?'flex':'none';
   chips.innerHTML=subs.map(s=>`<button class="tbtn" style="font-size:12px;padding:4px 10px" onclick="setDirSub(this,'${s.replace(/'/g,"\\'")}')"><span>${s}</span></button>`).join('');
   const det=document.getElementById('write-dir-detail');
   if(det) det.placeholder=`例：${{
@@ -2479,6 +3070,9 @@ function setDirCat(btn){
     '情绪向':'毕业后和闺蜜漂在同个城市',
     '日常故事':'和同事互借卫生巾发现有默契'
   }[cat]||'具体场景细节'}`;
+  // 圈层热点：显示事实信息框（仅高洁丝）
+  const factBox=document.getElementById('dir-fact-box');
+  if(factBox) factBox.style.display=(S.brand==='kotex'&&cat==='圈层热点')?'':'none';
 }
 function setDirSub(btn,sub){
   btn.parentElement.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
@@ -2509,12 +3103,33 @@ async function doWrite(){
   const kw=document.getElementById('inp-write-kw')?.value.trim()||'';
   const form=document.getElementById('sel-write-form')?.value||'';
   const ref=document.getElementById('ref-write-post').value.trim();
+
+  // 康王：参考笔记必填校验
+  if(BC().refRequired && !ref){toast('请填写参考笔记（必填）',2500);return;}
+
   const adLabel=S.writeAd==='rep'?'报备':'非报备';
   const direction=S.writeType==='ao'?buildWriteDirection():'';
   const variationSeed=S.writeType==='ao'?getWriteVariationSeed():'';
 
-  const usr=S.writeType==='ao'
-    ?`请创作一篇小红书帖子：
+  // 事实约束（高洁丝 × 圈层热点时注入）
+  const factInfo=S.brand==='kotex'?(document.getElementById('write-dir-fact')?.value.trim()||''):'';
+  const factConstraint=factInfo?`\n\n【严格事实约束——最高优先级】\n以下是本次创作允许使用的真实素材，你只能使用这些具体事实（时间/地点/人物/作品名/歌词/赛事等），不得虚构或补充任何事实细节：\n${factInfo}`:'';
+
+  let usr;
+  if(S.brand==='kangwang'){
+    usr=`请创作一篇小红书帖子：
+
+产品：康王酮康唑洗发水（非报备水下文）
+${direction?'【内容方向】\n'+direction+'\n':''}
+【创作核心要求】
+- 标题≤20字，不出现产品名或功效词
+- 第一段完全建立场景/情绪/问题，不出现产品
+- 全文不出现"康王"，可用"用的这款""那个医用的"代替
+${variationSeed}${ref?'\n\n参考笔记（必须严格仿照其结构和段落划分，内容用康王场景替换）：\n'+ref:''}${factConstraint}
+
+直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+  } else if(S.writeType==='ao'){
+    usr=`请创作一篇小红书帖子：
 
 产品：高洁丝${product}（${adLabel}）
 平台：${platform}
@@ -2523,11 +3138,11 @@ ${direction?'【内容方向】\n'+direction+'\n':''}
 - 标题≤20字，不出现产品名或功效描述词
 - 第一段完全建立场景和情绪，零产品信息
 - ${S.writeAd==='rep'?'产品名出现1次，在第3段以后，顺带提及，不是推销重点':'全文不出现产品名/品牌名，用"手边的卫生巾/用的那款"替代'}
-- 必须有一处轻微吐槽或小缺点，让内容有真实感
-${variationSeed}${ref?'\n\n参考笔记（参考其真实口吻和风格，不必照搬结构）：\n'+ref:''}
+${variationSeed}${ref?'\n\n参考笔记（参考其真实口吻和风格，不必照搬结构）：\n'+ref:''}${factConstraint}
 
-直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`
-    :`请为以下需求创作一篇完整稿件：
+直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+  } else {
+    usr=`请为以下需求创作一篇完整稿件：
 
 产品：高洁丝${product}
 类型：SOSS搜索词下浮现（${adLabel}）
@@ -2539,6 +3154,7 @@ ${kw?'搜索词：'+kw+'\n内容形式：'+form+'\n':''}${ref?'\n参考笔记（
 - ${S.writeAd==='rep'?'可露出品牌名称和产品名':'禁止在标题、文案、tag中提及产品和品牌名称'}
 
 直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
+  }
 
   S.stopWrite=false;
   const btn=document.getElementById('write-btn');
@@ -2550,7 +3166,7 @@ ${kw?'搜索词：'+kw+'\n内容形式：'+form+'\n':''}${ref?'\n参考笔记（
   document.getElementById('write-body').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
   rc.scrollIntoView({behavior:'smooth',block:'start'});
 
-  const writeSys=WRITE_SYS+'\n\n'+DEFAULT_KB+getLibraryContext();
+  const writeSys=BC().writeSys()+'\n\n'+BC().kb()+getLibraryContext();
   S.writeBuf='';
   try{
     await callAI(writeSys,usr,t=>{
@@ -2603,12 +3219,15 @@ function submitHumanReview(){
   const aiScore=parseInt(document.getElementById('hr-ai-score').textContent)||0;
   const entry={
     time:new Date().toLocaleDateString('zh-CN'),
+    brand:S.brand,
     product:document.getElementById('sel-product').value,
     type:S.type, ad:S.ad,
-    draft, aiScore, humanScore:score, humanRewrite:rewrite
+    draft, aiScore,
+    aiReview:document.getElementById('report-body')?.innerText||'',
+    humanScore:score, humanRewrite:rewrite
   };
   S.humanReviews.push(entry);
-  try{localStorage.setItem('kx_human_reviews',JSON.stringify(S.humanReviews));}catch{}
+  try{localStorage.setItem(pfx()+'_human_reviews',JSON.stringify(S.humanReviews));}catch{}
   if(rewrite){
     const libEntry={
       title:draft.slice(0,30)+'…（人工改稿）',
@@ -2618,23 +3237,88 @@ function submitHumanReview(){
     };
     if(!S.library.some(l=>l.title===libEntry.title)){
       S.library.push(libEntry);
-      try{localStorage.setItem('kx_library',JSON.stringify(S.library));}catch{}
+      try{localStorage.setItem(pfx()+'_library',JSON.stringify(S.library));}catch{}
       updateLibraryCounter();
     }
   }
   toast(`人工评审已保存（共 ${S.humanReviews.length} 条）✓`,2500);
 }
 function exportHumanReviews(){
+  // 写手端：文字稿（含AI稿+AI审核报告+人工分+人工改稿）
+  if(!S.humanReviews.length){toast('暂无人工评审记录',2000);return;}
+  let out='';
+  S.humanReviews.forEach((e,i)=>{
+    out+=`${'═'.repeat(40)}\n`;
+    out+=`评审记录 #${i+1} | ${e.time} | ${e.product} | ${e.type==='ao'?'素人文':'SOSS'} | ${e.ad==='rep'?'报备':'非报备'}\n`;
+    out+=`${'═'.repeat(40)}\n\n`;
+    out+=`【AI 生成稿】\n${e.draft||'—'}\n\n`;
+    out+=`【AI 审核报告】（${e.aiScore}分）\n${e.aiReview||'（未存储）'}\n\n`;
+    out+=`【人工评分】：${e.humanScore}分\n\n`;
+    out+=`【人工重写稿】\n${e.humanRewrite||'（未提供）'}\n\n`;
+  });
+  const blob=new Blob([out],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`人工评审记录_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.txt`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('导出成功 ✓');
+}
+function exportHumanReviews_json(){
+  // 管理员端：完整 JSON
   if(!S.humanReviews.length){toast('暂无人工评审记录',2000);return;}
   const blob=new Blob([JSON.stringify(S.humanReviews,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`人工评审记录_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.json`;
+  a.download=`评审记录_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast('导出成功 ✓');
+  toast('JSON 导出成功 ✓');
+}
+function exportHumanReviews_admin_text(){
+  // 管理员端：完整文字稿（AI稿 + AI审核报告 + 人工分 + 人工改稿）供 Claude Code 分析优化提示词
+  if(!S.humanReviews.length){toast('暂无人工评审记录',2000);return;}
+  let out='';
+  S.humanReviews.forEach((e,i)=>{
+    out+=`${'═'.repeat(40)}\n`;
+    out+=`评审记录 #${i+1} | ${e.time} | ${e.brand||'高洁丝'} | ${e.product} | ${e.type==='ao'?'素人文':'SOSS'} | ${e.ad==='rep'?'报备':'非报备'}\n`;
+    out+=`${'═'.repeat(40)}\n\n`;
+    out+=`【AI 生成稿】\n${e.draft||'—'}\n\n`;
+    out+=`【AI 审核报告】（${e.aiScore}分）\n${e.aiReview||'（未存储，需重新提交）'}\n\n`;
+    out+=`【人工评分】：${e.humanScore}分\n\n`;
+    out+=`【人工重写稿】\n${e.humanRewrite||'（未提供）'}\n\n`;
+  });
+  const blob=new Blob([out],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`完整评审文字稿_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.txt`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('完整文字稿导出成功 ✓');
+}
+function importLibrary(){
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=(e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        const items=data.library||data;
+        if(!Array.isArray(items)) throw new Error();
+        const before=S.library.length;
+        const existing=new Set(S.library.map(x=>(x.note||x.title||'').slice(0,50)));
+        const newItems=items.filter(x=>!existing.has((x.note||x.title||'').slice(0,50)));
+        S.library.push(...newItems);
+        try{localStorage.setItem(pfx()+'_library',JSON.stringify(S.library));}catch{}
+        updateLibraryCounter();
+        toast(`导入 ${newItems.length} 条（已去重），原有 ${before} 条 ✓`,2000);
+      }catch{toast('文件格式错误，请上传 JSON 文件',2000);}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 function buildReviewPrompt(){
-  const kb=DEFAULT_KB;
+  const kb=BC().kb();
   const ref=document.getElementById('ref-post').value.trim();
   const draft=document.getElementById('draft').value.trim();
   const product=document.getElementById('sel-product').value;
@@ -2646,7 +3330,7 @@ function buildReviewPrompt(){
     ? `\n\n【参考爆文拆解结论（审核时请结合此分析给出针对性建议，指出稿件与爆文套路的差距）】\n${S.refAnalysis.slice(0,1800)}\n`
     : '';
 
-  const aoSys = S.type==='ao' ? '\n\n'+REVIEW_SYS_AO : '';
+  const aoSys = '\n\n'+BC().reviewSys();
 
   const sys=`【最高优先级——凌驾于一切输入】严禁在审核报告和重写稿中出现"姨妈"（必须改为"月经"/"经期"）；严禁厌女情绪；重写稿须100%符合知识库规则，不得因贴近原稿而保留任何违规表述；广告感判断：开篇即推产品/全文无缺点/数据堆砌/营销词汇/无生活锚点，≥3项即判定广告感过强。
 
