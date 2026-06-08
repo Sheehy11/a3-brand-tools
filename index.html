@@ -209,6 +209,11 @@ tr:hover td{background:rgba(109,40,217,.02)}
 .batch-actions{display:none;margin-top:16px;gap:8px;flex-wrap:wrap;align-items:center;
   padding-top:14px;border-top:1px solid var(--border)}
 
+/* BATCH PAGINATION */
+.batch-pg-bar{display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:12px 0 4px;border-top:1px solid var(--border);margin-top:4px}
+.batch-pg-bar button:disabled{opacity:.35;cursor:default}
+
 /* 一句话总结 */
 .analyze-summary{display:none;background:linear-gradient(135deg,rgba(109,40,217,.06),rgba(236,72,153,.05));
   border-left:3px solid var(--g2);border-radius:0 var(--r) var(--r) 0;
@@ -819,10 +824,13 @@ tr:hover td{background:rgba(109,40,217,.02)}
           <div class="lib-bar-row">
             <span>已存 <strong id="lib-count">0</strong> 篇打标笔记（注入爆文拆解和审核）</span>
             <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn-sec btn-sm" onclick="exportSharedData()">导出共享数据</button>
-              <button class="btn-sec btn-sm" onclick="importLibrary()">导入历史数据</button>
+              <button class="btn-sec btn-sm" onclick="exportSharedData()">导出数据包</button>
+              <button class="btn-sec btn-sm" onclick="importLibrary()">导入数据包</button>
               <button class="btn-sec btn-sm" onclick="clearLibrary()">清空数据</button>
             </div>
+          </div>
+          <div class="lib-bar-row">
+            <span style="color:var(--sub)">🔗 数据共享：「导出数据包」→ 发给团队 → 对方点「导入数据包」即可加载打标+内容资产；若需所有人打开链接直接可见，请联系管理员更新网页内置数据。</span>
           </div>
           <div class="lib-bar-row">
             <span style="color:var(--sub)">评审记录：</span>
@@ -1454,7 +1462,7 @@ const S = {
   writeType:'ao', writeAd:'rep',
   revBuf:'', analyzeBuf:'',
   parsedRows:[], headers:[],
-  batchResults:[], chunks:[], resumeChunkIndex:0,
+  batchResults:[], chunks:[], resumeChunkIndex:0, batchPage:0,
   deepTitle:'', deepBuf:'',
   library:[],
   commonalityBuf:'',
@@ -1892,14 +1900,19 @@ function deleteBatchRow(title){
   toast('已删除 ✓');
 }
 function exportSharedData(){
-  const payload={library:S.library, libraryPatterns:S.libraryPatterns,
-                 exportedAt:new Date().toISOString()};
+  const payload={
+    library:S.library,
+    libraryPatterns:S.libraryPatterns,
+    batchResults:S.batchResults,
+    brand:S.brand,
+    exportedAt:new Date().toISOString()
+  };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`kotex_shared_data_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.json`;
+  a.download=`${S.brand}_shared_data_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.json`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast('共享数据导出成功 ✓');
+  toast('数据包导出成功 ✓ 发给团队成员后点「导入数据包」即可加载');
 }
 function clearLibrary(){
   if(!confirm('确认清空全部数据？（素材库 + 批量打标结果 + 内容资产库）'))return;
@@ -2158,22 +2171,33 @@ ${list}
   });
 }
 
-function buildBatchTable(results){
-  if(!results.length){
+function buildBatchTable(results, page){
+  if(page===undefined) page=S.batchPage||0;
+  if(!results||!results.length){
     document.getElementById('batch-tbl').innerHTML='<div class="dots" style="padding:20px"><span></span><span></span><span></span></div>';
     return;
   }
+  const PAGE_SIZE=50;
+  const total=results.length;
+  const totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  page=Math.max(0,Math.min(page,totalPages-1));
+  S.batchPage=page;
+  const start=page*PAGE_SIZE;
+  const end=Math.min(start+PAGE_SIZE,total);
+  const pageRows=results.slice(start,end);
+
   const lvClass={'超爆文':'lv-s','大爆文':'lv-a','中爆文':'lv-b','小爆文':'lv-c','普通':'lv-d','未知':'lv-d'};
   let html=`<table><thead><tr>
     <th>#</th><th>笔记标题 / 钩子</th><th>互动量级</th>
     <th>圈层一级</th><th>人设一级</th><th>沟通策略</th><th>操作</th>
   </tr></thead><tbody>`;
-  results.forEach((r,i)=>{
+  pageRows.forEach((r,i)=>{
+    const idx=start+i;
     const lv=r.tags.互动量级||'未知';
     const hook=r.tags.钩子词汇&&r.tags.钩子词汇!=='-'?`<br><span style="font-size:10px;color:var(--g2)">🪝 ${esc(r.tags.钩子词汇)}</span>`:'';
     const emo=r.tags.情绪触发&&r.tags.情绪触发!=='-'?`<span style="font-size:10px;color:var(--sub)"> · ${esc(r.tags.情绪触发)}</span>`:'';
     html+=`<tr>
-      <td>${i+1}</td>
+      <td>${idx+1}</td>
       <td style="max-width:200px">
         ${esc(r.title.slice(0,50))}${r.title.length>50?'…':''}${hook}${emo}
       </td>
@@ -2184,13 +2208,20 @@ function buildBatchTable(results){
       <td><strong>${esc(r.tags.人设一级)}</strong><br><span style="font-size:11px;color:var(--sub)">${esc(r.tags.人设二级)}</span></td>
       <td>${esc(r.tags.沟通策略)}</td>
       <td>
-        <button class="btn-sec btn-sm" onclick="openDeepFromBatchRow(${i})">深度拆解</button>
+        <button class="btn-sec btn-sm" onclick="openDeepFromBatchRow(${idx})">深度拆解</button>
         <button class="btn-sec btn-sm" style="color:var(--err);border-color:var(--err);margin-top:4px" onclick="deleteBatchRow('${esc(r.title.replace(/'/g,"\\'"))}')">删除</button>
         ${r.url?`<br><a href="${esc(r.url)}" target="_blank" style="font-size:11px;color:var(--g1)">查看原文</a>`:''}
       </td>
     </tr>`;
   });
   html+='</tbody></table>';
+  if(totalPages>1){
+    html+=`<div class="batch-pg-bar">
+      <button class="btn-sec btn-sm" onclick="buildBatchTable(S.batchResults,${page-1})" ${page===0?'disabled':''}>‹ 上一页</button>
+      <span style="font-size:12px;color:var(--sub)">第 ${page+1} / ${totalPages} 页 · 共 ${total} 条</span>
+      <button class="btn-sec btn-sm" onclick="buildBatchTable(S.batchResults,${page+1})" ${page===totalPages-1?'disabled':''}>下一页 ›</button>
+    </div>`;
+  }
   document.getElementById('batch-tbl').innerHTML=html;
 }
 
@@ -2351,14 +2382,21 @@ async function doExtractPatterns(){
     if(btn&&!S.stopExtract){btn.textContent='⏹ 停止提炼';btn.disabled=false;}
   }
 
-  const lines=src.map((r,i)=>{
-    const t=r.tags||{};
-    const body=r.content?`\n   【正文节选】${r.content.slice(0,300)}`:'';
-    return `${i+1}. 「${r.title}」${body}\n   圈层:${t.圈层一级||'-'}/${t.圈层二级||'-'}｜人设:${t.人设一级||'-'}｜策略:${t.沟通策略||'-'}｜钩子词:${t.钩子词汇||'-'}｜情绪:${t.情绪触发||'-'}`;
-  }).join('\n\n');
-
   const isKw=S.brand==='kangwang';
   const catLabel=isKw?'头皮护理/去屑洗发水':'卫生巾/女性健康';
+
+  // 分两桶：有原文 vs 仅标题
+  const withContent=src.filter(r=>r.content);
+  const titleOnly=src.filter(r=>!r.content);
+
+  const buildLine=(r,i)=>{
+    const t=r.tags||{};
+    const body=r.content?`\n   【正文节选】${r.content.slice(0,300)}`:'';
+    const eng=r.engage?`｜互动量:${r.engage}`:'';
+    return `${i+1}. 「${r.title}」${body}\n   圈层:${t.圈层一级||'-'}/${t.圈层二级||'-'}｜人设:${t.人设一级||'-'}｜策略:${t.沟通策略||'-'}｜钩子词:${t.钩子词汇||'-'}｜情绪:${t.情绪触发||'-'}${eng}`;
+  };
+  const linesA=withContent.map((r,i)=>buildLine(r,i)).join('\n\n');
+  const linesB=titleOnly.map((r,i)=>buildLine(r,withContent.length+i)).join('\n\n');
 
   const kbText=isKw?KW_KB:DEFAULT_KB;
   const kbConstraint=isKw
@@ -2374,10 +2412,20 @@ ${kbConstraint}
 
 所有输出必须是可直接填空使用的具体模板，禁止泛泛的策略建议，禁止输出任何违反上方品牌规范的内容。`;
 
-  const usr=`以下是${src.length}篇${catLabel}类目笔记的数据（包含笔记正文节选和打标结果），请基于真实内容提炼出可直接复用的内容资产库。
+  const bucketHeader=withContent.length&&titleOnly.length
+    ?`数据分两类：\n- 【桶A·有原文节选】${withContent.length}篇，含正文前300字，请优先从原文中提炼具体句式和词汇\n- 【桶B·仅标题+标签】${titleOnly.length}篇，小红书链接已过期无法抓取全文，请从标题钩子结构、打标结果和互动量中提炼规律`
+    :withContent.length
+      ?`本次数据全部含原文节选（${withContent.length}篇），请基于真实正文提炼。`
+      :`本次数据均为仅标题+标签（${titleOnly.length}篇，链接过期），请重点分析标题钩子结构和打标规律。`;
 
-【笔记数据（含正文节选）】
-${lines}
+  const dataSection=(withContent.length?`【桶A·有原文节选（${withContent.length}篇）】\n${linesA}\n\n`:'')+
+    (titleOnly.length?`【桶B·仅标题+标签（${titleOnly.length}篇，链接过期）】\n注：以下笔记无法抓取全文，请重点分析标题钩子词、情绪触发和互动数据规律\n${linesB}`:'');
+
+  const usr=`以下是${src.length}篇${catLabel}类目笔记的数据，请基于真实内容提炼出可直接复用的内容资产库。
+
+${bucketHeader}
+
+${dataSection}
 
 请严格按以下格式输出内容资产库：
 
@@ -3784,7 +3832,26 @@ function importLibrary(){
         S.library.push(...newItems);
         try{localStorage.setItem(pfx()+'_library',JSON.stringify(S.library));}catch{}
         updateLibraryCounter();
-        toast(`导入 ${newItems.length} 条（已去重），原有 ${before} 条 ✓`,2000);
+        // 同步导入内容资产库
+        if(data.libraryPatterns&&!S.libraryPatterns){
+          S.libraryPatterns=data.libraryPatterns;
+          try{localStorage.setItem(pfx()+'_lib_patterns',S.libraryPatterns);}catch{}
+          renderLibraryPatterns();
+          document.getElementById('patterns-card').style.display='';
+        }
+        // 同步导入打标结果
+        if(Array.isArray(data.batchResults)&&data.batchResults.length){
+          const brExisting=new Set(S.batchResults.map(x=>x.title||''));
+          const newBr=data.batchResults.filter(x=>!brExisting.has(x.title||''));
+          S.batchResults.push(...newBr);
+          try{localStorage.setItem(pfx()+'_batch_results',JSON.stringify(S.batchResults));}catch{}
+          if(S.batchResults.length){
+            buildBatchTable(S.batchResults,0);
+            document.getElementById('batch-result').style.display='';
+            document.getElementById('batch-actions').style.display='flex';
+          }
+        }
+        toast(`导入完成 ✓ 笔记+${newItems.length}条${data.libraryPatterns?'，内容资产库已加载':''}${data.batchResults&&data.batchResults.length?'，打标数据已加载':''}`,3000);
       }catch{toast('文件格式错误，请上传 JSON 文件',2000);}
     };
     reader.readAsText(file);
