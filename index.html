@@ -669,6 +669,29 @@ tr:hover td{background:rgba(109,40,217,.02)}
               <div class="flabel">具体场景/细节（选填）</div>
               <input id="write-dir-detail" class="fi" type="text" placeholder="例：张学友演唱会 / 《玫瑰的故事》/ 和同事互借卫生巾"/>
             </div>
+            <div id="dir-emotion-row" style="display:none;margin-top:10px">
+              <div class="flabel">情绪倾向（选填）</div>
+              <div class="tgrp" style="flex-wrap:wrap;gap:6px;margin-top:4px">
+                <button class="tbtn" data-emotion="积极正向" onclick="setEmotionDir(this)">积极正向</button>
+                <button class="tbtn" data-emotion="情绪共鸣" onclick="setEmotionDir(this)">情绪共鸣</button>
+                <button class="tbtn" data-emotion="治愈温柔" onclick="setEmotionDir(this)">治愈温柔</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 特殊要求 -->
+        <div class="card">
+          <div class="ch click" onclick="toggleColl('write-s-extra','write-a-extra')">
+            <div class="step">+</div>
+            <div class="ch-title">特殊要求</div>
+            <span class="ch-sub">选填，所有品牌适用</span>
+            <span class="arrow open" id="write-a-extra">▼</span>
+          </div>
+          <div class="coll open" id="write-s-extra">
+            <textarea id="write-extra-req" class="ft" rows="3"
+              placeholder="例：结合高考季写情绪向故事 / 结合世界杯写团体场景 / 重点突出某个卖点 / 控制在250字以内..."
+              oninput="S.extraReq=this.value"></textarea>
           </div>
         </div>
 
@@ -713,6 +736,12 @@ tr:hover td{background:rgba(109,40,217,.02)}
             </div>
           </div>
           <div class="rc" id="write-body"></div>
+          <div style="margin-top:12px">
+            <div class="flabel">修改指令（选填）——告诉 AI 本次重点改哪里</div>
+            <textarea id="write-revise-instruction" class="ft" rows="2"
+              placeholder="例：只调整第二段，保留其余 / 结尾换一个有力量的收束句 / 标题改得更有悬念感，正文不动..."
+              oninput="S.reviseInstruction=this.value" style="margin-top:4px"></textarea>
+          </div>
         </div>
         </div><!-- /write-single-wrap -->
 
@@ -1790,6 +1819,7 @@ const S = {
   libraryPatterns:'',
   stopExtract:false,
   humanReviews:[],
+  emotionDir:'', extraReq:'', reviseInstruction:'',
   _singleAbort:null, _reviewAbort:null, _commonalityAbort:null, _extractAbort:null
 };
 
@@ -1919,6 +1949,10 @@ function switchBrand(brandId){
   S.library=[]; S.libraryPatterns=''; S.batchResults=[];
   S.humanReviews=[]; S.batchPaused=false; S.resumeChunkIndex=0;
   S.revBuf=''; S.writeBuf=''; S.analyzeBuf=''; S.refAnalysis='';
+  S.emotionDir=''; S.extraReq=''; S.reviseInstruction='';
+  const _erEl=document.getElementById('write-extra-req'); if(_erEl) _erEl.value='';
+  const _riEl=document.getElementById('write-revise-instruction'); if(_riEl) _riEl.value='';
+  document.querySelectorAll('#dir-emotion-row .tbtn').forEach(b=>b.classList.remove('on'));
   // 清空上传数据，防止跨品牌污染
   S.parsedRows=[]; S.headers=[];
   document.getElementById('col-map').style.display='none';
@@ -2002,6 +2036,8 @@ function updateBrandUI(){
       if(sub) sub.textContent='选填';
       const db=document.getElementById('dir-detail-box');
       if(db) db.style.display='none';
+      const emRow=document.getElementById('dir-emotion-row');
+      if(emRow) emRow.style.display='none';
     } else if(S.brand==='haoqi'){
       // 好奇：4个关键词平铺按钮，无子选项
       const catGrp=document.getElementById('tg-dir-cat');
@@ -2016,6 +2052,8 @@ function updateBrandUI(){
       if(sub) sub.textContent='选填';
       const db=document.getElementById('dir-detail-box');
       if(db) db.style.display='none';
+      const emRow2=document.getElementById('dir-emotion-row');
+      if(emRow2) emRow2.style.display='none';
     } else {
       // 高洁丝：恢复原3大类
       const catGrp=document.getElementById('tg-dir-cat');
@@ -2029,6 +2067,8 @@ function updateBrandUI(){
       if(sub) sub.textContent='Ao 素人文专属，选填';
       const db=document.getElementById('dir-detail-box');
       if(db) db.style.display='';
+      const emRow3=document.getElementById('dir-emotion-row');
+      if(emRow3) emRow3.style.display='';
     }
     document.getElementById('dir-sub-chips').style.display='none';
     document.getElementById('dir-sub-chips').innerHTML='';
@@ -4029,6 +4069,9 @@ Tag：（#xxx #xxx #xxx）
 11. 结尾不使用互动钩子话术——不写"你们用什么？评论区告诉我"，结尾用情感或行动收口
 12. 情绪向/女性成长/日常故事类选题：产品至多出现一句，以"工具/道具"形式带过，不展开功效介绍
 13. 叙事以自身感受、情绪变化为主线——避免用大段对话来推进情节，对话只是点缀
+14. 情绪基调默认积极向上——结尾必须是正向收束（成长/释然/自我认可/力量感），禁止以焦虑/遗憾/委屈结尾；全文情绪弧线应从「发现问题/共鸣」走向「解决/赋能/喜悦」，除非写手通过特殊要求明确指定了其他情绪方向
+15. 禁止虚构不符合现实的场景细节、道具和对话——所有细节必须是日常生活中真实可能发生的：陌生人不会随身携带特定贴纸/道具；对话只能有1-2句，且必须是普通人在该情境下自然会说的话，不得写"知道你可能会需要/我特意多带了"之类刻意凑巧的台词；如果细节在现实中令人觉得突兀，就删掉它
+16. 禁止捏造产品感官体验——高洁丝卫生巾系列均无特殊气味：「蔓越莓卫生巾」中的"蔓越莓"是功效成分名（蔓越莓精华），产品本身不散发蔓越莓香气；「海岛棉」是棉料名，产品无特殊棉花气息；禁止写任何用鼻子闻到产品香气/颜色/口感等不存在的感官描述
 
 【仿写规则——有参考笔记时适用，与以上铁律同等优先级】
 ① 仿写绝非抄袭：原文每一个句子都必须完全重写，严禁复用任何原文词组、短语或句式框架，仿写稿中不应出现任何能在原文中找到的连续表达
@@ -4190,6 +4233,8 @@ const REVIEW_SYS_AO = `
 - 使用推荐/安利/真的好用/宝藏/绝绝子/无敌/yyds等营销词 → -8分/词
 - 结尾有互动钩子话术（"评论区告诉我你们用什么"）→ -5分
 - 用大段虚构对话来植入卖点（对话体推进产品登场）→ -8分
+- 场景细节不符合现实认知（路人额头贴"加油"贴纸、陌生人递卫生巾时说出像剧本台词的话、任何令人觉得"现实里不会这样"的道具/行为）→ -12分，一票要求重写
+- 捏造产品感官体验（写"闻到蔓越莓香气""散发清香"等——蔓越莓卫生巾的"蔓越莓"是功效成分名而非香气，产品无特殊气味）→ -15分，一票要求重写
 - 提及产品缺点或负面描述 → -8分
 
 【重要校准——避免以下误判】
@@ -4290,6 +4335,16 @@ function setDirCat(btn){
   const detailBox=document.getElementById('dir-detail-box');
   if(factBox) factBox.style.display=showFact?'':'none';
   if(detailBox) detailBox.style.display=showFact?'none':'';
+}
+function setEmotionDir(btn){
+  const grp=btn.closest('.tgrp');
+  grp.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
+  if(S.emotionDir===btn.dataset.emotion){
+    S.emotionDir='';
+  } else {
+    btn.classList.add('on');
+    S.emotionDir=btn.dataset.emotion;
+  }
 }
 function setDirSub(btn,sub){
   btn.parentElement.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
@@ -4435,6 +4490,9 @@ ${kw?'搜索词：'+kw+'\n内容形式：'+form+'\n':''}${sossBlueprint?'\n'+sos
 
 直接输出稿件（标题、正文、Tag），不要任何说明或前缀。`;
   }
+
+  if(S.emotionDir) usr+=`\n\n【情绪倾向要求】本篇请以「${S.emotionDir}」为情绪基调贯穿全文。`;
+  if(S.extraReq) usr+=`\n\n【写手特殊要求——最高优先级】\n${S.extraReq}`;
 
   S.stopWrite=false;
   const btn=document.getElementById('write-btn');
@@ -4665,7 +4723,7 @@ SOSS-CPC报备优质示例：搜索词：卫生巾
 标题：好用到不讲理的卫生巾 经期异味闷痒全退散！
 要点：严格仿参考笔记结构，卖点替换为高洁丝核心功效
 ---`}
-请严格按知识库标准进行审核。${S.refAnalysis?'审核问题清单中请明确指出稿件是否有效借鉴了参考爆文的钩子结构和内容套路。':''}`;
+请严格按知识库标准进行审核。${S.refAnalysis?'审核问题清单中请明确指出稿件是否有效借鉴了参考爆文的钩子结构和内容套路。':''}${S.reviseInstruction?'\n\n【写手修改指令——最高优先级，约束本次重写范围】\n'+S.reviseInstruction+'\n除写手指定范围外，其余段落尽量保持原稿风格和内容，不做无必要的重写。':''}`;
 
   const typeLabel=S.brand==='kangwang'?'康王素人文':S.brand==='haoqi'?'好奇素人文':S.type==='soss'?'SOSS搜索词下浮现':'Ao素人文';
   const adLabel=S.brand==='kangwang'?'非报备':S.ad==='rep'?'报备':'非报备';
@@ -4679,7 +4737,7 @@ SOSS-CPC报备优质示例：搜索词：卫生巾
 ${S.type==='soss'&&kw?'- 搜索词：'+kw+'\n':''}${S.type==='soss'?'- 内容形式：'+form+'\n':''}${ref?'\n【参考笔记（须严格仿照其结构和段落）】\n'+ref+'\n':''}
 【待审核稿件】
 ${draft}
-
+${S.extraReq?'\n【原始特殊要求（重写时须继续遵守）】\n'+S.extraReq+'\n':''}
 ---
 请严格按以下Markdown格式输出审核报告：
 
@@ -4693,7 +4751,11 @@ ${draft}
 如无问题，写"暂无明显问题"
 ${S.refAnalysis?'\n## 与爆文套路对照\n（对照参考爆文的钩子结构和内容套路，指出稿件哪些地方有效借鉴、哪些地方还有差距）\n':''}
 ## 重写稿
-（严格按知识库标准和参考笔记结构，输出完整重写版本，含标题、正文、Tag）`;
+${S.reviseInstruction
+  ? `【写手修改指令——最高优先级】\n${S.reviseInstruction}\n\n执行规则：严格只改写手指令指定的部分，其余段落、标题、Tag 逐字保留与原稿一致，不做任何额外润色或改动。${S.extraReq?'\n同时继续遵守：'+S.extraReq:''}\n（含完整标题、正文、Tag 输出）`
+  : `（严格按知识库标准${S.extraReq?'及以下特殊要求':''}和参考笔记结构，输出完整重写版本，含标题、正文、Tag${S.extraReq?'\n重写须遵守特殊要求：'+S.extraReq:''}）`
+}`;
+
 
   return {sys,usr};
 }
