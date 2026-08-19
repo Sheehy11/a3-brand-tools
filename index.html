@@ -1937,7 +1937,7 @@ const HQ_SELLING_POINTS = {
     {key:'capacity',label:'吸量大',terms:['吸量大','吸得多','大吸量']}
   ],
   '小桃裤':[
-    {key:'breathability',label:'透气散热，适合汗宝',terms:['透气','散热','汗宝','不闷']},
+    {key:'breathability',label:'透气散热，适合汗宝',terms:['透气','散热','汗宝','不闷','清爽','干爽']},
     {key:'soft',label:'柔软',terms:['柔软','软乎','软糯','摸着软','手感软']},
     {key:'fit',label:'胖宝宝穿着也不勒',terms:['不勒','勒痕','胖宝宝','胖宝','活动自在']},
     {key:'poo_pocket',label:'便便兜',terms:['便便兜','兜住便便','兜住粑粑']},
@@ -6033,6 +6033,34 @@ function hfSinglePointAudit(copy,product,selectedKey){
   if(selected){const sentences=body.split(/[。！？!?\n]+/).filter(s=>selected.terms.some(t=>s.includes(t)));if(sentences.length!==1)issues.push(`所选卖点出现在${sentences.length}句话中，必须只用一句话带过`);}
   return[...new Set(issues)];
 }
+function hfFallbackScene(angle){
+  const a=String(angle||'');
+  if(/天气|热|出汗/.test(a))return'这两天天气有变化，我给宝宝换纸尿裤时也顺手调整了当天要用的那一包。';
+  if(/出门|外出|尿布包|收纳/.test(a))return'出门前整理尿布包，我把纸巾、替换衣物和当天要用的纸尿裤逐样放好。';
+  if(/换码|尺码/.test(a))return'最近正好到了换码的时候，我先按宝宝现在的穿着情况整理了家里的存货。';
+  if(/补货|库存|见底|空包|消耗/.test(a))return'整理家里的纸尿裤时发现存货不多了，我就按最近的使用节奏补上了一包。';
+  if(/试用/.test(a))return'前几天整理到一包试用装，我就趁白天在家时给宝宝换上看看。';
+  if(/洗澡/.test(a))return'洗完澡以后，我先把宝宝擦干，再把纸尿裤和衣服依次放到手边。';
+  if(/午睡|入睡/.test(a))return'午睡前我照常给宝宝换了一次，等穿好衣服再把换下来的东西收走。';
+  if(/翻身|爬动|活动/.test(a))return'宝宝在垫子上翻身活动了一会儿，我等他安静下来才开始更换。';
+  if(/穿脱|更换|换纸尿裤/.test(a))return'白天给宝宝更换时，我先把垫子和纸巾摆好，再按平时的顺序处理。';
+  return'今天给宝宝换纸尿裤时，我顺手记下了这次很普通的使用过程。';
+}
+function hfBodyCharCount(s){return String(s||'').replace(/[\s，。！？、；：“”‘’（）()#]/g,'').length;}
+function hfSafeFallback(product,direction,point,angle){
+  const rule=HQ_DIRECTION_RULES[direction],scene=hfFallbackScene(angle),label=String(point.label||'').replace(/（仅个人体验）/g,''),pointSentence=`我这次只留意到一个点：${label}。`;
+  let parts;
+  if(direction==='强品口碑')parts=[`${scene}这次还是把${product}放在家里顺手的位置，照着平时的节奏给宝宝换。`,`从拿出来到换好没有特意做复杂比较，我只是把当天的过程和自己的选择如实记下来。${pointSentence}`,'接下来先继续按日常频率使用，用到差不多时再看要不要补。'];
+  else if(direction==='真实场景')parts=[`${scene}我先把垫子、纸巾和替换衣物放到手边，等宝宝安静下来再开始。`,`整个过程和平时一样，先处理眼前的小事，再把换下来的东西收好，后来拿到手的是${product}。${pointSentence}`,'这次没有刻意安排测试，只是把当时看见的动作和自己的实际感受记下来，之后仍按平常节奏使用。'];
+  else parts=[`${scene}我没有特意做复杂比较，只按家里最近的使用节奏来安排。`,`整理到这次要用的${product}时就顺手换上了。${pointSentence}用完照常收好，后面先继续按日常频率用。`];
+  const fillers=['这件事本来就是带娃日常里很小的一步，我更在意换起来是否顺手。','当天没有额外安排，也没有为了写记录特意改变原来的使用习惯。','我把这次情况简单记下来，方便以后整理家里存货时自己参考。'];
+  let i=0;while(hfBodyCharCount(parts.join('\n\n'))<rule.range[0]&&i<fillers.length){parts[parts.length-1]+=`${fillers[i++]}`;}
+  const body=parts.join('\n\n'),tags=`#纸尿裤哪个安全 #安全的纸尿裤 #什么纸尿裤安全 #好奇纸尿裤 #好奇 #好奇${product} #育儿分享`;
+  const copy=`标题：${product}的一次日常记录\n\n${body}\n\n${tags}`;
+  const issues=hfSinglePointAudit(copy,product,point.key),count=hfBodyCharCount(body);
+  if(issues.length||count<rule.range[0]||count>rule.range[1]||count>200)throw new Error(`本地安全成稿校验失败：${issues.join('；')||`${count}字`}`);
+  return copy;
+}
 async function hfGenerate(){
   const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint);
   if(!HF.direction||!HF.product||!point||!HF.angle){toast('请依次选择内容方向、产品、唯一卖点和切角');return;}
@@ -6041,8 +6069,9 @@ async function hfGenerate(){
   const sys=`${HQ_WRITE_SYS}\n\n${HQ_KB}\n\n${HQ_MATERIAL_LIBRARY}`;
   const usr=`请生成一篇好奇全系列素人妈妈文案。\n\n【固定配置】\n- 内容方向：${HF.direction}\n- 产品：好奇${HF.product}\n- 内容切角：${HF.angle}\n- 正文字数：${rule.range[0]}—${rule.range[1]}字，硬上限200字\n- 本篇唯一允许卖点：${point.label}\n- 只有为自然表达该卖点所必需时，才可使用这些同义词：${point.terms.join('、')}\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 所选卖点只能出现于正文的一句话中，禁止在其他句子重复、解释或暗示第二卖点。\n- 标题禁止出现“好奇”，允许出现品线名。\n- 不区分报备/非报备，不使用目标人群或内容形式分类。${special?`\n- 人工要求：${special}`:''}${ref?`\n\n【参考原文】\n${ref}\n只学习篇幅、段落功能和节奏，禁止复制标题、原句、连续表达或人物经历。`:''}\n\n只输出标题、正文和Tag，不生成评论。`;
   const btn=document.getElementById('hf-gen-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;status.textContent='生成中…';out.textContent='正在生成并执行单卖点检查…';let buf='';
-  try{await callAI(sys,usr,t=>{buf+=t;});const risk=hqCopyRisk(buf,ref);if(risk)throw new Error('疑似复用历史连续表达，已拦截');const pointIssues=hfSinglePointAudit(buf,HF.product,HF.sellingPoint);if(pointIssues.length)throw new Error('单卖点检查未通过：'+pointIssues.join('；'));HF.latest=ensureHqComments(buf.trim(),HF.product);out.innerHTML=hfHtml(HF.latest);status.textContent='生成完成；已通过单卖点本地硬检查，评论本地追加';hfSaveState();}
-  catch(e){out.innerHTML=`<div class="hf-risk">本次稿件未作为结果展示：${esc(e.message)}</div>`;status.textContent='已拦截违规稿，请重新生成';}finally{btn.disabled=false;}
+  try{await callAI(sys,usr,t=>{buf+=t;});const risk=hqCopyRisk(buf,ref),pointIssues=hfSinglePointAudit(buf,HF.product,HF.sellingPoint);if(risk||pointIssues.length){const reason=risk?'疑似复用历史连续表达':pointIssues.join('；');HF.latest=ensureHqComments(hfSafeFallback(HF.product,HF.direction,point,HF.angle),HF.product);out.innerHTML=hfHtml(HF.latest);status.textContent=`生成完成；模型稿触发「${reason}」，已在本地校正为合规成稿，未追加模型请求`;}
+  else{HF.latest=ensureHqComments(buf.trim(),HF.product);out.innerHTML=hfHtml(HF.latest);status.textContent='生成完成；已通过单卖点本地硬检查，评论本地追加';}hfSaveState();}
+  catch(e){try{HF.latest=ensureHqComments(hfSafeFallback(HF.product,HF.direction,point,HF.angle),HF.product);out.innerHTML=hfHtml(HF.latest);status.textContent=`模型生成异常，已直接返回本地安全成稿；未追加模型请求`;hfSaveState();}catch(fallbackError){out.innerHTML=`<div class="hf-risk">生成失败：${esc(fallbackError.message)}</div>`;status.textContent='生成失败，请检查配置';}}finally{btn.disabled=false;}
 }
 function hfSendReview(){const text=document.getElementById('hf-gen-output')?.innerText.trim()||HF.latest;if(!text||text.startsWith('生成后')){toast('暂无生成稿件');return;}HF.latest=text;hfSet('hf-review-input',text);hfNavigate('review');}
 function hfToggleFeedback(){
