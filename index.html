@@ -42,6 +42,19 @@ body > nav{background:linear-gradient(120deg,#FF8A80 0%,var(--g1) 24%,var(--g2) 
 .logo sup{font-size:11px;vertical-align:super}
 .nav-title{color:rgba(255,255,255,.92);font-size:14px;font-weight:500}
 .nav-right{display:flex;gap:10px;align-items:center}
+.collab-badge{display:none;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:#ef4444;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:800}
+.modal.collab-modal{width:min(1120px,94vw);max-width:94vw;max-height:88vh;overflow:hidden}
+.collab-shell{display:grid;grid-template-columns:330px 1fr;gap:14px;min-height:560px}
+.collab-list{border:1px solid #f0d7df;border-radius:12px;overflow:auto;background:#fffafa;padding:8px}
+.collab-item{display:block;width:100%;border:0;border-bottom:1px solid #f3e2e7;background:transparent;text-align:left;padding:12px;cursor:pointer;color:#3f2531;font-family:inherit}
+.collab-item:hover,.collab-item.active{background:#fff0f5;border-radius:9px}.collab-item b{display:block;margin-bottom:5px}.collab-item small{color:#866b76;line-height:1.55}
+.collab-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:6px}
+.collab-detail{border:1px solid #f0d7df;border-radius:12px;overflow:auto;padding:18px;background:#fff}
+.collab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.collab-block{padding:13px;border:1px solid #f2dce4;border-radius:10px;background:#fffafb}.collab-block.wide{grid-column:1/-1}
+.collab-block h4{margin:0 0 8px}.collab-block pre{white-space:pre-wrap;word-break:break-word;margin:0;font:13px/1.75 inherit;max-height:260px;overflow:auto}
+.collab-timeline{display:grid;gap:10px}.collab-event{border-left:3px solid #e63f91;padding:8px 12px;background:#fff8fb;border-radius:0 8px 8px 0}.collab-event.feedback{border-color:#8242c8;background:#faf7ff}
+.collab-identity-options{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.collab-identity-card{border:1px solid #efd8e1;border-radius:12px;padding:20px;background:#fff;cursor:pointer;text-align:left;font-family:inherit}.collab-identity-card:hover{border-color:#e63f91;background:#fff7fa}.collab-identity-card b{display:block;font-size:18px;margin-bottom:6px}.collab-identity-card span{color:#806873}
+@media(max-width:850px){.collab-shell{grid-template-columns:1fr;min-height:auto}.collab-list{max-height:220px}.collab-grid{grid-template-columns:1fr}.collab-identity-options{grid-template-columns:1fr}}
 .nav-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
   padding:6px 16px;border-radius:20px;font-size:13px;cursor:pointer;transition:.2s;font-family:var(--font)}
 .nav-btn:hover{background:rgba(255,255,255,.3)}
@@ -386,6 +399,7 @@ window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='lo
       const g=document.getElementById('pw-gate');
       g.style.transition='opacity .4s';g.style.opacity='0';
       setTimeout(()=>g.style.display='none',400);
+      setTimeout(()=>window.ensureCollabIdentity?.(),450);
     } catch(err) {
       const e=document.getElementById('pw-err');
       const i=document.getElementById('pw-input');
@@ -421,6 +435,8 @@ window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='lo
       <button class="nav-btn" data-xh-role="writerA" onclick="xiahuRoleSwitch('writerA')" style="padding:4px 11px">✍️ 写手A</button>
       <button class="nav-btn" data-xh-role="writerB" onclick="xiahuRoleSwitch('writerB')" style="padding:4px 11px">✏️ 写手B</button>
     </div>
+    <button class="nav-btn" id="collab-identity-chip" onclick="openCollabIdentity()" style="display:none">选择身份</button>
+    <button class="nav-btn" id="collab-task-btn" onclick="openCollabCenter()" style="display:none;align-items:center;gap:6px">协作任务 <span id="collab-unread-badge" class="collab-badge">0</span></button>
     <span id="model-chip" class="tag tg-p" onclick="openModal()" style="cursor:pointer">GPT-5.6 Terra · 共享服务</span>
     <button class="nav-btn" id="actual-kb-btn" onclick="showActualKnowledge()" disabled>查看本次调用知识</button>
     <button class="nav-btn" onclick="showWorkflowHome()">切换任务</button>
@@ -1095,10 +1111,9 @@ window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='lo
             </div>
           </div>
           <div id="hq-legacy-human-flow" style="display:none">
-            <div class="ch"><div class="step">4</div><div class="ch-title">好奇旧版｜人工标注工作流</div><span class="ch-sub">确认后才回流为 few-shot</span></div>
-            <div class="frow"><div class="fg"><div class="flabel">来源 A｜AI 提供的最新稿件</div><textarea id="hql-human-ai" class="ft" rows="10" readonly></textarea><button class="btn-sec btn-sm" onclick="hqlUseSource('ai')">以 AI 稿开始</button></div><div class="fg"><div class="flabel">来源 B｜写手初稿（可选）</div><textarea id="hql-human-writer" class="ft" rows="10"></textarea><button class="btn-sec btn-sm" onclick="hqlUseSource('writer')">以写手初稿开始</button></div></div>
-            <div style="margin-top:12px"><div class="flabel">当前工作稿</div><textarea id="hql-human-current" class="ft" rows="12"></textarea><div class="flabel" style="margin-top:10px">内部反馈（可选，可不限次数）</div><textarea id="hql-human-feedback" class="ft" rows="5" placeholder="只写本轮需要修改的位置和要求"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn-pri" onclick="hqlApplyFeedback()">AI 按本轮反馈生成下一版</button><button class="btn-sec" onclick="hqlSaveFinal()">保存为写手终稿</button></div><div id="hql-human-status" class="status">请选择来源开始</div><div id="hql-human-timeline" class="result" style="min-height:70px;margin-top:8px">暂无反馈轮次</div></div>
-            <div style="margin-top:12px"><div class="flabel">写手终稿与内部确认</div><textarea id="hql-human-final" class="ft" rows="12"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn-sec" onclick="hqlContinueFeedback()">继续反馈</button><button class="btn-pri" onclick="hqlConfirm()">内部确认并回流为 few-shot</button><button class="btn-sec" onclick="exportHumanReviewsJson()">导出JSON</button><label class="btn-sec" style="cursor:pointer">导入JSON<input type="file" accept=".json,application/json" onchange="hqlImportJson(this.files[0]);this.value=''" style="display:none"></label></div></div>
+            <div class="ch"><div class="step">4</div><div class="ch-title">人工标注</div><span class="ch-sub">共享任务会在团队设备间同步</span></div>
+            <div class="frow"><div class="fg"><div class="flabel">AI 提供的最新稿件（可选）</div><textarea id="hql-human-ai" class="ft" rows="10" readonly></textarea></div><div class="fg"><div class="flabel">写手初稿</div><textarea id="hql-human-writer" class="ft" rows="10" placeholder="粘贴准备提交审核的版本"></textarea></div></div>
+            <div style="display:flex;gap:8px;margin-top:10px"><button class="btn-pri" onclick="openCollabNew({brand:'haoqi',module:'haoqi_legacy',aiDraft:hqlVal('hql-human-ai'),initialDraft:hqlVal('hql-human-writer')})">提交初稿给一西</button><button class="btn-sec" onclick="openCollabCenter()">打开协作任务</button></div><div id="hql-human-status" class="status">提交后由一西在审核设备中反馈</div>
           </div>
         </div>
 
@@ -1325,6 +1340,34 @@ window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='lo
   </div>
 </div>
 
+<!-- 团队身份 -->
+<div class="ov" id="collab-identity-modal">
+  <div class="modal" style="width:720px">
+    <div class="modal-title">选择当前使用人</div>
+    <div class="mhint" style="margin-bottom:16px">用于区分稿件与反馈。每台设备首次进入时选择一次，之后可在顶部切换。</div>
+    <div class="collab-identity-options">
+      <button class="collab-identity-card" onclick="selectCollabActor('yangyang')"><b>阳阳</b><span>写手 · 只查看自己的稿件</span></button>
+      <button class="collab-identity-card" onclick="selectCollabActor('april')"><b>APRIL</b><span>写手 · 只查看自己的稿件</span></button>
+      <button class="collab-identity-card" onclick="selectCollabActor('yixi')"><b>一西</b><span>审核人 · 查看全部稿件</span></button>
+    </div>
+    <div class="macts"><button class="btn-sec" onclick="closeCollabIdentity()">取消</button></div>
+  </div>
+</div>
+
+<!-- 团队协作 -->
+<div class="ov" id="collab-modal">
+  <div class="modal collab-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px">
+      <div><div class="modal-title" style="margin:0">协作任务</div><div id="collab-modal-role" class="mhint"></div></div>
+      <div style="display:flex;gap:8px"><button id="collab-new-btn" class="btn-pri" onclick="collabShowNew()">提交初稿</button><button class="btn-sec" onclick="closeCollabCenter()">关闭</button></div>
+    </div>
+    <div class="collab-shell">
+      <div class="collab-list" id="collab-task-list">正在读取任务…</div>
+      <div class="collab-detail" id="collab-task-detail">从左侧选择稿件。</div>
+    </div>
+  </div>
+</div>
+
 <!-- 设置弹窗 -->
 <div class="ov" id="modal">
   <div class="modal">
@@ -1360,6 +1403,43 @@ window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='lo
 // ── 共享代理配置（管理员填写后分享，用户无需配置 Key）──────────
 const PROXY_URL = (document.querySelector('meta[name="a3-service-url"]')?.content||'').replace(/\/$/,'')+'/api/chat';
 const XHS_FETCH_URL = 'https://fancy-haze-0811xhs-fetch.qusiyu0311.workers.dev';
+
+// ── 团队协作：共享密码后的身份、任务与反馈 ──────────────
+const COLLAB_BASE=(document.querySelector('meta[name="a3-service-url"]')?.content||'').replace(/\/$/,'')+'/api/collab';
+const COLLAB_ACTORS={yangyang:{id:'yangyang',name:'阳阳',role:'writer'},april:{id:'april',name:'APRIL',role:'writer'},yixi:{id:'yixi',name:'一西',role:'reviewer'}};
+const COLLAB_MODULE_LABELS={haoqi_ao:'好奇 · 素人AO文',haoqi_opinion:'好奇 · 舆情文',haoqi_legacy:'好奇 · 小森林问一问',bayer_timepro:'拜耳 · 时光片Pro',bayer_liquid:'拜耳 · 氨糖液体钙',bayer_heart:'拜耳 · 心肝宝'};
+let COLLAB_TASKS=[],COLLAB_ACTIVE_ID='',COLLAB_PREFILL=null,COLLAB_TIMER=null;
+const COLLAB_FEWSHOT_CACHE=new Map();
+const collabEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function collabActor(){return COLLAB_ACTORS[localStorage.getItem('a3_collab_actor')||'']||null}
+function collabRoleText(a=collabActor()){return a?`${a.name} · ${a.role==='reviewer'?'审核人':'写手'}`:'尚未选择身份'}
+function collabUpdateIdentity(){const a=collabActor(),chip=document.getElementById('collab-identity-chip'),btn=document.getElementById('collab-task-btn');if(!chip||!btn)return;chip.style.display='';chip.textContent=a?collabRoleText(a):'选择身份';btn.style.display='flex';document.getElementById('collab-new-btn')?.style.setProperty('display',a?.role==='writer'?'':'none');}
+function ensureCollabIdentity(){collabUpdateIdentity();if(!collabActor())openCollabIdentity();else collabStartPolling()}
+function openCollabIdentity(){document.getElementById('collab-identity-modal').style.display='flex'}
+function closeCollabIdentity(){document.getElementById('collab-identity-modal').style.display='none'}
+function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;localStorage.setItem('a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
+function collabHeaders(){const token=sessionStorage.getItem('a3_session')||'';return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}}
+async function collabApi(path,options={}){if(window.a3IsLocalPreview())throw new Error('共享任务请在正式网址中使用');const a=collabActor();if(!a)throw new Error('请先选择当前使用人');const method=options.method||'GET',sep=path.includes('?')?'&':'?',url=COLLAB_BASE+path+(method==='GET'?`${sep}actor=${encodeURIComponent(a.id)}`:'');const body=method==='POST'?JSON.stringify({...options.body,actor:a.id}):undefined;const r=await fetch(url,{method,headers:collabHeaders(),body});const data=await r.json().catch(()=>({}));if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码')}if(!r.ok)throw new Error(data.error||'共享任务暂时不可用');return data}
+function openCollabCenter(){if(!collabActor())return openCollabIdentity();document.getElementById('collab-modal').style.display='flex';document.getElementById('collab-modal-role').textContent=collabRoleText();collabUpdateIdentity();if(COLLAB_PREFILL&&collabActor().role==='writer')collabShowNew();else collabRefresh(true).catch(collabShowError)}
+function closeCollabCenter(){document.getElementById('collab-modal').style.display='none'}
+function collabShowError(e){const box=document.getElementById('collab-task-detail');if(box)box.innerHTML=`<div class="status err">${collabEsc(e?.message||e)}</div>`}
+async function collabRefresh(openFirst=false){if(!collabActor()||window.a3IsLocalPreview()){collabUpdateBadge(0);return}const data=await collabApi('/tasks');COLLAB_TASKS=data.tasks||[];const a=collabActor(),unread=COLLAB_TASKS.filter(t=>Number(a.role==='reviewer'?t.reviewer_unread:t.writer_unread)>0).length;collabUpdateBadge(unread);collabRenderList();if(openFirst&&!COLLAB_ACTIVE_ID&&COLLAB_TASKS[0])await collabOpenTask(COLLAB_TASKS[0].id)}
+function collabUpdateBadge(n){const b=document.getElementById('collab-unread-badge');if(!b)return;b.textContent=n;b.style.display=n?'inline-block':'none'}
+function collabRenderList(){const box=document.getElementById('collab-task-list');if(!box)return;if(!COLLAB_TASKS.length){box.innerHTML='<div class="mhint" style="padding:18px">暂无协作稿件。</div>';return}const a=collabActor();box.innerHTML=COLLAB_TASKS.map(t=>{const unread=Number(a.role==='reviewer'?t.reviewer_unread:t.writer_unread)>0;return `<button class="collab-item ${t.id===COLLAB_ACTIVE_ID?'active':''}" onclick="collabOpenTask('${t.id}')"><b>${unread?'<span class="collab-dot"></span>':''}${collabEsc(t.code)}</b><small>${collabEsc(COLLAB_MODULE_LABELS[t.module]||t.module)}<br>${collabEsc(t.writer_name)} · ${collabEsc(t.statusLabel||t.status)}</small></button>`}).join('')}
+function collabShowNew(prefill=COLLAB_PREFILL){const a=collabActor();if(a?.role!=='writer'){toast('只有写手可以提交初稿');return}COLLAB_ACTIVE_ID='';collabRenderList();const module=prefill?.module||collabCurrentModule(),brand=(module||'').startsWith('haoqi_')?'haoqi':'bayer',ai=prefill?.aiDraft||'',draft=prefill?.initialDraft||'';document.getElementById('collab-task-detail').innerHTML=`<h3 style="margin-top:0">提交初稿给一西</h3><div class="mf"><label>所属模块</label><select id="collab-new-module" class="fi">${Object.entries(COLLAB_MODULE_LABELS).map(([id,label])=>`<option value="${id}" ${id===module?'selected':''}>${collabEsc(label)}</option>`).join('')}</select></div><div class="mf"><label>AI 提供的最新稿件（可选）</label><textarea id="collab-new-ai" class="ft" rows="7">${collabEsc(ai)}</textarea></div><div class="mf"><label>写手初稿</label><textarea id="collab-new-draft" class="ft" rows="10" placeholder="粘贴写手准备提交审核的版本">${collabEsc(draft||ai)}</textarea></div><div class="macts"><button class="btn-pri" onclick="collabSubmitNew()">提交给一西</button></div>`;COLLAB_PREFILL=null}
+function collabCurrentModule(){if(S?.brand==='haoqi')return HQ_MODE==='legacy'?'haoqi_legacy':(HQ_CONTENT_MODE==='opinion'?'haoqi_opinion':'haoqi_ao');if(S?.brand==='bayer')return BAYER_PRODUCT==='liquid'?'bayer_liquid':(BAYER_PRODUCT==='heart'?'bayer_heart':'bayer_timepro');return 'haoqi_ao'}
+function openCollabNew(payload={}){if(!collabActor())return openCollabIdentity();if(collabActor().role!=='writer'){toast('一西可在协作任务中查看全部稿件');return openCollabCenter()}COLLAB_PREFILL=payload;openCollabCenter()}
+async function collabSubmitNew(){const module=document.getElementById('collab-new-module').value,aiDraft=document.getElementById('collab-new-ai').value.trim(),initialDraft=document.getElementById('collab-new-draft').value.trim();if(!initialDraft)return toast('写手初稿不能为空');const brand=module.startsWith('haoqi_')?'haoqi':'bayer';try{const r=await collabApi('/tasks',{method:'POST',body:{brand,module,aiDraft,initialDraft}});toast(`已提交给一西：${r.code} ✓`,2400);await collabRefresh();await collabOpenTask(r.id)}catch(e){collabShowError(e)}}
+async function collabOpenTask(id){COLLAB_ACTIVE_ID=id;collabRenderList();try{const data=await collabApi('/tasks/'+encodeURIComponent(id));collabRenderDetail(data);await collabApi('/tasks/'+encodeURIComponent(id)+'/read',{method:'POST',body:{}}).catch(()=>{});collabRefresh().catch(()=>{})}catch(e){collabShowError(e)}}
+function collabLatest(data){return (data.versions||[]).at(-1)?.content||data.task.initial_draft||''}
+function collabRenderDetail(data){const {task}=data,a=collabActor(),latest=collabLatest(data),waitingReview=task.status==='review_pending',writerTurn=task.status==='writer_action';const events=[];(data.versions||[]).forEach(v=>events.push({time:v.created_at,html:`<div class="collab-event"><b>${collabEsc(v.author_name)}提交第 ${v.version_no} 版</b><pre>${collabEsc(v.content)}</pre></div>`}));(data.feedback||[]).forEach(f=>events.push({time:f.created_at,html:`<div class="collab-event feedback"><b>一西反馈 · 第 ${f.round_no} 轮</b><pre>${collabEsc(f.content)}</pre></div>`}));events.sort((x,y)=>String(x.time).localeCompare(String(y.time)));let actions='';if(a.role==='reviewer'&&waitingReview)actions=`<div class="collab-block wide"><h4>审核处理</h4><textarea id="collab-feedback" class="ft" rows="5" placeholder="如需修改，请写明具体位置和要求"></textarea><div class="macts" style="justify-content:flex-start"><button class="btn-pri" onclick="collabSendFeedback('${task.id}')">提交反馈给${collabEsc(task.writer_name)}</button><button class="btn-sec" onclick="collabConfirm('${task.id}',false)">仅确认完成</button><button class="btn-sec" onclick="collabConfirm('${task.id}',true)">确认并回流 few-shot</button></div></div>`;else if(a.role==='writer'&&writerTurn)actions=`<div class="collab-block wide"><h4>按反馈修改</h4><textarea id="collab-revision" class="ft" rows="13">${collabEsc(latest)}</textarea><div class="macts" style="justify-content:flex-start"><button class="btn-sec" onclick="collabAIRevision('${task.id}')">AI 按反馈修改</button><button class="btn-pri" onclick="collabSubmitRevision('${task.id}')">提交修改稿给一西</button></div><div class="mhint">AI 只修改反馈涉及的位置及必要衔接，未涉及内容保持不变。</div></div>`;else actions=`<div class="collab-block wide"><b>${collabEsc(task.statusLabel)}</b>${task.status==='confirmed'?`<div class="mhint" style="margin-top:6px">${task.reuse_as_fewshot?'已作为同模块可参考 few-shot':'本稿不进入 few-shot'}</div>`:''}</div>`;document.getElementById('collab-task-detail').innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:start"><div><h3 style="margin:0 0 6px">${collabEsc(task.code)}</h3><div class="mhint">${collabEsc(COLLAB_MODULE_LABELS[task.module]||task.module)} · 写手 ${collabEsc(task.writer_name)}</div></div><span class="tag tg-p">${collabEsc(task.statusLabel)}</span></div><div class="collab-grid" style="margin-top:14px">${task.ai_draft?`<div class="collab-block"><h4>AI 最新稿</h4><pre>${collabEsc(task.ai_draft)}</pre></div>`:''}<div class="collab-block ${task.ai_draft?'':'wide'}"><h4>当前稿件</h4><pre>${collabEsc(latest)}</pre></div><div class="collab-block wide"><h4>版本与反馈</h4><div class="collab-timeline">${events.map(x=>x.html).join('')}</div></div>${actions}</div>`}
+async function collabSendFeedback(id){const content=document.getElementById('collab-feedback').value.trim();if(!content)return toast('请先填写反馈');try{await collabApi(`/tasks/${encodeURIComponent(id)}/feedback`,{method:'POST',body:{content}});toast('反馈已发送给写手 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
+async function collabSubmitRevision(id){const field=document.getElementById('collab-revision'),content=field.value.trim();if(!content)return toast('修改稿不能为空');try{await collabApi(`/tasks/${encodeURIComponent(id)}/versions`,{method:'POST',body:{content,source:field.dataset.ai==='1'?'ai':'writer'}});toast('修改稿已提交给一西 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
+async function collabAIRevision(id){const ta=document.getElementById('collab-revision');try{const data=await collabApi('/tasks/'+encodeURIComponent(id)),latest=collabLatest(data),feedback=(data.feedback||[]).at(-1)?.content||'';if(!feedback)throw new Error('当前没有待处理反馈');ta.value='';let out='';await callAI('你是内部改稿编辑。正式知识库、产品事实和合规边界最高。只执行审核反馈涉及的位置；保留未涉及的人设、场景、卖点、事实、段落和表达。只输出完整修改稿，不解释。',`【当前稿】\n${latest}\n\n【一西本轮反馈】\n${feedback}\n\n只修改反馈涉及处以及保证衔接所需的最小上下文，禁止全文重写。`,t=>{out+=t;ta.value=out});if(!out.trim())throw new Error('模型未返回修改稿');ta.dataset.ai='1';toast('已生成修改稿，请复核后提交')}catch(e){toast('生成失败：'+e.message,3200)}}
+async function collabConfirm(id,reuseAsFewshot){try{await collabApi(`/tasks/${encodeURIComponent(id)}/confirm`,{method:'POST',body:{reuseAsFewshot}});toast(reuseAsFewshot?'已确认并回流 few-shot ✓':'已确认完成 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
+function collabStartPolling(){clearInterval(COLLAB_TIMER);if(!collabActor()||window.a3IsLocalPreview())return;collabRefresh().catch(()=>{});COLLAB_TIMER=setInterval(()=>collabRefresh().catch(()=>{}),15000)}
+async function collabFewShot(module){if(!collabActor()||window.a3IsLocalPreview())return '';const cached=COLLAB_FEWSHOT_CACHE.get(module);if(cached&&Date.now()-cached.time<60000)return cached.text;try{const brand=module.startsWith('haoqi_')?'haoqi':'bayer',r=await collabApi(`/few-shots?brand=${brand}&module=${encodeURIComponent(module)}`),text=(r.fewShots||[]).map((x,i)=>`【已确认参考稿${i+1}】\n${x.content}`).join('\n\n');COLLAB_FEWSHOT_CACHE.set(module,{time:Date.now(),text});return text}catch{return ''}}
+function installBayerCollabPanel(shadow,kind){const map={timepro:['by','bayer_timepro'],liquid:['lc','bayer_liquid'],heart:['hb','bayer_heart']},[prefix,module]=map[kind],page=shadow.getElementById(`${prefix}-page-human`),grid=page?.querySelector('.grid');if(!grid||grid.dataset.shared)return;grid.dataset.shared='1';[...grid.children].forEach(x=>x.style.display='none');const panel=document.createElement('div');panel.className='card wide';panel.style.display='block';panel.innerHTML=`<h3>提交写手初稿</h3><p class="hint">初稿提交后，一西会在自己的设备看到并反馈；写手收到红点后继续修改。</p><label>AI 提供的最新稿件（可选）</label><textarea id="${prefix}-shared-ai" readonly></textarea><label>写手初稿</label><textarea id="${prefix}-shared-writer" placeholder="粘贴准备提交审核的版本"></textarea><div class="actions"><button class="btn primary" type="button">提交给一西</button><button class="btn ghost" type="button">打开协作任务</button></div>`;grid.prepend(panel);const sync=()=>{panel.querySelector(`#${prefix}-shared-ai`).value=shadow.getElementById(`${prefix}-human-ai`)?.value||'';panel.querySelector(`#${prefix}-shared-writer`).value=shadow.getElementById(`${prefix}-human-writer`)?.value||panel.querySelector(`#${prefix}-shared-ai`).value};new MutationObserver(sync).observe(page,{attributes:true,subtree:true});panel.querySelector('.primary').onclick=()=>{sync();openCollabNew({brand:'bayer',module,aiDraft:panel.querySelector(`#${prefix}-shared-ai`).value,initialDraft:panel.querySelector(`#${prefix}-shared-writer`).value})};panel.querySelector('.ghost').onclick=openCollabCenter;setTimeout(sync,0)}
 
 // ══════════════════════════════════════════════
 // DEFAULT KB
@@ -2670,6 +2750,7 @@ function routeWorkflow(){
 // ══════════════════════════════════════════════
 window.onload = () => {
   S.model='gpt-5.6-terra';
+  if(sessionStorage.getItem('a3_unlocked')==='1')setTimeout(()=>ensureCollabIdentity(),0);
   if(window.a3IsLocalPreview()){S.key=localStorage.getItem('a3_local_key')||'';S.url=localStorage.getItem('a3_local_url')||'https://new-api.a3database.cn/v1/chat/completions';}
   else{S.key='';S.url='';}
   // 恢复品牌选择
@@ -3209,6 +3290,7 @@ async function mountBayerModule({hostId,kind}){
           ?new Function('root','callAI','fetchXHSNote','XLSX','LIQUID_KB',sourceScript)(shadow,callAI,fetchXHSNote,window.XLSX,LIQUID_KB)
           :new Function('root','callAI','fetchXHSNote','XLSX','BAYER_KB',sourceScript)(shadow,callAI,fetchXHSNote,window.XLSX,BAYER_KB));
       if(isHeart){HEART=api;window.HEART=api}else if(isLiquid){LIQUID=api;window.LIQUID=api}else{BAYER=api;window.BAYER=api}
+      installBayerCollabPanel(shadow,kind);
       api.navigate('kb');bayerSetNav('kb');
     }catch(err){
       const safe=String(err?.message||err).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -6444,13 +6526,11 @@ function loadHqFullModule(){
   </section>
 
   <section id="hf-page-human" class="hf-page">
-    <div class="hf-hero"><div>人工标注</div><h2>来源稿 → 内部反馈轮次 → 写手终稿 → 内部确认</h2><p>只有内部确认的终稿才回流为 few-shot；不会改写正式产品知识。</p></div>
+    <div class="hf-hero"><div>人工标注</div><h2>写手提交 → 一西反馈 → 写手修改 → 内部确认</h2><p>稿件与反馈在团队设备间同步；确认时可选择是否回流为同模块 few-shot。</p></div>
     <div class="hf-grid">
-      <div class="hf-card"><h3>来源 A｜AI 提供的最新稿件</h3><textarea id="hf-human-ai" style="min-height:300px" readonly></textarea><div class="hf-actions"><button class="hf-btn ghost" onclick="hfUseHumanSource('ai')">以 AI 稿开始</button></div></div>
-      <div class="hf-card"><h3>来源 B｜写手初稿（可选）</h3><textarea id="hf-human-writer" style="min-height:300px" placeholder="已有写手初稿时粘贴到这里"></textarea><div class="hf-actions"><button class="hf-btn ghost" onclick="hfUseHumanSource('writer')">以写手初稿开始</button></div></div>
-      <div class="hf-card wide"><h3>当前工作稿</h3><textarea id="hf-human-current" style="min-height:300px" placeholder="选择来源后可直接人工修改"></textarea><label>内部反馈（可选，可不限次数继续）</label><textarea id="hf-human-feedback" placeholder="写明本轮需要修改的具体位置和要求"></textarea><div class="hf-actions"><button class="hf-btn primary" onclick="hfApplyHumanFeedback()">AI 按本轮反馈生成下一版</button><button class="hf-btn ghost" onclick="hfSaveHumanFinal()">保存为写手终稿</button></div><div id="hf-human-status" class="hf-status">请选择来源开始</div><div id="hf-human-timeline" class="hf-result" style="min-height:80px;margin-top:12px">暂无反馈轮次</div></div>
-      <div class="hf-card wide"><h3>写手终稿与内部确认</h3><textarea id="hf-human-final" style="min-height:300px" placeholder="保存工作稿后仍可做最后人工校正"></textarea><div class="hf-actions"><button class="hf-btn ghost" onclick="hfContinueHumanFeedback()">继续反馈</button><button class="hf-btn primary" onclick="hfConfirmHuman()">内部确认并回流为 few-shot</button></div><div class="hf-hint" style="margin-top:9px">未确认稿和反馈过程不会进入生成上下文。</div></div>
-      <div class="hf-card wide"><h3>人工标注记录</h3><div class="hf-actions"><button class="hf-btn ghost" onclick="hfExportHumanJson()">导出JSON</button><label class="hf-btn ghost" style="margin:0;display:inline-block">导入JSON<input type="file" accept=".json,application/json" onchange="hfImportHumanJson(this.files[0]);this.value=''" style="display:none"></label><button class="hf-btn ghost" onclick="hfExportHuman()">导出Excel</button></div><div id="hf-human-table" style="margin-top:12px"></div></div>
+      <div class="hf-card"><h3>AI 提供的最新稿件（可选）</h3><textarea id="hf-human-ai" style="min-height:300px" readonly></textarea></div>
+      <div class="hf-card"><h3>写手初稿</h3><textarea id="hf-human-writer" style="min-height:300px" placeholder="粘贴准备提交审核的版本"></textarea></div>
+      <div class="hf-card wide"><div class="hf-actions"><button class="hf-btn primary" onclick="openCollabNew({brand:'haoqi',module:HQ_CONTENT_MODE==='opinion'?'haoqi_opinion':'haoqi_ao',aiDraft:document.getElementById('hf-human-ai').value,initialDraft:document.getElementById('hf-human-writer').value})">提交初稿给一西</button><button class="hf-btn ghost" onclick="openCollabCenter()">打开协作任务</button></div><div id="hf-human-status" class="hf-status">一西提交反馈后，写手会在顶部“协作任务”看到红点。</div><div id="hf-human-timeline" style="display:none"></div><textarea id="hf-human-current" style="display:none"></textarea><textarea id="hf-human-feedback" style="display:none"></textarea><textarea id="hf-human-final" style="display:none"></textarea><div id="hf-human-table" style="display:none"></div></div>
     </div>
   </section>
 
@@ -6830,6 +6910,10 @@ function hfDownloadCsv(name,rows){const keys=Object.keys(rows[0]||{}),lines=[key
 // AI CALL (unified)
 // ══════════════════════════════════════════════
 async function callAI(sys,usr,cb,signal){
+  if(['haoqi','bayer'].includes(S.brand)){
+    const sharedExamples=await collabFewShot(collabCurrentModule());
+    if(sharedExamples)sys+=`\n\n【内部已确认参考稿｜只学习结构、节奏和自然表达，不覆盖正式产品事实】\n${sharedExamples}`;
+  }
   const requestBrand=S.brand,requestEpoch=S.brandEpoch;
   const requestId=makeRequestId();
   S.lastCallContext={requestId,time:new Date().toLocaleString('zh-CN'),brand:BC()?.name||S.brand,workflow:ACTIVE_WORKFLOW||'当前工作台',system:sys,user:usr};

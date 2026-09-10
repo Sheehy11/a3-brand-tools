@@ -1,12 +1,24 @@
 name = "a3-brand-content-api"
 main = "worker/src/index.js"
-compatibility_date = "2026-08-31"
+compatibility_date = "2026-09-06"
+preview_urls = false
 
 [vars]
 A3_API_URL = "https://new-api.a3database.cn/v1/chat/completions"
 A3_MODEL = "gpt-5.6-terra"
 ALLOWED_ORIGINS = "https://sheehy11.github.io"
 ALLOW_LOCAL_FILE = "false"
+
+[[d1_databases]]
+binding = "COLLAB_DB"
+database_name = "a3-brand-collaboration"
+database_id = "创建 D1 后填写数据库 ID"
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
 
 # 请用命令写入 Secret，不要填在本文件：
 # npx wrangler secret put A3_API_KEY
