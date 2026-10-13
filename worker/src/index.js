@@ -191,7 +191,7 @@ export default {
     const url=new URL(request.url),origin=allowedOrigin(request,env);
     if(!origin)return new Response('Origin not allowed',{status:403});
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin)});
-    if(url.pathname==='/api/health'&&request.method==='GET')return json({ok:true,model:env.A3_MODEL||'gpt-5.6-terra',collaboration:!!env.COLLAB_DB},200,origin);
+    if(url.pathname==='/api/health'&&request.method==='GET')return json({ok:true,model:env.A3_MODEL||'gpt-5.6-sol',collaboration:!!env.COLLAB_DB},200,origin);
     if(url.pathname==='/api/session'&&request.method==='POST'){
       const body=await request.json().catch(()=>({}));
       if(!sameSecret(body.password,env.ACCESS_PASSWORD))return json({error:'密码错误'},401,origin);
@@ -214,7 +214,7 @@ export default {
       method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
       // A3 的部分兼容模型会保持 SSE 连接但不发送结束帧。共享服务与本地验收
       // 统一使用非流式完整响应，避免内容已经生成、页面却一直等待直至超时。
-      body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-terra',messages,stream:false,max_tokens:4096})
+      body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:false,max_tokens:4096})
     });
     if(!upstream.ok)return json({error:'内容服务请求失败',status:upstream.status},502,origin);
     const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));headers.set('Cache-Control','no-store');

@@ -5,7 +5,7 @@ preview_urls = false
 
 [vars]
 A3_API_URL = "https://new-api.a3database.cn/v1/chat/completions"
-A3_MODEL = "gpt-5.6-terra"
+A3_MODEL = "gpt-5.6-sol"
 ALLOWED_ORIGINS = "https://sheehy11.github.io"
 ALLOW_LOCAL_FILE = "false"
 
