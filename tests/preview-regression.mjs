@@ -19,7 +19,8 @@ expect(html.includes('高于既有产品事实、合规规则、篇幅、标题�
 expect(html.includes("collabApi('/requirements/workspace'"),'跨设备工作区同步缺失');
 expect(html.includes('取消生成'),'取消生成入口缺失');
 expect(html.includes('max_tokens:options.maxTokens||4096'),'前端未传递输出长度');
-expect(worker.includes('stream:true'),'Worker 未开启上游流式传输');
+expect(worker.includes('stream:attempt===0'),'Worker 未开启首次流式传输与兼容重试');
+expect(worker.includes('retryable.has(upstream.status)'),'Worker 缺少上游瞬时错误重试');
 expect(!worker.includes('upstream.arrayBuffer()'),'Worker 仍在完整缓存模型响应');
 expect(worker.includes("path[0]==='requirements'"),'共享需求接口缺失');
 expect(schema.includes('collab_requirement_workspaces')&&schema.includes('collab_requirements'),'共享需求表缺失');

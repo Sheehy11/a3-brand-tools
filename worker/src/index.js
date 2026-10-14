@@ -281,18 +281,30 @@ export default {
     if(!messages.some(m=>m.role==='user'))return json({error:'缺少用户内容'},400,origin);
     const upstreamController=new AbortController();
     const upstreamTimer=setTimeout(()=>upstreamController.abort(),180000);
-    let upstream;
-    try{
-      upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
-        method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
-        body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:true,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
-        signal:upstreamController.signal
-      });
-    }catch(error){
+    let upstream,lastErrorDetail='';
+    const retryable=new Set([429,500,502,503,504]);
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
+          method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
+          // 首次使用流式响应尽快显示正文；仅当上游在发送任何正文前返回可重试错误时，
+          // 第二次改用兼容性更高的完整响应。不会在已产生内容后重复请求。
+          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:attempt===0,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
+          signal:upstreamController.signal
+        });
+      }catch(error){
+        if(error?.name==='AbortError'){clearTimeout(upstreamTimer);return json({error:'A3 模型响应超时'},504,origin);}
+        if(attempt===0){await new Promise(resolve=>setTimeout(resolve,900));continue;}
+        clearTimeout(upstreamTimer);return json({error:'无法连接 A3 上游服务'},502,origin);
+      }
+      if(upstream.ok)break;
+      try{lastErrorDetail=String(await upstream.text()).slice(0,500);}catch{}
+      if(attempt===0&&retryable.has(upstream.status)){await new Promise(resolve=>setTimeout(resolve,900));continue;}
+      const status=[429,503,504].includes(upstream.status)?upstream.status:502;
       clearTimeout(upstreamTimer);
-      return json({error:error?.name==='AbortError'?'A3 模型响应超时':'无法连接 A3 上游服务'},error?.name==='AbortError'?504:502,origin);
+      console.error('a3_upstream_error',{status:upstream.status,detail:lastErrorDetail});
+      return json({error:status===429?'A3 请求较多，请稍后重试':status===503?'A3 内容服务暂不可用':status===504?'A3 模型响应超时':'A3 上游生成失败',status:upstream.status},status,origin);
     }
-    if(!upstream.ok){clearTimeout(upstreamTimer);return json({error:'内容服务请求失败',status:upstream.status},502,origin);}
     const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));headers.set('Cache-Control','no-store');
     headers.set('X-Accel-Buffering','no');
     if(!upstream.body){clearTimeout(upstreamTimer);return json({error:'A3 上游没有返回内容'},502,origin);}
