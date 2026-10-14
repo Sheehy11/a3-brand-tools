@@ -282,14 +282,17 @@ export default {
     const upstreamController=new AbortController();
     const upstreamTimer=setTimeout(()=>upstreamController.abort(),180000);
     let upstream,lastErrorDetail='';
-    const retryable=new Set([429,500,502,503,504]);
+    // A3 also uses 520-524 for temporary channel/gateway failures. These are
+    // safe to retry only before any response body has been sent downstream.
+    const retryable=new Set([429,500,502,503,504,520,521,522,523,524]);
+    const reasoningEffort=['none','minimal','low','medium','high'].includes(input.reasoning_effort)?input.reasoning_effort:'low';
     for(let attempt=0;attempt<2;attempt++){
       try{
         upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
           // 首次使用流式响应尽快显示正文；仅当上游在发送任何正文前返回可重试错误时，
           // 第二次改用兼容性更高的完整响应。不会在已产生内容后重复请求。
-          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:attempt===0,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
+          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:attempt===0,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
           signal:upstreamController.signal
         });
       }catch(error){
