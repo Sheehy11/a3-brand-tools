@@ -3,7 +3,8 @@ const enc = new TextEncoder();
 const COLLAB_ACTORS = Object.freeze({
   yangyang: {id:'yangyang', name:'阳阳', role:'writer'},
   april: {id:'april', name:'APRIL', role:'writer'},
-  yixi: {id:'yixi', name:'一西', role:'reviewer'}
+  yixi: {id:'yixi', name:'一西', role:'reviewer'},
+  siyu: {id:'siyu', name:'思雨', role:'admin'}
 });
 const COLLAB_MODULES = new Set([
   'haoqi_ao','haoqi_opinion','haoqi_legacy',
@@ -67,7 +68,7 @@ function collabStatusLabel(status) {
   return ({review_pending:'等待一西审核',writer_action:'等待写手修改',confirmed:'已完成'}[status]||status);
 }
 function collabTaskAllowed(task, actor) {
-  return actor.role==='reviewer' || task.writer_id===actor.id;
+  return ['reviewer','admin'].includes(actor.role) || task.writer_id===actor.id;
 }
 function collabCode() {
   const d=new Date(),date=[d.getUTCFullYear(),String(d.getUTCMonth()+1).padStart(2,'0'),String(d.getUTCDate()).padStart(2,'0')].join('');
@@ -92,7 +93,7 @@ async function handleCollab(request, env, url, origin) {
     if(path[0]==='actors'&&method==='GET')return json({actors:Object.values(COLLAB_ACTORS)},200,origin);
 
     if(path[0]==='tasks'&&path.length===1&&method==='GET'){
-      const query=actor.role==='reviewer'
+      const query=['reviewer','admin'].includes(actor.role)
         ?db.prepare(`SELECT id,code,brand,module,writer_id,writer_name,status,current_version,reuse_as_fewshot,writer_unread,reviewer_unread,created_at,updated_at,confirmed_at FROM collab_tasks ORDER BY updated_at DESC LIMIT 120`)
         :db.prepare(`SELECT id,code,brand,module,writer_id,writer_name,status,current_version,reuse_as_fewshot,writer_unread,reviewer_unread,created_at,updated_at,confirmed_at FROM collab_tasks WHERE writer_id=? ORDER BY updated_at DESC LIMIT 120`).bind(actor.id);
       const result=await query.all();
@@ -128,6 +129,7 @@ async function handleCollab(request, env, url, origin) {
       const task=await collabTask(db,path[1]);
       if(!task)return json({error:'稿件不存在'},404,origin);
       if(!collabTaskAllowed(task,actor))return json({error:'无权查看这篇稿件'},403,origin);
+      if(actor.role==='admin')return json({ok:true},200,origin);
       const column=actor.role==='reviewer'?'reviewer_unread':'writer_unread';
       await db.prepare(`UPDATE collab_tasks SET ${column}=0 WHERE id=?`).bind(task.id).run();
       return json({ok:true},200,origin);
@@ -205,19 +207,29 @@ export default {
     if(!await validToken(request,env))return json({error:'登录已过期'},401,origin);
     const declared=Number(request.headers.get('Content-Length')||0);if(declared>180000)return json({error:'请求内容过大'},413,origin);
     const raw=await request.text();if(raw.length>180000)return json({error:'请求内容过大'},413,origin);
-    const input=JSON.parse(raw||'{}');
+    let input;
+    try{input=JSON.parse(raw||'{}');}catch{return json({error:'请求 JSON 无法读取'},400,origin);}
     const messages=[];
     if(typeof input.system==='string'&&input.system.trim())messages.push({role:'system',content:input.system.slice(0,120000)});
     for(const m of Array.isArray(input.messages)?input.messages:[]){if(['user','assistant'].includes(m?.role)&&typeof m.content==='string')messages.push({role:m.role,content:m.content.slice(0,60000)});}
     if(!messages.some(m=>m.role==='user'))return json({error:'缺少用户内容'},400,origin);
-    const upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
-      // A3 的部分兼容模型会保持 SSE 连接但不发送结束帧。共享服务与本地验收
-      // 统一使用非流式完整响应，避免内容已经生成、页面却一直等待直至超时。
-      body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:false,max_tokens:4096})
-    });
+    const upstreamController=new AbortController();
+    const upstreamTimer=setTimeout(()=>upstreamController.abort(),175000);
+    let upstream,upstreamBody;
+    try{
+      upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
+        // A3 的部分兼容模型会保持 SSE 连接但不发送结束帧。共享服务与本地验收
+        // 统一使用非流式完整响应，避免内容已经生成、页面却一直等待直至超时。
+        body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:false,max_tokens:4096}),
+        signal:upstreamController.signal
+      });
+      upstreamBody=await upstream.arrayBuffer();
+    }catch(error){
+      return json({error:error?.name==='AbortError'?'A3 模型响应超时':'无法连接 A3 上游服务'},error?.name==='AbortError'?504:502,origin);
+    }finally{clearTimeout(upstreamTimer);}
     if(!upstream.ok)return json({error:'内容服务请求失败',status:upstream.status},502,origin);
     const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));headers.set('Cache-Control','no-store');
-    return new Response(upstream.body,{status:upstream.status,headers});
+    return new Response(upstreamBody,{status:upstream.status,headers});
   }
 };

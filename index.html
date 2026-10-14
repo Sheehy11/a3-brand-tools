@@ -2860,7 +2860,7 @@ function showExtGuide(){
     '① 在 Chrome 地址栏输入 chrome://extensions/\n' +
     '   → 开启右上角「开发者模式」\n\n' +
     '② 点击「加载已解压的扩展程序」\n' +
-    '   → 选择：/Users/qusiy/Documents/Codex/2026-09-07/xia/outputs/xhs-extension\n\n' +
+    '   → 选择管理员提供的 xhs-extension 文件夹\n\n' +
     '③ 打开扩展的「详细信息」，开启「允许访问文件网址」\n\n' +
     '④ 安装完成，刷新本页面\n' +
     '   → 批量仿写时将自动抓取小红书原文\n\n' +
@@ -7107,7 +7107,7 @@ async function callAI(sys,usr,cb,signal,options={}){
     if(!S.key){openModal();throw new Error('请先在顶部模型设置中填写管理员 A3 Key，再进行本地生成验收。');}
     await streamOpenAI(sys,usr,safeCb,signal,requestId,options);
   } else if(PROXY_URL){
-    await streamProxy(sys,usr,safeCb,signal,requestId);
+    await streamProxy(sys,usr,safeCb,signal,requestId,options);
   } else {
     throw new Error('共享内容服务尚未配置，请联系管理员');
   }
@@ -7207,17 +7207,23 @@ async function responseError(response,label='内容服务'){
   return new Error(`${map[response.status]||detail||label+'请求失败'}${suffix}`);
 }
 
-async function streamProxy(sys,usr,cb,signal,requestId){
+async function streamProxy(sys,usr,cb,signal,requestId,options={}){
   const token=sessionStorage.getItem('a3_session')||'';
   if(!token)throw new Error('共享内容服务尚未登录，请刷新页面后重新输入访问密码。');
   const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:false};
-  let r;
-  try{r=await fetch(PROXY_URL,{method:'POST',headers,body:JSON.stringify(body),signal});}
-  catch(e){if(e?.name==='AbortError')throw e;throw new Error(`无法连接共享内容服务，请检查网络后重试（请求编号：${requestId}）`);}
-  if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
-  if(!r.ok)throw await responseError(r,'共享内容服务');
-  const emitted=await readAIResponse(r,cb);
-  if(!emitted)throw new Error(`内容服务没有返回正文内容，请稍后重试。本次请求不会自动重复发送。（请求编号：${r.headers.get('X-Request-ID')||requestId}）`);
+  const localController=signal?null:new AbortController(),activeSignal=signal||localController.signal;
+  const timeoutMs=Number(options.timeoutMs)||120000,timeout=localController?setTimeout(()=>localController.abort(),timeoutMs):null;
+  try{
+    const r=await fetch(PROXY_URL,{method:'POST',headers,body:JSON.stringify(body),signal:activeSignal});
+    if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
+    if(!r.ok)throw await responseError(r,'共享内容服务');
+    const emitted=await readAIResponse(r,cb);
+    if(!emitted)throw new Error(`内容服务没有返回正文内容，请稍后重试。本次请求不会自动重复发送。（请求编号：${r.headers.get('X-Request-ID')||requestId}）`);
+  }catch(e){
+    if(e?.name==='AbortError')throw new Error(`共享内容服务响应超时；本次请求已停止，不会继续占用页面。（请求编号：${requestId}）`);
+    if(/登录已过期|请求参数|未获授权|请求内容过大|请求较多|上游内容服务|内容服务暂不|响应超时|没有返回正文/.test(String(e?.message||'')))throw e;
+    throw new Error(`无法连接共享内容服务，请检查网络后重试（请求编号：${requestId}）`);
+  }finally{if(timeout)clearTimeout(timeout);}
 }
 
 async function localA3ConnectionMessage(error,url){

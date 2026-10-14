@@ -3,7 +3,7 @@
 最新版 AI 品牌内容工具。
 
 - 在线页面：<https://sheehy11.github.io/a3-brand-tools/>
-- AI 模型：`gpt-5.6-terra`
+- AI 模型：`gpt-5.6-sol`
 - 前端入口：`index.html`
 - Cloudflare Worker：`worker/src/index.js`
 - 完整与实际调用知识库：`knowledge/`
