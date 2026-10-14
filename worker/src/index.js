@@ -80,6 +80,16 @@ async function collabBody(request) {
 async function collabTask(db,id) {
   return db.prepare('SELECT * FROM collab_tasks WHERE id=?').bind(id).first();
 }
+function requirementRow(row) {
+  return {
+    id:row.id,ownerId:row.owner_id,ownerName:row.owner_name,scope:row.scope,
+    category:row.category,instruction:row.instruction,source:row.source_text||'',
+    reason:row.reason_text||'',status:'active',
+    approvals:{siyu:row.siyu_approved_at||'',yixi:row.yixi_approved_at||''},
+    confirmed:Boolean(row.confirmed_at),confirmedAt:row.confirmed_at||'',
+    createdAt:row.created_at,updatedAt:row.updated_at
+  };
+}
 async function handleCollab(request, env, url, origin) {
   const db=env.COLLAB_DB;
   if(!db)return json({error:'共享协作数据库尚未配置'},503,origin);
@@ -91,6 +101,62 @@ async function handleCollab(request, env, url, origin) {
 
   try{
     if(path[0]==='actors'&&method==='GET')return json({actors:Object.values(COLLAB_ACTORS)},200,origin);
+
+    if(path[0]==='requirements'&&path.length===1&&method==='GET'){
+      const workspace=await db.prepare('SELECT raw_text,draft_items_json,updated_at FROM collab_requirement_workspaces WHERE actor_id=?').bind(actor.id).first();
+      const query=['admin','reviewer'].includes(actor.role)
+        ?db.prepare('SELECT * FROM collab_requirements ORDER BY updated_at DESC LIMIT 300')
+        :db.prepare('SELECT * FROM collab_requirements WHERE owner_id=? OR confirmed_at IS NOT NULL ORDER BY updated_at DESC LIMIT 300').bind(actor.id);
+      const result=await query.all();
+      let draftItems=[];
+      try{draftItems=JSON.parse(workspace?.draft_items_json||'[]');}catch{}
+      return json({actor,workspace:{raw:workspace?.raw_text||'',draftItems:Array.isArray(draftItems)?draftItems:[],updatedAt:workspace?.updated_at||''},items:(result.results||[]).map(requirementRow)},200,origin);
+    }
+
+    if(path[0]==='requirements'&&path[1]==='workspace'&&method==='POST'){
+      const raw=collabText(input.raw,60000),draftItems=Array.isArray(input.draftItems)?input.draftItems.slice(0,100):[];
+      const safeDraft=draftItems.map(x=>({scope:['ao','opinion','both'].includes(x?.scope)?x.scope:'both',category:['direction','client_rule','prohibition','preference','pending','excluded'].includes(x?.category)?x.category:'pending',instruction:collabText(x?.instruction,4000),source:collabText(x?.source,8000),reason:collabText(x?.reason,2000)})).filter(x=>x.instruction);
+      const now=new Date().toISOString();
+      await db.prepare(`INSERT INTO collab_requirement_workspaces (actor_id,raw_text,draft_items_json,updated_at) VALUES (?,?,?,?) ON CONFLICT(actor_id) DO UPDATE SET raw_text=excluded.raw_text,draft_items_json=excluded.draft_items_json,updated_at=excluded.updated_at`).bind(actor.id,raw,JSON.stringify(safeDraft),now).run();
+      return json({ok:true,updatedAt:now},200,origin);
+    }
+
+    if(path[0]==='requirements'&&path.length===1&&method==='POST'){
+      const rows=Array.isArray(input.items)?input.items.slice(0,100):[];
+      const allowedCategories=new Set(['direction','client_rule','prohibition','preference']);
+      const now=new Date().toISOString(),statements=[];
+      for(const x of rows){
+        const instruction=collabText(x?.instruction,4000),scope=['ao','opinion','both'].includes(x?.scope)?x.scope:'both',category=allowedCategories.has(x?.category)?x.category:'';
+        if(!instruction||!category)continue;
+        statements.push(db.prepare('INSERT INTO collab_requirements (id,owner_id,owner_name,scope,category,instruction,source_text,reason_text,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),actor.id,actor.name,scope,category,instruction,collabText(x?.source,8000),collabText(x?.reason,2000),now,now));
+      }
+      if(!statements.length)return json({error:'没有可保存的明确文案要求'},400,origin);
+      statements.push(db.prepare(`INSERT INTO collab_requirement_workspaces (actor_id,raw_text,draft_items_json,updated_at) VALUES (?,'','[]',?) ON CONFLICT(actor_id) DO UPDATE SET raw_text='',draft_items_json='[]',updated_at=excluded.updated_at`).bind(actor.id,now));
+      await db.batch(statements);
+      return json({ok:true,count:statements.length-1},201,origin);
+    }
+
+    if(path[0]==='requirements'&&path[1]&&path[2]==='approve'&&method==='POST'){
+      if(!['admin','reviewer'].includes(actor.role))return json({error:'仅思雨和一西可以确认团队要求'},403,origin);
+      const row=await db.prepare('SELECT * FROM collab_requirements WHERE id=?').bind(path[1]).first();
+      if(!row)return json({error:'要求不存在'},404,origin);
+      const now=new Date().toISOString(),column=actor.id==='siyu'?'siyu_approved_at':'yixi_approved_at';
+      await db.prepare(`UPDATE collab_requirements SET ${column}=?,updated_at=? WHERE id=?`).bind(now,now,row.id).run();
+      const updated=await db.prepare('SELECT * FROM collab_requirements WHERE id=?').bind(row.id).first();
+      if(updated.siyu_approved_at&&updated.yixi_approved_at&&!updated.confirmed_at){
+        await db.prepare('UPDATE collab_requirements SET confirmed_at=?,updated_at=? WHERE id=?').bind(now,now,row.id).run();
+      }
+      const finalRow=await db.prepare('SELECT * FROM collab_requirements WHERE id=?').bind(row.id).first();
+      return json({ok:true,item:requirementRow(finalRow)},200,origin);
+    }
+
+    if(path[0]==='requirements'&&path[1]&&path[2]==='delete'&&method==='POST'){
+      const row=await db.prepare('SELECT * FROM collab_requirements WHERE id=?').bind(path[1]).first();
+      if(!row)return json({error:'要求不存在'},404,origin);
+      if(row.owner_id!==actor.id&&actor.role!=='admin')return json({error:'只能删除自己的要求'},403,origin);
+      await db.prepare('DELETE FROM collab_requirements WHERE id=?').bind(row.id).run();
+      return json({ok:true},200,origin);
+    }
 
     if(path[0]==='tasks'&&path.length===1&&method==='GET'){
       const query=['reviewer','admin'].includes(actor.role)
@@ -214,22 +280,30 @@ export default {
     for(const m of Array.isArray(input.messages)?input.messages:[]){if(['user','assistant'].includes(m?.role)&&typeof m.content==='string')messages.push({role:m.role,content:m.content.slice(0,60000)});}
     if(!messages.some(m=>m.role==='user'))return json({error:'缺少用户内容'},400,origin);
     const upstreamController=new AbortController();
-    const upstreamTimer=setTimeout(()=>upstreamController.abort(),175000);
-    let upstream,upstreamBody;
+    const upstreamTimer=setTimeout(()=>upstreamController.abort(),180000);
+    let upstream;
     try{
       upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
-        // A3 的部分兼容模型会保持 SSE 连接但不发送结束帧。共享服务与本地验收
-        // 统一使用非流式完整响应，避免内容已经生成、页面却一直等待直至超时。
-        body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:false,max_tokens:4096}),
+        body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:true,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
         signal:upstreamController.signal
       });
-      upstreamBody=await upstream.arrayBuffer();
     }catch(error){
+      clearTimeout(upstreamTimer);
       return json({error:error?.name==='AbortError'?'A3 模型响应超时':'无法连接 A3 上游服务'},error?.name==='AbortError'?504:502,origin);
-    }finally{clearTimeout(upstreamTimer);}
-    if(!upstream.ok)return json({error:'内容服务请求失败',status:upstream.status},502,origin);
+    }
+    if(!upstream.ok){clearTimeout(upstreamTimer);return json({error:'内容服务请求失败',status:upstream.status},502,origin);}
     const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));headers.set('Cache-Control','no-store');
-    return new Response(upstreamBody,{status:upstream.status,headers});
+    headers.set('X-Accel-Buffering','no');
+    if(!upstream.body){clearTimeout(upstreamTimer);return json({error:'A3 上游没有返回内容'},502,origin);}
+    const reader=upstream.body.getReader();
+    const streamed=new ReadableStream({
+      async pull(controller){
+        try{const{done,value}=await reader.read();if(done){clearTimeout(upstreamTimer);controller.close();}else controller.enqueue(value);}
+        catch(error){clearTimeout(upstreamTimer);controller.error(error);}
+      },
+      cancel(reason){clearTimeout(upstreamTimer);upstreamController.abort(reason);return reader.cancel(reason);}
+    });
+    return new Response(streamed,{status:upstream.status,headers});
   }
 };

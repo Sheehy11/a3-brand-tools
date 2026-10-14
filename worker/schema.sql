@@ -49,3 +49,29 @@ CREATE INDEX IF NOT EXISTS idx_collab_tasks_writer_updated ON collab_tasks(write
 CREATE INDEX IF NOT EXISTS idx_collab_tasks_status_updated ON collab_tasks(status, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_collab_versions_task ON collab_versions(task_id, version_no);
 CREATE INDEX IF NOT EXISTS idx_collab_feedback_task ON collab_feedback(task_id, round_no);
+
+CREATE TABLE IF NOT EXISTS collab_requirement_workspaces (
+  actor_id TEXT PRIMARY KEY CHECK (actor_id IN ('yangyang','april','yixi','siyu')),
+  raw_text TEXT NOT NULL DEFAULT '',
+  draft_items_json TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS collab_requirements (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL CHECK (owner_id IN ('yangyang','april','yixi','siyu')),
+  owner_name TEXT NOT NULL,
+  scope TEXT NOT NULL CHECK (scope IN ('ao','opinion','both')),
+  category TEXT NOT NULL CHECK (category IN ('direction','client_rule','prohibition','preference')),
+  instruction TEXT NOT NULL,
+  source_text TEXT NOT NULL DEFAULT '',
+  reason_text TEXT NOT NULL DEFAULT '',
+  siyu_approved_at TEXT,
+  yixi_approved_at TEXT,
+  confirmed_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_collab_requirements_owner_updated ON collab_requirements(owner_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_collab_requirements_confirmed_updated ON collab_requirements(confirmed_at, updated_at DESC);

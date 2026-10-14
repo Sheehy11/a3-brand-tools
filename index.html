@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="a3-service-url" content="https://a3-brand-content-api.qusiyu0311.workers.dev">
+<meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
 <title>AI品牌内容工具</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- LOCAL_JSZIP --><script>/*!
@@ -1423,10 +1423,10 @@ const collabEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 function collabActor(){return COLLAB_ACTORS[localStorage.getItem('a3_collab_actor')||'']||null}
 function collabRoleText(a=collabActor()){return a?`${a.name} · ${a.role==='reviewer'?'审核人':a.role==='admin'?'管理员':'写手'}`:'尚未选择身份'}
 function collabUpdateIdentity(){const a=collabActor(),chip=document.getElementById('collab-identity-chip'),btn=document.getElementById('collab-task-btn'),live=document.getElementById('live-requirements-btn');if(!chip||!btn)return;chip.style.display='';chip.textContent=a?collabRoleText(a):'选择身份';btn.style.display='flex';if(live)live.style.display='';document.getElementById('collab-new-btn')?.style.setProperty('display',a?.role==='writer'?'':'none');if(typeof hfLiveRender==='function')hfLiveRender();}
-function ensureCollabIdentity(){collabUpdateIdentity();if(!collabActor())openCollabIdentity();else collabStartPolling()}
+function ensureCollabIdentity(){collabUpdateIdentity();if(!collabActor())openCollabIdentity();else{collabStartPolling();if(typeof hfLiveRemoteLoad==='function')hfLiveRemoteLoad().catch(e=>toast('跨设备要求读取失败：'+e.message,3200))}}
 function openCollabIdentity(){document.getElementById('collab-identity-modal').style.display='flex'}
-function closeCollabIdentity(){document.getElementById('collab-identity-modal').style.display='none'}
-function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;try{if(typeof hfLiveSyncDraft==='function')hfLiveSyncDraft();}catch{}localStorage.setItem('a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
+function closeCollabIdentity(){if(!collabActor())return toast('首次进入必须先选择使用人');document.getElementById('collab-identity-modal').style.display='none'}
+async function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;try{if(typeof hfLiveSyncDraft==='function')await hfLiveSyncDraft();}catch{}localStorage.setItem('a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';try{if(typeof hfLiveRemoteLoad==='function')await hfLiveRemoteLoad();}catch(e){toast('身份已切换，但跨设备要求读取失败：'+e.message,3200)}collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
 function collabHeaders(){const token=sessionStorage.getItem('a3_session')||'';return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}}
 const COLLAB_LOCAL_STORAGE='a3_collab_local_validation_v1';
 function collabLocalLoad(){try{const x=JSON.parse(localStorage.getItem(COLLAB_LOCAL_STORAGE)||'{}');return{tasks:Array.isArray(x.tasks)?x.tasks:[],versions:Array.isArray(x.versions)?x.versions:[],feedback:Array.isArray(x.feedback)?x.feedback:[]}}catch{return{tasks:[],versions:[],feedback:[]}}}
@@ -6505,13 +6505,33 @@ function doCopy(t){
 // 好奇全系列独立工作台（沿用拜耳六模块操作逻辑）
 // ══════════════════════════════════════════════
 function hfStoreKey(){return `hq_full_workflow_v3_${HQ_CONTENT_MODE}`}
-const HF={page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]};
+const HF={page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
 const HQ_LIVE_STORAGE='a3_haoqi_live_copy_requirements_v2';
 const HQ_LIVE={workspaces:{},items:[],confirmed:[],attachments:[]};
+let HQ_LIVE_SAVE_TIMER=null;
 function hfLiveActor(){return collabActor()||{id:'local',name:'本机使用人',role:'writer'};}
 function hfLiveWorkspace(){const id=hfLiveActor().id;return HQ_LIVE.workspaces[id]||(HQ_LIVE.workspaces[id]={raw:'',draftItems:[]});}
 function hfLiveLoad(){try{let saved=JSON.parse(localStorage.getItem(HQ_LIVE_STORAGE)||'{}');if(!saved.workspaces){const old=JSON.parse(localStorage.getItem('a3_haoqi_live_copy_requirements_v1')||'{}'),now=new Date().toISOString();saved={workspaces:{siyu:{raw:String(old.raw||''),draftItems:Array.isArray(old.draftItems)?old.draftItems:[]}},items:(Array.isArray(old.items)?old.items:[]).map((x,i)=>({...x,id:`legacy-${i}`,ownerId:'siyu',ownerName:'思雨',approvals:{},createdAt:x.publishedAt||now})),confirmed:[],attachments:[]};}HQ_LIVE.workspaces=saved.workspaces&&typeof saved.workspaces==='object'?saved.workspaces:{};HQ_LIVE.items=Array.isArray(saved.items)?saved.items:[];HQ_LIVE.confirmed=Array.isArray(saved.confirmed)?saved.confirmed:[];HQ_LIVE.attachments=Array.isArray(saved.attachments)?saved.attachments:[];}catch{HQ_LIVE.workspaces={};HQ_LIVE.items=[];HQ_LIVE.confirmed=[];HQ_LIVE.attachments=[];}}
-function hfLiveSave(){localStorage.setItem(HQ_LIVE_STORAGE,JSON.stringify(HQ_LIVE));}
+function hfLiveSave(){
+  localStorage.setItem(HQ_LIVE_STORAGE,JSON.stringify(HQ_LIVE));
+  if(window.a3IsLocalPreview()||!collabActor())return;
+  const actorId=hfLiveActor().id,ws=JSON.parse(JSON.stringify(hfLiveWorkspace()));
+  clearTimeout(HQ_LIVE_SAVE_TIMER);HQ_LIVE_SAVE_TIMER=setTimeout(()=>hfLiveRemoteSave(actorId,ws).catch(e=>{const s=document.getElementById('hf-live-status');if(s)s.textContent='本机已暂存；跨设备同步失败：'+e.message;}),650);
+}
+async function hfLiveRemoteSave(actorId=hfLiveActor().id,workspace=hfLiveWorkspace()){
+  if(window.a3IsLocalPreview())return;
+  const current=collabActor();if(!current||current.id!==actorId)return;
+  await collabApi('/requirements/workspace',{method:'POST',body:{raw:workspace.raw||'',draftItems:workspace.draftItems||[]}});
+}
+async function hfLiveRemoteLoad(){
+  if(window.a3IsLocalPreview()){hfLiveRender();return;}
+  const data=await collabApi('/requirements'),actor=hfLiveActor();
+  HQ_LIVE.workspaces[actor.id]={raw:String(data.workspace?.raw||''),draftItems:Array.isArray(data.workspace?.draftItems)?data.workspace.draftItems:[]};
+  HQ_LIVE.items=Array.isArray(data.items)?data.items:[];
+  HQ_LIVE.confirmed=HQ_LIVE.items.filter(x=>x.confirmed).map(x=>({...x,sourceId:x.id,confirmed:true}));
+  localStorage.setItem(HQ_LIVE_STORAGE,JSON.stringify(HQ_LIVE));hfLiveRender();
+  const s=document.getElementById('hf-live-status');if(s)s.textContent='已读取跨设备保存的需求与个人偏好';
+}
 function hfLiveScopeLabel(scope){return scope==='ao'?'素人AO文':scope==='opinion'?'舆情文':'AO文＋舆情文';}
 function hfLiveCategoryLabel(category){return({direction:'新内容方向',client_rule:'当前客户规则',prohibition:'禁止事项',preference:'个人写作偏好',pending:'待确认',excluded:'不进入文案生成'})[category]||category;}
 function hfLiveActive(){const mode=HQ_CONTENT_MODE,actor=hfLiveActor(),confirmedIds=new Set(HQ_LIVE.confirmed.map(x=>x.sourceId));return[...HQ_LIVE.confirmed.filter(x=>x.status==='active'&&(x.scope==='both'||x.scope===mode)),...HQ_LIVE.items.filter(x=>x.status==='active'&&x.ownerId===actor.id&&!confirmedIds.has(x.id)&&(x.scope==='both'||x.scope===mode))];}
@@ -6536,10 +6556,10 @@ function hfLiveRender(){const ws=hfLiveWorkspace(),actor=hfLiveActor(),raw=docum
 function hfLiveRenderWeekly(){const box=document.getElementById('hf-live-weekly');if(!box)return;const a=hfLiveActor(),canApprove=['admin','reviewer'].includes(a.role),items=HQ_LIVE.items.slice().reverse();box.innerHTML=items.length?`<h3 style="margin-top:16px">待周确认</h3>${items.map(x=>`<div class="hf-selected" style="margin-bottom:8px"><b>${esc(x.ownerName)}｜${hfLiveCategoryLabel(x.category)}</b>　${esc(x.instruction)}<br><span class="hf-hint">思雨：${x.approvals?.siyu?'已确认':'未确认'}｜一西：${x.approvals?.yixi?'已确认':'未确认'}</span>${canApprove&&!x.approvals?.[a.id]?`<div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveApprove('${x.id}')">以${esc(a.name)}确认</button></div>`:''}</div>`).join('')}`:'<div class="hf-hint">本周暂无候选要求。</div>';}
 function hfLiveSyncDraft(){const ws=hfLiveWorkspace();ws.draftItems=ws.draftItems.map((x,i)=>({...x,scope:document.querySelector(`[data-live-scope="${i}"]`)?.value||x.scope,category:document.querySelector(`[data-live-category="${i}"]`)?.value||x.category,instruction:document.querySelector(`[data-live-instruction="${i}"]`)?.value.trim()||''})).filter(x=>x.instruction);ws.raw=hfVal('hf-live-raw');hfLiveSave();}
 async function hfLiveOrganize(){const raw=hfVal('hf-live-raw');if(!raw)return toast('请粘贴需求、反馈或偏好');if(!S.key&&!PROXY_URL)return openModal();const status=document.getElementById('hf-live-status');status.textContent='正在区分可执行要求、个人偏好和无关事项…';try{const sys='你是品牌内容需求整理员。只整理与文案生成直接有关的规则，不补全或猜测。排期、篇数、交付时间、会议、人员安排、拍摄和素材供应归为excluded；含糊信息归为pending。只返回严格JSON。',usr=`当前只试点好奇。逐条忠实整理，返回 {"items":[{"scope":"ao|opinion|both","category":"direction|client_rule|prohibition|preference|pending|excluded","instruction":"明确可执行要求或忠实原意","source":"对应原话","reason":"分类原因"}]}。不得新增产品事实。\n\n【原始内容】\n${raw}`;const data=hfLiveParseJson(await hfCallText(sys,usr,{maxTokens:700,timeoutMs:90000})),allowed=['direction','client_rule','prohibition','preference','pending','excluded'];hfLiveWorkspace().raw=raw;hfLiveWorkspace().draftItems=(Array.isArray(data.items)?data.items:[]).filter(x=>x&&x.instruction).map(x=>({scope:['ao','opinion','both'].includes(x.scope)?x.scope:'both',category:allowed.includes(x.category)?x.category:'pending',instruction:String(x.instruction).trim(),source:String(x.source||'').trim(),reason:String(x.reason||'').trim()}));hfLiveSave();hfLiveRender();status.textContent=`整理完成：${hfLiveWorkspace().draftItems.length} 条。本次勾选新增需求时会直接执行；需要以后持续执行，再点击“保存为我的要求”。`;}catch(e){status.textContent='整理失败：'+e.message;}}
-function hfLivePublish(){hfLiveSyncDraft();const actor=hfLiveActor(),ws=hfLiveWorkspace(),rows=ws.draftItems.filter(x=>['direction','client_rule','prohibition','preference'].includes(x.category));if(!rows.length)return toast('没有可保存的明确文案要求');const now=new Date().toISOString();rows.forEach((x,i)=>HQ_LIVE.items.push({...x,id:`req-${Date.now()}-${i}`,ownerId:actor.id,ownerName:actor.name,status:'active',approvals:{},createdAt:now}));ws.raw='';ws.draftItems=[];hfLiveSave();hfLiveRender();toast(`已保存，仅影响${actor.name}的生成 ✓`,2400);}
-function hfLiveEdit(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&x.ownerId===actor.id);if(i<0)return toast('只能编辑自己的要求');const item=HQ_LIVE.items[i],ws=hfLiveWorkspace();ws.raw=item.source||item.instruction;ws.draftItems=[{scope:item.scope,category:item.category,instruction:item.instruction,source:item.source||'',reason:item.reason||''}];HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();document.getElementById('hf-live-panel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('已放回编辑区，修改后重新保存');}
-function hfLiveDeactivate(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&(x.ownerId===actor.id||actor.role==='admin'));if(i<0)return toast('只能删除自己的要求');HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();}
-function hfLiveApprove(id){const actor=hfLiveActor();if(!['admin','reviewer'].includes(actor.role))return toast('仅思雨和一西确认周规则');const item=HQ_LIVE.items.find(x=>x.id===id);if(!item)return;item.approvals={...(item.approvals||{}),[actor.id]:new Date().toISOString()};if(item.approvals.siyu&&item.approvals.yixi&&!HQ_LIVE.confirmed.some(x=>x.sourceId===item.id))HQ_LIVE.confirmed.push({...item,sourceId:item.id,confirmed:true,status:'active',confirmedAt:new Date().toISOString()});hfLiveSave();hfLiveRender();toast(item.approvals.siyu&&item.approvals.yixi?'双方已确认，已进入团队知识 ✓':`已记录${actor.name}确认`);}
+async function hfLivePublish(){hfLiveSyncDraft();const actor=hfLiveActor(),ws=hfLiveWorkspace(),rows=ws.draftItems.filter(x=>['direction','client_rule','prohibition','preference'].includes(x.category));if(!rows.length)return toast('没有可保存的明确文案要求');try{if(window.a3IsLocalPreview()){const now=new Date().toISOString();rows.forEach((x,i)=>HQ_LIVE.items.push({...x,id:`req-${Date.now()}-${i}`,ownerId:actor.id,ownerName:actor.name,status:'active',approvals:{},createdAt:now}));ws.raw='';ws.draftItems=[];hfLiveSave();hfLiveRender();}else{await collabApi('/requirements',{method:'POST',body:{items:rows}});await hfLiveRemoteLoad();}toast(`已保存并跨设备同步，仅影响${actor.name}的生成 ✓`,2600);}catch(e){toast('保存失败：'+e.message,3200)}}
+async function hfLiveEdit(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&x.ownerId===actor.id);if(i<0)return toast('只能编辑自己的要求');const item=HQ_LIVE.items[i],ws=hfLiveWorkspace();ws.raw=item.source||item.instruction;ws.draftItems=[{scope:item.scope,category:item.category,instruction:item.instruction,source:item.source||'',reason:item.reason||''}];try{if(!window.a3IsLocalPreview())await collabApi(`/requirements/${id}/delete`,{method:'POST',body:{}});else HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();document.getElementById('hf-live-panel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('已放回编辑区，修改后重新保存');}catch(e){toast('暂时无法编辑：'+e.message,3000)}}
+async function hfLiveDeactivate(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&(x.ownerId===actor.id||actor.role==='admin'));if(i<0)return toast('只能删除自己的要求');try{if(!window.a3IsLocalPreview()){await collabApi(`/requirements/${id}/delete`,{method:'POST',body:{}});await hfLiveRemoteLoad();}else{HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();}toast('已删除要求');}catch(e){toast('删除失败：'+e.message,3000)}}
+async function hfLiveApprove(id){const actor=hfLiveActor();if(!['admin','reviewer'].includes(actor.role))return toast('仅思雨和一西确认周规则');try{if(!window.a3IsLocalPreview()){const result=await collabApi(`/requirements/${id}/approve`,{method:'POST',body:{}});await hfLiveRemoteLoad();toast(result.item?.confirmed?'双方已确认，已进入团队知识 ✓':`已记录${actor.name}确认`);}else{const item=HQ_LIVE.items.find(x=>x.id===id);if(!item)return;item.approvals={...(item.approvals||{}),[actor.id]:new Date().toISOString()};if(item.approvals.siyu&&item.approvals.yixi&&!HQ_LIVE.confirmed.some(x=>x.sourceId===item.id))HQ_LIVE.confirmed.push({...item,sourceId:item.id,confirmed:true,status:'active',confirmedAt:new Date().toISOString()});hfLiveSave();hfLiveRender();toast(item.approvals.siyu&&item.approvals.yixi?'双方已确认，已进入团队知识 ✓':`已记录${actor.name}确认`);}}catch(e){toast('确认失败：'+e.message,3000)}}
 async function hfLiveImportFile(file){if(!file)return;try{const text=await file.text();const ws=hfLiveWorkspace();ws.raw=[ws.raw,text].filter(Boolean).join('\n\n');HQ_LIVE.attachments.push({name:file.name,ownerId:hfLiveActor().id,addedAt:new Date().toISOString()});hfLiveSave();hfLiveRender();toast(`已读取 ${file.name}`);}catch{toast('文件读取失败，请改为粘贴文字');}}
 function hfLiveExportWeekly(){const since=Date.now()-7*86400000,rows=HQ_LIVE.items.filter(x=>new Date(x.createdAt).getTime()>=since).map(x=>({'提交时间':x.createdAt,'提交人':x.ownerName,'模块':hfLiveScopeLabel(x.scope),'分类':hfLiveCategoryLabel(x.category),'要求':x.instruction,'来源原话':x.source||'','思雨确认':x.approvals?.siyu?'是':'否','一西确认':x.approvals?.yixi?'是':'否','已进入团队知识':HQ_LIVE.confirmed.some(y=>y.sourceId===x.id)?'是':'否'}));if(!rows.length)return toast('最近7天没有候选要求');if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'本周候选');XLSX.writeFile(wb,'好奇_本周需求与偏好确认包.xlsx');}else hfDownloadCsv('好奇_本周需求与偏好确认包.csv',rows);toast('本周确认包已下载 ✓');}
 function openHqRequirements(){
@@ -6607,7 +6627,7 @@ function loadHqFullModule(){
     <div class="hf-grid">
       <div id="hf-live-panel" class="hf-card wide"><h3>本次需求与个人写作偏好</h3><div id="hf-live-role" class="hf-callout"></div><div class="hf-row"><div><label>粘贴需求、反馈或偏好</label><textarea id="hf-live-raw" style="min-height:150px" placeholder="只整理与文案生成有关的内容；写手保存后仅影响本人。"></textarea><label class="hf-upload" style="margin-top:10px"><input type="file" accept=".txt,.md,.csv,.json" onchange="hfLiveImportFile(this.files[0])"><b>上传补充文本</b><br><small>支持 TXT、Markdown、CSV、JSON</small></label><div class="hf-actions"><button class="hf-btn primary" onclick="hfLiveOrganize()">AI整理</button><button class="hf-btn ghost" onclick="openCollabIdentity()">切换身份</button></div><div id="hf-live-status" class="hf-status">等待补充</div></div><div><label>逐条确认</label><div id="hf-live-draft"></div><div class="hf-actions"><button class="hf-btn primary" onclick="hfLivePublish()">保存为我的要求</button></div></div></div><div style="margin-top:16px"><h3>当前生成会执行</h3><div id="hf-live-temporary"></div><div id="hf-live-active"></div></div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveExportWeekly()">一键导出本周确认包</button></div><div id="hf-live-weekly"></div></div>
       <div class="hf-card"><h3>1｜选择内容方向（可选）</h3><label class="hf-toggle"><input id="hf-custom-direction" type="checkbox" onchange="hfToggleCustomDirection(this.checked)">跳过已有方向，按上方新增需求生成</label><div class="hf-hint">方向变化较大时可勾选；系统仍要求选择产品和唯一卖点，以保留正式产品事实与合规边界。</div>${HQ_CONTENT_MODE==='ao'?'<label>消费者阶段</label><div id="hf-stages" class="hf-chips"></div><label>核心召回任务</label>':''}<div id="hf-directions" class="hf-chips"></div><div id="hf-direction-rule" class="hf-selected">可选择已有方向，也可按新增需求生成</div><label>2｜选择产品</label><select id="hf-product" onchange="hfProductChanged()" disabled><option value="">请先选择内容方向</option></select><label>3｜选择本篇唯一卖点</label><div id="hf-selling-points" class="hf-chips"><span class="hf-hint">选择产品后显示可写卖点</span></div><label>4｜选择内容切角</label><div id="hf-angles" class="hf-chips"><span class="hf-hint">使用已有方向时选择；按新增需求生成时无需选择</span></div><div id="hf-gen-selection" class="hf-selected">当前选择：—</div></div>
-      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜补充内容</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>特殊要求（选填）</label><textarea id="hf-special" style="min-height:90px" placeholder="例如：保留一个真实生活细节；避免使用某个词。"></textarea><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerate()" disabled>生成稿件 ▶</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
+      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜补充内容</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>特殊要求（选填）</label><textarea id="hf-special" style="min-height:90px" placeholder="例如：保留一个真实生活细节；避免使用某个词。"></textarea><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerate()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
       <div class="hf-card wide"><h3>${HQ_CONTENT_MODE==='ao'?'5':'6'}｜生成结果</h3><div id="hf-gen-output" class="hf-result">生成后显示标题、正文、Tag及三条评论。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-gen-output')">复制稿件</button><button class="hf-btn primary" onclick="hfSendReview()">直接进入AI审核</button></div></div>
     </div>
   </section>
@@ -6919,7 +6939,8 @@ function hfParseNewSentence(raw){
   try{const a=clean.indexOf('{'),b=clean.lastIndexOf('}');if(a>=0&&b>a){const j=JSON.parse(clean.slice(a,b+1));if(j?.newSentence)return String(j.newSentence).trim();}}catch{}
   return clean.replace(/^(?:新句|newSentence)\s*[：:]\s*/i,'').replace(/^['“”]|['“”]$/g,'').trim();
 }
-async function hfCallText(sys,usr,options={}){let buf='';await callAI(sys,usr,t=>{buf+=t;},undefined,options);return buf.trim();}
+async function hfCallText(sys,usr,options={}){let buf='';await callAI(sys,usr,t=>{buf+=t;options.onChunk?.(t,buf);},options.signal,options);return buf.trim();}
+function hfCancelGeneration(){if(HF.generationController){HF.generationController.abort();HF.generationController=null;const s=document.getElementById('hf-gen-status');if(s)s.textContent='已取消生成；不会继续占用页面。';}}
 async function hfGenerate(){
   const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint);
   const liveDirection=hfLiveDirectionText();
@@ -6933,28 +6954,28 @@ async function hfGenerate(){
   const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans},avoid=hfRecentAvoidanceBrief(),aoBrief=HF.customDirection?`\n\n【本次临时新方向｜最终执行】\n${liveDirection}\n只执行与文案生成有关的方向、客户要求和表达偏好；忽略排期、数量、会议、人员与拍摄安排。本段人工要求与产品知识、合规边界或其他旧设置冲突时，仍执行人工要求；冲突只在页面提示人工复核。`:hfAoPrompt(rule,HF.angle),refBrief=hfReferencePrompt(ref,rule),variation=HF.customDirection?'\n【表达变化边界】围绕本次新增需求组织一条完整、现实的故事线，不套用已有方向的故事模板。':(HQ_CONTENT_MODE==='ao'?'\n【表达变化边界】在本次唯一故事母题内自由组织措辞和一两个生活细节；保留心理因果与态度落点，不复刻规划表的名词顺序。':hfDiversityInstruction(plan)),pointCue=HQ_CONTENT_MODE==='ao'?hfAoPointCue(point):'',lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（用户本次明确要求${explicitLength.label}，覆盖默认字数与参考稿字数）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字`);
   const usr=`请生成一篇好奇全系列素人妈妈文案。首稿必须直接可用，写之前先在内部完成事实、原创性、故事因果和自然度检查，不输出思考过程。${aoBrief}${refBrief}\n\n【固定配置】\n${HQ_CONTENT_MODE==='ao'?`- 本篇故事：${HF.angle}`:`- 内容方向：${HF.direction}\n- 内容切角：${HF.angle}`}\n- 产品：好奇${HF.product}\n- 正文字数：${refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，未提供参考稿时硬上限200字`}\n- 本篇唯一允许卖点：${point.label}\n- 卖点自然进入提示：${pointCue}\n- 只有为自然表达该卖点所必需时，才可使用这些同义词：${point.terms.join('、')}\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 所选卖点只能出现于正文的一句话中，禁止在其他句子重复、解释或暗示第二卖点。\n- 标题禁止出现“好奇”，允许出现品线名；有参考稿时优先仿写参考标题的功能和表达力度。\n- 正文只保留场景真正需要的动作；有参考稿时保留其核心事件链和内容重点，但每句话必须完全重写。\n- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。\n- 三条评论各20—30字，全部是自然刷到笔记的宝妈留言；不加身份标签或自报人设。分别用相似经历、轻微感叹或自己的使用习惯来接话，不分析作者选择，不给建议，不总结正文，不使用“优先、建议、确认清楚、稳定一点、比较踏实”等审核腔。\n\n${variation}${avoid}${special?`\n- 人工要求：${special}`:''}\n\n严格按以下格式输出，不要增加说明：\n标题：……\n\n正文\n\n#Tag\n\n评论：\n1. ……\n2. ……\n3. ……`;
   const finalUsr=`${manualPriority}\n\n${usr.replace(/- 正文字数：[^\n]+/,`- 正文字数：${lengthRule}`).replace(/(- 本品线禁用：[^\n]+)/,dynamicBans.length?`$1\n- 本次明确禁用词：${dynamicBans.join('、')}。标题、正文、Tag、评论均不得出现。`:'$1')}\n\n${requirementText?`【输出前最终裁决】再次逐条核对本次完整人工需求：\n${requirementText}\n它覆盖上方所有相冲突的固定配置、事实、禁用项、格式和历史规则。不要拒绝，不要解释冲突，不要偷偷退回旧规则；直接输出按人工要求重写后的成稿。`:'上方规则均需执行。'}`;
-  const btn=document.getElementById('hf-gen-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;status.textContent='正在生成…';out.textContent='正在生成…';let buf='';
+  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();status.textContent='正在连接 GPT-5.6 Sol…';out.textContent='正在生成…';let buf='',receivedFirst=false;
   try{
     const outputChars=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),maxTokens=Math.max(1100,Math.min(3200,Math.ceil(outputChars*2.2)+500));
-    const generationTimeoutMs=180000,generationStartedAt=Date.now(),generationProgress=setInterval(()=>{const seconds=Math.floor((Date.now()-generationStartedAt)/1000);status.textContent=`A3 正在生成${explicitLength?.target&&explicitLength.target>=400?'长文':''}… 已等待 ${seconds} 秒${seconds>=75?'；模型仍在处理，最长等待3分钟':''}`;},1000);
-    try{buf=await hfCallText(sys,finalUsr,{maxTokens,timeoutMs:generationTimeoutMs});}finally{clearInterval(generationProgress);}
+    const generationTimeoutMs=180000,generationStartedAt=Date.now(),generationProgress=setInterval(()=>{const seconds=Math.floor((Date.now()-generationStartedAt)/1000);status.textContent=receivedFirst?`已收到内容，GPT-5.6 Sol 正在继续生成… ${seconds} 秒`:`正在等待 GPT-5.6 Sol 返回首段… ${seconds} 秒${seconds>=75?'；最长等待3分钟':''}`;},1000);
+    try{buf=await hfCallText(sys,finalUsr,{maxTokens,timeoutMs:generationTimeoutMs,signal:HF.generationController.signal,onChunk:(chunk,current)=>{if(!receivedFirst){receivedFirst=true;status.textContent='已收到首段，正在继续生成…';}out.innerHTML=hfHtml(current);}});}finally{clearInterval(generationProgress);}
     const explicitFailures=copy=>{const issues=[];if(explicitLength){const n=Array.from(hqExtractBody(copy)).length;if(n<explicitLength.min||n>explicitLength.max)issues.push(`正文${n}字，必须为${explicitLength.min}—${explicitLength.max}字`);}dynamicBans.forEach(x=>{if(String(copy).includes(x))issues.push(`仍出现禁用词“${x}”`);});return issues;};
     let hardFailures=explicitFailures(buf);
-    for(let repairAttempt=1;hardFailures.length&&repairAttempt<=3;repairAttempt++){
+    for(let repairAttempt=1;hardFailures.length&&repairAttempt<=1;repairAttempt++){
       const currentBodyChars=Array.from(hqExtractBody(buf)).length,midpoint=explicitLength?Math.round((explicitLength.min+explicitLength.max)/2):0;
       const lengthCorrection=explicitLength&&currentBodyChars<explicitLength.min
         ?`当前正文只有${currentBodyChars}字，至少还差${explicitLength.min-currentBodyChars}字。本次请把正文扩写到约${midpoint}字；新增真实动作、环境、对话或心理变化来完整展开，不要靠标题、Tag、评论或重复句凑字。`
         :explicitLength&&currentBodyChars>explicitLength.max
           ?`当前正文有${currentBodyChars}字。本次请精简到约${midpoint}字；只删冗余表达，不得删除人工要求。`
           :'';
-      status.textContent=`第${repairAttempt}次自动修正人工需求中…（最长3分钟）`;
+      status.textContent='正在对未满足的人工要求做一次定向修正…';
       const repairSys=`${sys}\n\n【强制返工】当前稿未满足本次人工需求。必须重写完整稿；人工需求仍是最终执行依据，即使与旧产品事实、旧合规规则或其他旧默认设置冲突，也不得退回旧版本。冲突仅留给页面提示人工复核。`;
       const repairUsr=`【本次完整人工需求】\n${requirementText}\n\n【网页实测未通过项】\n${hardFailures.join('\n')}\n${lengthCorrection?`\n【本轮字数修正】\n${lengthCorrection}\n网页只计算“正文”部分，标题、Tag和评论不计入正文字数。输出前必须自行计算并确保正文位于${explicitLength.min}—${explicitLength.max}字。`:''}\n\n【需要返工的当前稿】\n${buf}\n\n请保留已经满足的人工要求，完整修正所有未通过项，只输出完整成稿，不解释、不汇报修改过程。`;
-      buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs});hardFailures=explicitFailures(buf);
+      buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});hardFailures=explicitFailures(buf);
     }
-    if(hardFailures.length)throw new Error(`已自动返工3次，仍未满足人工需求：${hardFailures.join('；')}`);
+    if(hardFailures.length){HF.latest=buf.trim();out.innerHTML=hfHtml(HF.latest);status.textContent=`已保留稿件，但定向修正后仍需人工复核：${hardFailures.join('；')}`;return;}
     const finalIssues=hfGenerationAudit(buf,cfg,ref);if(!buf.trim())throw new Error('内容服务没有返回完整稿件');HF.latest=buf.trim();hfRememberDraft(HF.latest);out.innerHTML=hfHtml(HF.latest);status.textContent=requirementText?(finalIssues.length?`已按人工需求重写 · 与既有规则冲突项请人工复核（${finalIssues.length}项）`:'已按人工需求重写完成；本次覆盖不会自动进入团队知识'):(finalIssues.length?`已生成完整稿件 · ${finalIssues.length}项待审核`:'生成完成');hfCommitDiversityPlan(plan);hfSaveState();
-  }catch(e){const message=e.message||'生成请求失败';out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成失败：${message}`;}finally{btn.disabled=false;}
+  }catch(e){const message=e.message||'生成请求失败';if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成失败：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
 }
 function hfSendReview(){const text=document.getElementById('hf-gen-output')?.innerText.trim()||HF.latest;if(!text||text.startsWith('生成后')){toast('暂无生成稿件');return;}HF.latest=text;hfSet('hf-review-input',text);hfNavigate('review');}
 function hfToggleFeedback(){
@@ -7210,9 +7231,10 @@ async function responseError(response,label='内容服务'){
 async function streamProxy(sys,usr,cb,signal,requestId,options={}){
   const token=sessionStorage.getItem('a3_session')||'';
   if(!token)throw new Error('共享内容服务尚未登录，请刷新页面后重新输入访问密码。');
-  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:false};
-  const localController=signal?null:new AbortController(),activeSignal=signal||localController.signal;
-  const timeoutMs=Number(options.timeoutMs)||120000,timeout=localController?setTimeout(()=>localController.abort(),timeoutMs):null;
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:true,max_tokens:options.maxTokens||4096};
+  const localController=new AbortController(),forwardAbort=()=>localController.abort(signal?.reason);
+  if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
+  const activeSignal=localController.signal,timeoutMs=Number(options.timeoutMs)||180000,timeout=setTimeout(()=>localController.abort('timeout'),timeoutMs);
   try{
     const r=await fetch(PROXY_URL,{method:'POST',headers,body:JSON.stringify(body),signal:activeSignal});
     if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
@@ -7223,7 +7245,7 @@ async function streamProxy(sys,usr,cb,signal,requestId,options={}){
     if(e?.name==='AbortError')throw new Error(`共享内容服务响应超时；本次请求已停止，不会继续占用页面。（请求编号：${requestId}）`);
     if(/登录已过期|请求参数|未获授权|请求内容过大|请求较多|上游内容服务|内容服务暂不|响应超时|没有返回正文/.test(String(e?.message||'')))throw e;
     throw new Error(`无法连接共享内容服务，请检查网络后重试（请求编号：${requestId}）`);
-  }finally{if(timeout)clearTimeout(timeout);}
+  }finally{clearTimeout(timeout);if(signal)signal.removeEventListener('abort',forwardAbort);}
 }
 
 async function localA3ConnectionMessage(error,url){
