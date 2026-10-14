@@ -378,11 +378,28 @@ tr:hover td{background:rgba(109,40,217,.02)}
 window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
 window.A3_LOCAL_PROXY_URL='http://127.0.0.1:8787/v1/chat/completions';
 window.a3DefaultLocalUrl=()=>['localhost','127.0.0.1'].includes(location.hostname)?window.A3_LOCAL_PROXY_URL:'https://new-api.a3database.cn/v1/chat/completions';
+window.a3SessionToken=function(){
+  const persistent=localStorage.getItem('a3_session')||'';
+  const legacy=sessionStorage.getItem('a3_session')||'';
+  const token=persistent||legacy;
+  if(!token)return '';
+  try{
+    const payload=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(token.split('.')[0].replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-token.split('.')[0].length%4)%4)),c=>c.charCodeAt(0))));
+    if(!Number(payload.exp)||payload.exp<=Date.now()){window.a3ClearSession();return '';}
+  }catch{window.a3ClearSession();return '';}
+  if(!persistent&&legacy)localStorage.setItem('a3_session',legacy);
+  return token;
+};
+window.a3ClearSession=function(){
+  localStorage.removeItem('a3_session');localStorage.removeItem('a3_unlocked');
+  sessionStorage.removeItem('a3_session');sessionStorage.removeItem('a3_unlocked');
+};
 (function(){
   // 本机验收页只监听 127.0.0.1，不经过公网；自动放行，避免每次重启
   // 转发服务后重复输入访问密码。线上 GitHub Pages / Worker 仍保留原密码门禁。
   if(window.a3IsLocalPreview())sessionStorage.setItem('a3_unlocked','1');
-  if(sessionStorage.getItem('a3_unlocked')==='1'){
+  const hasSession=window.a3IsLocalPreview()?sessionStorage.getItem('a3_unlocked')==='1':!!window.a3SessionToken();
+  if(hasSession){
     document.getElementById('pw-gate').style.display='none';
   }
   window.pwCheck=async function(){
@@ -399,7 +416,7 @@ window.a3DefaultLocalUrl=()=>['localhost','127.0.0.1'].includes(location.hostnam
         if(r.status===401)throw new Error('密码错误，请重试');
         if(r.status===403)throw new Error('当前网页来源未获授权，请联系管理员');
         if(!r.ok)throw new Error('登录服务暂时不可用，请稍后重试');
-        const data=await r.json();sessionStorage.setItem('a3_session',data.token);sessionStorage.setItem('a3_unlocked','1');
+        const data=await r.json();localStorage.setItem('a3_session',data.token);localStorage.setItem('a3_unlocked','1');
       }
       const g=document.getElementById('pw-gate');
       g.style.transition='opacity .4s';g.style.opacity='0';
@@ -1427,7 +1444,7 @@ function ensureCollabIdentity(){collabUpdateIdentity();if(!collabActor())openCol
 function openCollabIdentity(){document.getElementById('collab-identity-modal').style.display='flex'}
 function closeCollabIdentity(){if(!collabActor())return toast('首次进入必须先选择使用人');document.getElementById('collab-identity-modal').style.display='none'}
 async function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;try{if(typeof hfLiveSyncDraft==='function')await hfLiveSyncDraft();}catch{}localStorage.setItem('a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';try{if(typeof hfLiveRemoteLoad==='function')await hfLiveRemoteLoad();}catch(e){toast('身份已切换，但跨设备要求读取失败：'+e.message,3200)}collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
-function collabHeaders(){const token=sessionStorage.getItem('a3_session')||'';return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}}
+function collabHeaders(){const token=window.a3SessionToken?.()||'';return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}}
 const COLLAB_LOCAL_STORAGE='a3_collab_local_validation_v1';
 function collabLocalLoad(){try{const x=JSON.parse(localStorage.getItem(COLLAB_LOCAL_STORAGE)||'{}');return{tasks:Array.isArray(x.tasks)?x.tasks:[],versions:Array.isArray(x.versions)?x.versions:[],feedback:Array.isArray(x.feedback)?x.feedback:[]}}catch{return{tasks:[],versions:[],feedback:[]}}}
 function collabLocalSave(db){localStorage.setItem(COLLAB_LOCAL_STORAGE,JSON.stringify(db))}
@@ -1441,7 +1458,7 @@ async function collabLocalApi(path,options={}){
   if(method==='GET'&&clean==='/few-shots'){const q=new URLSearchParams(path.split('?')[1]||''),brand=q.get('brand'),module=q.get('module'),fewShots=db.tasks.filter(t=>t.status==='confirmed'&&t.reuse_as_fewshot&&t.brand===brand&&t.module===module).map(t=>({content:collabLatest(collabLocalDetail(db,t))}));return{fewShots,localValidation:true}}
   throw new Error('本地验收暂不支持该操作');
 }
-async function collabApi(path,options={}){if(window.a3IsLocalPreview())return collabLocalApi(path,options);const a=collabActor();if(!a)throw new Error('请先选择当前使用人');const method=options.method||'GET',sep=path.includes('?')?'&':'?',url=COLLAB_BASE+path+(method==='GET'?`${sep}actor=${encodeURIComponent(a.id)}`:'');const body=method==='POST'?JSON.stringify({...options.body,actor:a.id}):undefined;const r=await fetch(url,{method,headers:collabHeaders(),body});const data=await r.json().catch(()=>({}));if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码')}if(!r.ok)throw new Error(data.error||'共享任务暂时不可用');return data}
+async function collabApi(path,options={}){if(window.a3IsLocalPreview())return collabLocalApi(path,options);const a=collabActor();if(!a)throw new Error('请先选择当前使用人');const method=options.method||'GET',sep=path.includes('?')?'&':'?',url=COLLAB_BASE+path+(method==='GET'?`${sep}actor=${encodeURIComponent(a.id)}`:'');const body=method==='POST'?JSON.stringify({...options.body,actor:a.id}):undefined;const r=await fetch(url,{method,headers:collabHeaders(),body});const data=await r.json().catch(()=>({}));if(r.status===401){window.a3ClearSession?.();document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码')}if(!r.ok)throw new Error(data.error||'共享任务暂时不可用');return data}
 function collabLocalSwitcher(){const box=document.getElementById('collab-local-switcher');if(!box)return;if(!window.a3IsLocalPreview()){box.style.display='none';return;}box.style.display='block';box.innerHTML=`<b>本地全流程演练：</b>提交后在这里切换身份查看同一任务。 ${Object.values(COLLAB_ACTORS).map(a=>`<button class="btn-sec" style="padding:5px 9px;margin:4px" onclick="selectCollabActor('${a.id}');openCollabCenter()">${collabEsc(a.name)}</button>`).join('')}`;}
 function openCollabCenter(){if(!collabActor())return openCollabIdentity();document.getElementById('collab-modal').style.display='flex';document.getElementById('collab-modal-role').textContent=collabRoleText()+(window.a3IsLocalPreview()?' · 本地流程验收':'');collabUpdateIdentity();collabLocalSwitcher();if(COLLAB_PREFILL&&collabActor().role==='writer')collabShowNew();else collabRefresh(true).catch(collabShowError)}
 function closeCollabCenter(){document.getElementById('collab-modal').style.display='none'}
@@ -2781,7 +2798,7 @@ function routeWorkflow(){
 // ══════════════════════════════════════════════
 window.onload = () => {
   S.model='gpt-5.6-sol';
-  if(sessionStorage.getItem('a3_unlocked')==='1')setTimeout(()=>ensureCollabIdentity(),0);
+  if((window.a3IsLocalPreview()&&sessionStorage.getItem('a3_unlocked')==='1')||(!window.a3IsLocalPreview()&&window.a3SessionToken?.()))setTimeout(()=>ensureCollabIdentity(),0);
   if(window.a3IsLocalPreview()){S.key=localStorage.getItem('a3_local_key')||'';S.url=localStorage.getItem('a3_local_url')||window.a3DefaultLocalUrl();}
   else{S.key='';S.url='';}
   // 恢复品牌选择
@@ -6958,7 +6975,7 @@ async function hfGenerate(){
   try{
     const outputChars=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),maxTokens=Math.max(1100,Math.min(3200,Math.ceil(outputChars*2.2)+500));
     const generationTimeoutMs=180000,generationStartedAt=Date.now(),generationProgress=setInterval(()=>{const seconds=Math.floor((Date.now()-generationStartedAt)/1000);status.textContent=receivedFirst?`已收到内容，GPT-5.6 Sol 正在继续生成… ${seconds} 秒`:`正在等待 GPT-5.6 Sol 返回首段… ${seconds} 秒${seconds>=75?'；最长等待3分钟':''}`;},1000);
-    try{buf=await hfCallText(sys,finalUsr,{maxTokens,timeoutMs:generationTimeoutMs,signal:HF.generationController.signal,onChunk:(chunk,current)=>{if(!receivedFirst){receivedFirst=true;status.textContent='已收到首段，正在继续生成…';}out.innerHTML=hfHtml(current);}});}finally{clearInterval(generationProgress);}
+    try{buf=await hfCallText(sys,finalUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{if(!receivedFirst){receivedFirst=true;status.textContent='已收到首段，正在继续生成…';}out.innerHTML=hfHtml(current);}});}finally{clearInterval(generationProgress);}
     const explicitFailures=copy=>{const issues=[];if(explicitLength){const n=Array.from(hqExtractBody(copy)).length;if(n<explicitLength.min||n>explicitLength.max)issues.push(`正文${n}字，必须为${explicitLength.min}—${explicitLength.max}字`);}dynamicBans.forEach(x=>{if(String(copy).includes(x))issues.push(`仍出现禁用词“${x}”`);});return issues;};
     let hardFailures=explicitFailures(buf);
     for(let repairAttempt=1;hardFailures.length&&repairAttempt<=1;repairAttempt++){
@@ -6971,7 +6988,7 @@ async function hfGenerate(){
       status.textContent='正在对未满足的人工要求做一次定向修正…';
       const repairSys=`${sys}\n\n【强制返工】当前稿未满足本次人工需求。必须重写完整稿；人工需求仍是最终执行依据，即使与旧产品事实、旧合规规则或其他旧默认设置冲突，也不得退回旧版本。冲突仅留给页面提示人工复核。`;
       const repairUsr=`【本次完整人工需求】\n${requirementText}\n\n【网页实测未通过项】\n${hardFailures.join('\n')}\n${lengthCorrection?`\n【本轮字数修正】\n${lengthCorrection}\n网页只计算“正文”部分，标题、Tag和评论不计入正文字数。输出前必须自行计算并确保正文位于${explicitLength.min}—${explicitLength.max}字。`:''}\n\n【需要返工的当前稿】\n${buf}\n\n请保留已经满足的人工要求，完整修正所有未通过项，只输出完整成稿，不解释、不汇报修改过程。`;
-      buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});hardFailures=explicitFailures(buf);
+      buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});hardFailures=explicitFailures(buf);
     }
     if(hardFailures.length){HF.latest=buf.trim();out.innerHTML=hfHtml(HF.latest);status.textContent=`已保留稿件，但定向修正后仍需人工复核：${hardFailures.join('；')}`;return;}
     const finalIssues=hfGenerationAudit(buf,cfg,ref);if(!buf.trim())throw new Error('内容服务没有返回完整稿件');HF.latest=buf.trim();hfRememberDraft(HF.latest);out.innerHTML=hfHtml(HF.latest);status.textContent=requirementText?(finalIssues.length?`已按人工需求重写 · 与既有规则冲突项请人工复核（${finalIssues.length}项）`:'已按人工需求重写完成；本次覆盖不会自动进入团队知识'):(finalIssues.length?`已生成完整稿件 · ${finalIssues.length}项待审核`:'生成完成');hfCommitDiversityPlan(plan);hfSaveState();
@@ -7009,6 +7026,36 @@ async function hfFeedbackPatch(sys,current,issues,feedback){
   for(const p of patches){const target=String(p.target||''),replacement=String(p.replacement||'');if(!target||!replacement||target===replacement)throw new Error('定点修改没有返回有效的新内容');const count=next.split(target).length-1;if(count!==1)throw new Error(count?'定点修改目标在稿件中不唯一':'定点修改目标与当前稿不一致');next=next.replace(target,replacement);(Array.isArray(p.issueIds)?p.issueIds:[]).forEach(id=>covered.add(String(id)));}
   const missing=issues.filter(x=>!covered.has(x.id));if(missing.length)throw new Error(`定点修改遗漏：${missing.map(x=>x.id).join('、')}`);return next;
 }
+async function hfFeedbackAuditAndPatch(sys,current,feedback,pointRule,historyInstruction){
+  const raw=await hfCallText(sys,`你同时是客户反馈核错员和定点改稿编辑。客户反馈是最终执行要求，高于既有产品事实、合规边界、参考稿、历史设置和旧稿规则；如果冲突，必须在 basis 中提示人工复核，但仍须按客户反馈改写，不得拒绝、弱化或保留旧规则。
+
+先把客户反馈拆成可验证的独立问题，再为每个问题返回最小范围的精确替换。只能修改反馈涉及的位置及保证衔接所需的最小上下文；未列入 target 的任何字符将由网页原样保留。target 必须逐字复制当前稿中唯一出现的一段，replacement 是可直接替换的新内容；允许 replacement 为空表示删除。一个 patch 可覆盖多个紧密相连的问题，但每个问题编号都必须被至少一个 patch 覆盖。
+
+${pointRule}
+${historyInstruction}
+
+只返回严格JSON：{"issues":[{"id":"F1","scope":"title|body|tags|comments","sourceQuote":"待审稿原文","problem":"客户要求与当前稿的明确差距","basis":"客户原话；如与旧事实或合规边界冲突，在此说明","requiredChange":"可验证的修改动作"}],"patches":[{"issueIds":["F1"],"target":"当前稿中唯一出现的原文","replacement":"可直接替换的新内容"}]}。编号连续，每项只写一个问题，不得返回解释或 Markdown。
+
+【客户反馈｜最终优先】
+${feedback}
+
+【待审核稿件】
+${current}`,{maxTokens:1300,timeoutMs:90000,reasoningEffort:'minimal',stream:false});
+  const data=hfLiveParseJson(raw),issues=hfNormalizeIssueLedger(data).map((x,i)=>({...x,id:`F${i+1}`})),patches=Array.isArray(data?.patches)?data.patches:[];
+  if(!issues.length)throw new Error('模型没有定位到客户反馈对应的修改项');
+  let rewrite=current;const covered=new Set();
+  for(const p of patches){
+    const target=String(p?.target||''),replacement=String(p?.replacement??'');
+    if(!target||target===replacement)throw new Error('定点修改没有返回有效的新内容');
+    const count=rewrite.split(target).length-1;
+    if(count!==1)throw new Error(count?'定点修改目标在稿件中不唯一':'定点修改目标与当前稿不一致');
+    rewrite=rewrite.replace(target,replacement);
+    (Array.isArray(p.issueIds)?p.issueIds:[]).forEach(id=>covered.add(String(id)));
+  }
+  const missing=issues.filter(x=>!covered.has(x.id));
+  if(missing.length)throw new Error(`定点修改遗漏：${missing.map(x=>x.id).join('、')}`);
+  return{issues,rewrite};
+}
 async function hfReview(){
   const draft=hfVal('hf-review-input');if(!draft){toast('请先输入待审核稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
@@ -7018,14 +7065,14 @@ async function hfReview(){
   const btn=document.getElementById('hf-review-btn'),out=document.getElementById('hf-review-output'),status=document.getElementById('hf-review-status');btn.disabled=true;status.textContent='正在建立逐条核错清单…';
   try{
     const card=document.getElementById('hf-rewrite-card'),choices=document.getElementById('hf-manual-rewrite-choices'),note=document.getElementById('hf-feedback-auto-note'),heading=document.getElementById('hf-rewrite-heading'),rwOut=document.getElementById('hf-rewrite-output'),rwStatus=document.getElementById('hf-rewrite-status');card.classList.remove('hf-hidden');
-    const auditPrompt=has?`只根据客户反馈核错，不做客户未要求的全面润色。将每条反馈与待审稿逐条对应；若同一条反馈包含多个独立错误，必须拆开。客户反馈与正式事实或合规边界冲突时，把冲突写入 basis 供人工复核，但 requiredChange 仍必须要求按客户反馈修改，不得以冲突为由拒绝或保留旧内容。`:`全面核错方向、产品事实、单卖点、参考稿蓝图、字数、标题、Tag、评论、上下文因果、现实动作和合规边界。`;
-    const auditRaw=await hfCallText(reviewSys,`${auditPrompt}\n${pointRule}\n${historyInstruction}\n不要评分、等级、笼统总评或写作优点。只返回严格JSON：{"issues":[{"id":"${has?'F':'E'}1","scope":"title|body|tags|comments","sourceQuote":"待审稿中的原文；无法引用时为空","problem":"明确错误","basis":"客户原话或知识依据","requiredChange":"可验证的修改动作"}]}。没有错误时 issues 为空。编号连续且每项只写一个问题。\n\n【客户反馈（如有）】\n${feedback||'无'}\n\n【待审核稿件】\n${draft}`,{maxTokens:700,timeoutMs:90000});
-    const issues=hfNormalizeIssueLedger(hfLiveParseJson(auditRaw)).map((x,i)=>({...x,id:`${has?'F':'E'}${i+1}`}));HF.reviewIssues=issues;HF.reviewReport=hfRenderIssueLedger(issues,has?feedback:'');out.innerHTML=hfHtml(HF.reviewReport);
+    let issues=[],feedbackRewrite='';
+    if(has){const result=await hfFeedbackAuditAndPatch(rewriteSys,draft,feedback,pointRule,historyInstruction);issues=result.issues;feedbackRewrite=result.rewrite;}
+    else{const auditRaw=await hfCallText(reviewSys,`全面核错方向、产品事实、单卖点、参考稿蓝图、字数、标题、Tag、评论、上下文因果、现实动作和合规边界。\n${pointRule}\n${historyInstruction}\n不要评分、等级、笼统总评或写作优点。只返回严格JSON：{"issues":[{"id":"E1","scope":"title|body|tags|comments","sourceQuote":"待审稿中的原文；无法引用时为空","problem":"明确错误","basis":"知识依据","requiredChange":"可验证的修改动作"}]}。没有错误时 issues 为空。编号连续且每项只写一个问题。\n\n【待审核稿件】\n${draft}`,{maxTokens:700,timeoutMs:90000,reasoningEffort:'minimal',stream:false});issues=hfNormalizeIssueLedger(hfLiveParseJson(auditRaw)).map((x,i)=>({...x,id:`E${i+1}`}));}
+    HF.reviewIssues=issues;HF.reviewReport=hfRenderIssueLedger(issues,has?feedback:'');out.innerHTML=hfHtml(HF.reviewReport);
     if(has){
       choices.classList.add('hf-hidden');note.classList.remove('hf-hidden');heading.textContent='按客户反馈修改';rwOut.textContent='正在逐条修改并验收…';rwStatus.textContent=`正在处理 ${issues.length} 项…`;
-      let rewrite=draft,closure={unresolved:issues};if(issues.length){rewrite=await hfFeedbackPatch(rewriteSys,rewrite,issues,feedback);closure=await hfIssueClosure(reviewSys,rewrite,issues,feedback);if(closure.unresolved.length){rewrite=await hfFeedbackPatch(rewriteSys,rewrite,closure.unresolved,feedback);closure=await hfIssueClosure(reviewSys,rewrite,issues,feedback);}}
-      const preservation=hfFeedbackPreservationAudit(rewrite,draft,feedback);if(preservation.length)throw new Error(preservation.join('；'));if(closure.unresolved.length){rwOut.innerHTML=hfHtml(rewrite);rwStatus.textContent=`未完成：仍有 ${closure.unresolved.length} 项未解决（${closure.unresolved.map(x=>x.id).join('、')}）`;throw new Error(`仍有问题未关闭：${closure.unresolved.map(x=>x.id).join('、')}`);}
-      HF.reviewRewrite=rewrite.trim();HF.latest=HF.reviewRewrite;hfRememberDraft(HF.reviewRewrite);rwOut.innerHTML=hfHtml(HF.reviewRewrite);rwStatus.textContent=`修改完成：${issues.length}/${issues.length} 项已解决；如覆盖既有事实或合规边界，请人工复核`;status.textContent='已按客户反馈完成修改';
+      const rewrite=feedbackRewrite||draft,preservation=hfFeedbackPreservationAudit(rewrite,draft,feedback);if(preservation.length)throw new Error(preservation.join('；'));
+      HF.reviewRewrite=rewrite.trim();HF.latest=HF.reviewRewrite;hfRememberDraft(HF.reviewRewrite);rwOut.innerHTML=hfHtml(HF.reviewRewrite);rwStatus.textContent=`已按反馈完成 ${issues.length} 项定点修改；未涉及内容由网页原样保留，如覆盖既有事实或合规边界请人工复核`;status.textContent='已按客户反馈完成修改';
     }else{
       heading.textContent='写手选择修改路径';choices.classList.remove('hf-hidden');note.classList.add('hf-hidden');rwOut.textContent='重写稿将在这里显示。';rwStatus.textContent='等待写手选择';status.textContent=`核错完成：发现 ${issues.length} 项明确问题`;
     }
@@ -7229,15 +7276,15 @@ async function responseError(response,label='内容服务'){
 }
 
 async function streamProxy(sys,usr,cb,signal,requestId,options={}){
-  const token=sessionStorage.getItem('a3_session')||'';
+  const token=window.a3SessionToken?.()||'';
   if(!token)throw new Error('共享内容服务尚未登录，请刷新页面后重新输入访问密码。');
-  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:true,max_tokens:options.maxTokens||4096};
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:options.stream!==false,reasoning_effort:options.reasoningEffort||'low',max_tokens:options.maxTokens||4096};
   const localController=new AbortController(),forwardAbort=()=>localController.abort(signal?.reason);
   if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
   const activeSignal=localController.signal,timeoutMs=Number(options.timeoutMs)||180000,timeout=setTimeout(()=>localController.abort('timeout'),timeoutMs);
   try{
     const r=await fetch(PROXY_URL,{method:'POST',headers,body:JSON.stringify(body),signal:activeSignal});
-    if(r.status===401){sessionStorage.removeItem('a3_unlocked');sessionStorage.removeItem('a3_session');document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
+    if(r.status===401){window.a3ClearSession?.();document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
     if(!r.ok)throw await responseError(r,'共享内容服务');
     const emitted=await readAIResponse(r,cb);
     if(!emitted)throw new Error(`内容服务没有返回正文内容，请稍后重试。本次请求不会自动重复发送。（请求编号：${r.headers.get('X-Request-ID')||requestId}）`);

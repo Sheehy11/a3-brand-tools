@@ -42,7 +42,7 @@ async function hmac(value, secret) {
   return new Uint8Array(await crypto.subtle.sign('HMAC',key,enc.encode(value)));
 }
 async function makeToken(env) {
-  const payload=b64url(enc.encode(JSON.stringify({exp:Date.now()+8*60*60*1000,nonce:crypto.randomUUID()})));
+  const payload=b64url(enc.encode(JSON.stringify({exp:Date.now()+30*24*60*60*1000,nonce:crypto.randomUUID()})));
   return `${payload}.${b64url(await hmac(payload,env.SESSION_SECRET))}`;
 }
 async function validToken(request, env) {
@@ -263,7 +263,7 @@ export default {
     if(url.pathname==='/api/session'&&request.method==='POST'){
       const body=await request.json().catch(()=>({}));
       if(!sameSecret(body.password,env.ACCESS_PASSWORD))return json({error:'密码错误'},401,origin);
-      return json({token:await makeToken(env),expiresIn:28800},200,origin);
+      return json({token:await makeToken(env),expiresIn:2592000},200,origin);
     }
     if(url.pathname.startsWith('/api/collab/')){
       if(!await validToken(request,env))return json({error:'登录已过期'},401,origin);
@@ -286,13 +286,14 @@ export default {
     // safe to retry only before any response body has been sent downstream.
     const retryable=new Set([429,500,502,503,504,520,521,522,523,524]);
     const reasoningEffort=['none','minimal','low','medium','high'].includes(input.reasoning_effort)?input.reasoning_effort:'low';
+    const wantsStream=input.stream!==false;
     for(let attempt=0;attempt<2;attempt++){
       try{
         upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
           // 首次使用流式响应尽快显示正文；仅当上游在发送任何正文前返回可重试错误时，
           // 第二次改用兼容性更高的完整响应。不会在已产生内容后重复请求。
-          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:attempt===0,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
+          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:wantsStream&&attempt===0,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
           signal:upstreamController.signal
         });
       }catch(error){
