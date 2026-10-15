@@ -6595,10 +6595,10 @@ const HQ_DIVERSITY_AXES={
 };
 function hfLoadState(){
   try{Object.assign(HF,JSON.parse(localStorage.getItem(hfStoreKey())||'{}'));}catch{}
-  HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];
+  HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
 }
 function hfSaveState(){
-  try{localStorage.setItem(hfStoreKey(),JSON.stringify({...HF,pendingUrls:[]}));}catch{}
+  try{const{generationController,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,pendingUrls:[]}));}catch{}
 }
 function hfHtml(s){return md(String(s||''));}
 function hfVal(id){return document.getElementById(id)?.value?.trim()||'';}
