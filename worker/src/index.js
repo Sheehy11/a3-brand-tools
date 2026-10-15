@@ -57,6 +57,16 @@ function sameSecret(a,b) {
   a=enc.encode(String(a||''));b=enc.encode(String(b||''));let diff=a.length^b.length;
   const n=Math.max(a.length,b.length);for(let i=0;i<n;i++)diff|=(a[i]||0)^(b[i]||0);return diff===0;
 }
+function modelText(value) {
+  if(typeof value==='string')return value;
+  if(Array.isArray(value))return value.map(modelText).join('');
+  if(value&&typeof value==='object')return modelText(value.text??value.content??value.value??'');
+  return '';
+}
+function modelPacketText(packet) {
+  const choice=packet?.choices?.[0];
+  return modelText(choice?.message?.content??choice?.delta?.content??choice?.text??packet?.output_text??packet?.response?.output_text??'');
+}
 
 function collabActor(value) {
   return COLLAB_ACTORS[String(value||'').toLowerCase()] || null;
@@ -279,39 +289,54 @@ export default {
     if(typeof input.system==='string'&&input.system.trim())messages.push({role:'system',content:input.system.slice(0,120000)});
     for(const m of Array.isArray(input.messages)?input.messages:[]){if(['user','assistant'].includes(m?.role)&&typeof m.content==='string')messages.push({role:m.role,content:m.content.slice(0,60000)});}
     if(!messages.some(m=>m.role==='user'))return json({error:'缺少用户内容'},400,origin);
+    const requestId=`a3-${Date.now().toString(36)}-${crypto.randomUUID().slice(0,8)}`;
     const upstreamController=new AbortController();
     const upstreamTimer=setTimeout(()=>upstreamController.abort(),180000);
     let upstream,lastErrorDetail='';
     // A3 also uses 520-524 for temporary channel/gateway failures. These are
     // safe to retry only before any response body has been sent downstream.
     const retryable=new Set([429,500,502,503,504,520,521,522,523,524]);
-    const reasoningEffort=['none','minimal','low','medium','high'].includes(input.reasoning_effort)?input.reasoning_effort:'low';
-    const wantsStream=input.stream!==false;
-    for(let attempt=0;attempt<2;attempt++){
+    const reasoningEffort=['none','minimal','low','medium','high'].includes(input.reasoning_effort)?input.reasoning_effort:'minimal';
+    const wantsStream=input.stream===true,maxAttempts=3;
+    for(let attempt=0;attempt<maxAttempts;attempt++){
       try{
         upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
-          // 首次使用流式响应尽快显示正文；仅当上游在发送任何正文前返回可重试错误时，
-          // 第二次改用兼容性更高的完整响应。不会在已产生内容后重复请求。
-          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:wantsStream&&attempt===0,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
+          // 正式页默认使用完整 JSON 响应，Worker 先确认真有正文再返回。
+          // 只有显式要求流式时才透传 SSE，避免 200 空内容迫使用户二次点击。
+          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:wantsStream,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
           signal:upstreamController.signal
         });
       }catch(error){
-        if(error?.name==='AbortError'){clearTimeout(upstreamTimer);return json({error:'A3 模型响应超时'},504,origin);}
-        if(attempt===0){await new Promise(resolve=>setTimeout(resolve,900));continue;}
-        clearTimeout(upstreamTimer);return json({error:'无法连接 A3 上游服务'},502,origin);
+        if(error?.name==='AbortError'){clearTimeout(upstreamTimer);return json({error:'A3 模型响应超时',requestId},504,origin);}
+        if(attempt<maxAttempts-1){await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));continue;}
+        clearTimeout(upstreamTimer);return json({error:'无法连接 A3 上游服务',requestId},502,origin);
       }
-      if(upstream.ok)break;
+      if(upstream.ok){
+        if(wantsStream)break;
+        let responseText='',packet=null;
+        try{responseText=await upstream.text();packet=JSON.parse(responseText);}catch{}
+        if(modelPacketText(packet).trim()){
+          clearTimeout(upstreamTimer);
+          const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));
+          headers.set('Cache-Control','no-store');headers.set('X-Request-ID',requestId);headers.set('X-A3-Attempts',String(attempt+1));
+          return new Response(responseText,{status:200,headers});
+        }
+        lastErrorDetail=responseText?String(responseText).slice(0,500):'empty response';
+        console.error('a3_empty_response',{attempt:attempt+1,detail:lastErrorDetail,requestId});
+        if(attempt<maxAttempts-1){await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));continue;}
+        clearTimeout(upstreamTimer);return json({error:'A3 上游没有返回正文',requestId},502,origin);
+      }
       try{lastErrorDetail=String(await upstream.text()).slice(0,500);}catch{}
-      if(attempt===0&&retryable.has(upstream.status)){await new Promise(resolve=>setTimeout(resolve,900));continue;}
+      if(attempt<maxAttempts-1&&retryable.has(upstream.status)){await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));continue;}
       const status=[429,503,504].includes(upstream.status)?upstream.status:502;
       clearTimeout(upstreamTimer);
-      console.error('a3_upstream_error',{status:upstream.status,detail:lastErrorDetail});
-      return json({error:status===429?'A3 请求较多，请稍后重试':status===503?'A3 内容服务暂不可用':status===504?'A3 模型响应超时':'A3 上游生成失败',status:upstream.status},status,origin);
+      console.error('a3_upstream_error',{status:upstream.status,detail:lastErrorDetail,requestId,attempt:attempt+1});
+      return json({error:status===429?'A3 请求较多，请稍后重试':status===503?'A3 内容服务暂不可用':status===504?'A3 模型响应超时':'A3 上游生成失败',status:upstream.status,requestId},status,origin);
     }
     const headers=new Headers(upstream.headers);Object.entries(cors(origin)).forEach(([k,v])=>headers.set(k,v));headers.set('Cache-Control','no-store');
-    headers.set('X-Accel-Buffering','no');
-    if(!upstream.body){clearTimeout(upstreamTimer);return json({error:'A3 上游没有返回内容'},502,origin);}
+    headers.set('X-Accel-Buffering','no');headers.set('X-Request-ID',requestId);
+    if(!upstream.body){clearTimeout(upstreamTimer);return json({error:'A3 上游没有返回内容',requestId},502,origin);}
     const reader=upstream.body.getReader();
     const streamed=new ReadableStream({
       async pull(controller){

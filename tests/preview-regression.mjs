@@ -24,7 +24,11 @@ expect(html.includes('window.a3SessionToken'),'缺少持久会话读取与过期
 expect(html.includes("reasoningEffort:'minimal',stream:false"),'审核未使用已实测的低延迟非流式配置');
 expect((html.match(/reasoningEffort:'minimal'/g)||[]).length>=4,'内容生成与审核未全部使用低延迟推理配置');
 expect(html.includes('hfFeedbackAuditAndPatch'),'客户反馈仍未合并为一次审核与定点修改调用');
-expect(worker.includes('stream:wantsStream&&attempt===0'),'Worker 未按请求选择流式传输与兼容重试');
+expect(html.includes('stream:options.stream===true'),'正式页没有默认使用可校验的完整响应');
+expect(html.includes('const maxAttempts=allowRetry?3:1'),'本地直连没有覆盖连接、临时状态和空响应重试');
+expect(worker.includes('const wantsStream=input.stream===true,maxAttempts=3'),'Worker 没有在一次点击内完成三次上游尝试');
+expect(worker.includes('modelPacketText(packet).trim()'),'Worker 没有校验成功响应中的正文');
+expect(worker.includes("headers.set('X-A3-Attempts'"),'Worker 没有输出实际上游尝试次数');
 expect(worker.includes('30*24*60*60*1000'),'线上会话未延长为 30 天');
 expect(worker.includes('expiresIn:2592000'),'登录接口返回的会话期限不正确');
 expect(worker.includes('retryable.has(upstream.status)'),'Worker 缺少上游瞬时错误重试');
