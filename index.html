@@ -2779,7 +2779,7 @@ function chooseWorkflowBrand(brand){
 }
 function chooseHqWorkflowMode(mode){if(mode==='legacy'){switchHqMode('legacy');routeWorkflow();return;}chooseHqContentMode(mode);routeWorkflow();}
 function chooseHqContentMode(mode){
-  if(!['ao','opinion'].includes(mode))return;if(HQ_CONTENT_MODE!==mode){hfSaveState?.();HQ_CONTENT_MODE=mode;Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',reviewReport:'',reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});_hfArchiveReady=false;const host=document.getElementById('hq-full-host');if(host){host.dataset.ready='';host.innerHTML='';}}
+  if(!['ao','opinion'].includes(mode))return;if(HQ_CONTENT_MODE!==mode){hfSaveState?.();HQ_CONTENT_MODE=mode;Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],reviewReport:'',reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});_hfArchiveReady=false;const host=document.getElementById('hq-full-host');if(host){host.dataset.ready='';host.innerHTML='';}}
   if(HQ_MODE!=='full')switchHqMode('full');else{updateHqModeButtons();loadHqFullModule();routeWorkflow();}
   toast(`已进入${hfModeName()} ✓`,1600);
 }
@@ -6522,7 +6522,7 @@ function doCopy(t){
 // 好奇全系列独立工作台（沿用拜耳六模块操作逻辑）
 // ══════════════════════════════════════════════
 function hfStoreKey(){return `hq_full_workflow_v3_${HQ_CONTENT_MODE}`}
-const HF={page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
+const HF={page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
 const HQ_LIVE_STORAGE='a3_haoqi_live_copy_requirements_v2';
 const HQ_LIVE={workspaces:{},items:[],confirmed:[],attachments:[]};
 let HQ_LIVE_SAVE_TIMER=null;
@@ -6595,7 +6595,7 @@ const HQ_DIVERSITY_AXES={
 };
 function hfLoadState(){
   try{Object.assign(HF,JSON.parse(localStorage.getItem(hfStoreKey())||'{}'));}catch{}
-  HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];
+  HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];
 }
 function hfSaveState(){
   try{localStorage.setItem(hfStoreKey(),JSON.stringify({...HF,pendingUrls:[]}));}catch{}
@@ -6644,7 +6644,7 @@ function loadHqFullModule(){
     <div class="hf-grid">
       <div id="hf-live-panel" class="hf-card wide"><h3>本次需求与个人写作偏好</h3><div id="hf-live-role" class="hf-callout"></div><div class="hf-row"><div><label>粘贴需求、反馈或偏好</label><textarea id="hf-live-raw" style="min-height:150px" placeholder="只整理与文案生成有关的内容；写手保存后仅影响本人。"></textarea><label class="hf-upload" style="margin-top:10px"><input type="file" accept=".txt,.md,.csv,.json" onchange="hfLiveImportFile(this.files[0])"><b>上传补充文本</b><br><small>支持 TXT、Markdown、CSV、JSON</small></label><div class="hf-actions"><button class="hf-btn primary" onclick="hfLiveOrganize()">AI整理</button><button class="hf-btn ghost" onclick="openCollabIdentity()">切换身份</button></div><div id="hf-live-status" class="hf-status">等待补充</div></div><div><label>逐条确认</label><div id="hf-live-draft"></div><div class="hf-actions"><button class="hf-btn primary" onclick="hfLivePublish()">保存为我的要求</button></div></div></div><div style="margin-top:16px"><h3>当前生成会执行</h3><div id="hf-live-temporary"></div><div id="hf-live-active"></div></div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveExportWeekly()">一键导出本周确认包</button></div><div id="hf-live-weekly"></div></div>
       <div class="hf-card"><h3>1｜选择内容方向（可选）</h3><label class="hf-toggle"><input id="hf-custom-direction" type="checkbox" onchange="hfToggleCustomDirection(this.checked)">跳过已有方向，按上方新增需求生成</label><div class="hf-hint">方向变化较大时可勾选；系统仍要求选择产品和唯一卖点，以保留正式产品事实与合规边界。</div>${HQ_CONTENT_MODE==='ao'?'<label>消费者阶段</label><div id="hf-stages" class="hf-chips"></div><label>核心召回任务</label>':''}<div id="hf-directions" class="hf-chips"></div><div id="hf-direction-rule" class="hf-selected">可选择已有方向，也可按新增需求生成</div><label>2｜选择产品</label><select id="hf-product" onchange="hfProductChanged()" disabled><option value="">请先选择内容方向</option></select><label>3｜选择本篇唯一卖点</label><div id="hf-selling-points" class="hf-chips"><span class="hf-hint">选择产品后显示可写卖点</span></div><label>4｜选择内容切角</label><div id="hf-angles" class="hf-chips"><span class="hf-hint">使用已有方向时选择；按新增需求生成时无需选择</span></div><div id="hf-gen-selection" class="hf-selected">当前选择：—</div></div>
-      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜补充内容</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>特殊要求（选填）</label><textarea id="hf-special" style="min-height:90px" placeholder="例如：保留一个真实生活细节；避免使用某个词。"></textarea><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerate()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
+      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜补充内容</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>特殊要求（选填）</label><textarea id="hf-special" style="min-height:90px" placeholder="例如：保留一个真实生活细节；避免使用某个词。"></textarea><label>一次生成篇数</label><select id="hf-generate-count"><option value="1">1篇</option><option value="2">2篇</option><option value="3">3篇</option><option value="4">4篇</option><option value="5">5篇</option></select><div class="hf-hint">同批稿件分别使用不同标题、开头、叙事节奏、产品进入和收尾路线，并做同批相似度检查。</div><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerateBatch()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
       <div class="hf-card wide"><h3>${HQ_CONTENT_MODE==='ao'?'5':'6'}｜生成结果</h3><div id="hf-gen-output" class="hf-result">生成后显示标题、正文、Tag及三条评论。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-gen-output')">复制稿件</button><button class="hf-btn primary" onclick="hfSendReview()">直接进入AI审核</button></div></div>
     </div>
   </section>
@@ -6842,7 +6842,12 @@ function hfCommentAudit(copy){
   return[...new Set(issues)];
 }
 function hfTagAudit(copy,product){
-  const tags=new Set(String(copy||'').match(/#[^\s#，。；;]+/g)||[]),issues=[],required=HQ_CONTENT_MODE==='ao'?(String(product).includes('拉拉裤')?['#好奇','#好奇小森林','#拉拉裤']:['#好奇','#好奇小森林','#纸尿裤']):['#纸尿裤哪个安全','#安全的纸尿裤','#什么纸尿裤安全','#好奇纸尿裤','#好奇',`#好奇${product}`];required.forEach(x=>{if(!tags.has(x))issues.push(`缺少Tag：${x}`);});return issues;
+  const tags=new Set(String(copy||'').match(/#[^\s#，。；;]+/g)||[]),issues=[];
+  const productName=String(product||'').replace(/^好奇/,'');
+  const aoRequired=productName.includes('小森林')
+    ?(productName.includes('拉拉裤')?['#好奇','#好奇小森林','#拉拉裤']:['#好奇','#好奇小森林','#纸尿裤'])
+    :['#好奇',`#好奇${productName}`,productName.includes('裤')?'#拉拉裤':'#纸尿裤'];
+  const required=HQ_CONTENT_MODE==='ao'?aoRequired:['#纸尿裤哪个安全','#安全的纸尿裤','#什么纸尿裤安全','#好奇纸尿裤','#好奇',`#好奇${productName}`];required.forEach(x=>{if(!tags.has(x))issues.push(`缺少Tag：${x}`);});return issues;
 }
 function hfStyleAudit(copy){
   const text=hqHistoryBody(copy)+'\n'+hfCommentLines(copy).join('\n'),issues=[],rules=[
@@ -6995,7 +7000,58 @@ async function hfGenerate(){
     const finalIssues=hfGenerationAudit(buf,cfg,ref);if(!buf.trim())throw new Error('内容服务没有返回完整稿件');HF.latest=buf.trim();hfRememberDraft(HF.latest);out.innerHTML=hfHtml(HF.latest);status.textContent=requirementText?(finalIssues.length?`已按人工需求重写 · 与既有规则冲突项请人工复核（${finalIssues.length}项）`:'已按人工需求重写完成；本次覆盖不会自动进入团队知识'):(finalIssues.length?`已生成完整稿件 · ${finalIssues.length}项待审核`:'生成完成');hfCommitDiversityPlan(plan);hfSaveState();
   }catch(e){const message=e.message||'生成请求失败';if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成失败：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
 }
-function hfSendReview(){const text=document.getElementById('hf-gen-output')?.innerText.trim()||HF.latest;if(!text||text.startsWith('生成后')){toast('暂无生成稿件');return;}HF.latest=text;hfSet('hf-review-input',text);hfNavigate('review');}
+function hfBatchDifferenceIssues(drafts){
+  const issues=drafts.map(()=>[]);
+  for(let i=0;i<drafts.length;i++)for(let j=i+1;j<drafts.length;j++){
+    const titleScore=hfGramScore(hqHistoryTitle(drafts[i]),hqHistoryTitle(drafts[j]),3),bodyScore=hfGramScore(hqHistoryBody(drafts[i]),hqHistoryBody(drafts[j]),5),shared=hfHasSharedRun(hqHistoryBody(drafts[i]),hqHistoryBody(drafts[j]),14);
+    if(titleScore>=.55)issues[j].push(`标题与第${i+1}篇过于相近`);
+    if(shared||bodyScore>=.23)issues[j].push(`正文与第${i+1}篇的表达或结构不够不同`);
+  }
+  return issues;
+}
+function hfRenderBatch(drafts,warnings=[]){
+  const out=document.getElementById('hf-gen-output');
+  out.innerHTML=drafts.map((copy,i)=>`<article style="padding:${i?'18px 0 0':'0'};margin-top:${i?'18px':'0'};border-top:${i?'1px solid var(--hfborder)':'0'}"><h3 style="margin:0 0 10px">第${i+1}篇</h3>${warnings[i]?.length?`<div class="hf-risk">与既有边界冲突或仍需人工复核：${warnings[i].map(esc).join('；')}</div>`:''}<div>${hfHtml(copy)}</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfSendReview(${i})">审核第${i+1}篇</button></div></article>`).join('');
+}
+function hfBatchPlans(count){
+  const plans=[],keys=new Set();let guard=0;
+  while(plans.length<count&&guard++<30){const plan=hfChooseDiversityPlan();if(keys.has(plan.key))continue;keys.add(plan.key);plans.push(plan);}
+  if(plans.length!==count)throw new Error('未能分配足够的差异化写作路线');
+  return plans;
+}
+async function hfGenerateBatch(){
+  const count=Math.max(1,Math.min(5,Number(document.getElementById('hf-generate-count')?.value)||1));
+  if(count===1){await hfGenerate();if(HF.latest){HF.latestBatch=[HF.latest];hfSaveState();}return;}
+  const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),liveDirection=hfLiveDirectionText();
+  if(HF.customDirection){if(!liveDirection){toast('请先在上方输入本次新增需求或保存一条新内容方向');return;}if(!HF.product||!point){toast('请再选择产品和本篇唯一卖点');return;}}
+  else if(!HF.direction||!HF.product||!point||!HF.angle){toast('请依次选择内容方向、产品、唯一卖点和切角');return;}
+  if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],special=hfVal('hf-special'),ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),humanText=[requirementText,special].filter(Boolean).join('\n'),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plans=hfBatchPlans(count);
+  const manualPriority=humanText?`\n\n【本次人工输入｜所有环节最高优先级】\n${humanText}\n如与既有产品事实、合规边界、卖点、格式或历史设置冲突，仍按人工输入执行；不得拒绝、弱化或退回旧规则。冲突只在页面提示人工复核，不写进成稿，也不自动沉淀为团队知识。`:'';
+  const sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfMaterial()}${manualPriority}`;
+  const aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle),refBrief=hfReferencePrompt(ref,rule),lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（人工明确要求，覆盖默认与参考稿）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（跟随参考稿）`:`${rule.range[0]}—${rule.range[1]}字`);
+  const routeText=plans.map((plan,i)=>`第${i+1}篇：\n${hfDiversityInstruction(plan)}`).join('\n\n');
+  const prompt=`一次生成${count}篇完整稿件。所有稿件使用同一产品、唯一卖点、人工输入和参考边界，但必须是明显不同的独立创作，不得互相改写或仅替换同义词。\n\n${aoBrief}${refBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- 正文字数：${lengthRule}\n- 唯一允许卖点：${point.label}；只在正文一句话中自然出现。\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自各自正文，禁止出现“好奇”。\n- 每篇包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- 产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。\n- 同批稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。\n\n【逐篇写作路线】\n${routeText}${hfRecentAvoidanceBrief()}${manualPriority}\n\n只返回严格JSON，不要代码块、解释或额外字段：{"drafts":[{"copy":"第1篇完整稿"}]}。drafts必须正好${count}项并按写作路线顺序对应。`;
+  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=ref;status.textContent=`正在一次生成 ${count} 篇差异化稿件…`;out.textContent='正在生成并逐篇校验…';
+  try{
+    let data=await hfCallJson(sys,prompt,{maxTokens:4096,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal}),drafts=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());
+    if(drafts.length!==count||drafts.some(x=>!x))throw new Error(`内容服务未完整返回 ${count} 篇稿件`);
+    const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans};
+    let perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref)),difference=hfBatchDifferenceIssues(drafts),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
+    if(needsRepair){
+      status.textContent='正在对逐篇边界和同批差异做一次定向修正…';
+      const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
+      const repairPrompt=`修正下列批量稿件。人工输入仍是最高优先级；若问题项与人工输入冲突，执行人工输入并保留该冲突供页面提示。除此以外，必须解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。同批稿件必须保持不同故事、不同开头、不同推进、不同产品进入和不同收尾。只返回严格JSON：{"drafts":[{"copy":"完整修正稿"}]}，共${count}项。\n\n【人工输入】\n${humanText||'无'}\n\n【逐篇问题】\n${JSON.stringify(repairIssues)}\n\n【当前稿件】\n${JSON.stringify(drafts)}`;
+      data=await hfCallJson(sys,repairPrompt,{maxTokens:4096,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal});
+      const repaired=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());if(repaired.length!==count||repaired.some(x=>!x))throw new Error('定向修正没有返回完整批次');drafts=repaired;perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref));difference=hfBatchDifferenceIssues(drafts);
+    }
+    if(difference.some(x=>x.length))throw new Error(`同批差异性未通过：${difference.flat().slice(0,3).join('；')}`);
+    if(!humanText&&perDraft.some(x=>x.length))throw new Error(`逐篇边界校验未通过：${perDraft.flat().slice(0,3).join('；')}`);
+    drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfRenderBatch(drafts,perDraft);hfSaveState();status.textContent=perDraft.some(x=>x.length)?`已生成 ${count} 篇明显不同稿件；人工输入与既有边界冲突项已逐篇标注复核`:`已生成 ${count} 篇明显不同稿件，并通过逐篇边界与同批差异检查`;
+  }catch(e){const message=e?.message||'批量生成失败';if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成未完成：${message}`;}}
+  finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
+}
+function hfSendReview(index=0){const batch=Array.isArray(HF.latestBatch)?HF.latestBatch:[],text=batch[index]||HF.latest||document.getElementById('hf-gen-output')?.innerText.trim();if(!text||text.startsWith('生成后')){toast('暂无生成稿件');return;}HF.latest=text;hfSet('hf-review-input',text);hfNavigate('review');}
 function hfToggleFeedback(){
   const has=document.getElementById('hf-feedback-enabled').checked;document.getElementById('hf-feedback-panel').classList.toggle('hf-hidden',!has);
   const choices=document.getElementById('hf-manual-rewrite-choices'),note=document.getElementById('hf-feedback-auto-note');if(choices)choices.classList.toggle('hf-hidden',has);if(note)note.classList.toggle('hf-hidden',!has);
@@ -7061,7 +7117,7 @@ async function hfReview(){
   const draft=hfVal('hf-review-input');if(!draft){toast('请先输入待审核稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
   const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),refBrief=hfReferencePrompt(ref,rule),aoBrief=hfAoPrompt(rule,HF.angle),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),compactContext=hfCompactProductContext(product,point);
-  const feedbackPriority=has?`\n\n【客户反馈｜最终执行优先级】\n${feedback}\n客户反馈高于产品事实、合规边界、参考稿和历史设置；冲突时仍按反馈完成修改。审核中标出冲突供人工复核，但不得因此拒绝、弱化或退回旧规则。`:'',reviewSys=`${HQ_REVIEW_SYS_AO}\n\n${compactContext}${aoBrief}${refBrief}${feedbackPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${feedbackPriority}`;
+  const standingHuman=[hfLiveRequirementText(),hfVal('hf-special')].filter(Boolean).join('\n'),standingPriority=standingHuman?`\n\n【生成阶段人工输入｜所有后续环节继续最高优先】\n${standingHuman}\n审核必须检查稿件是否执行这些要求；与产品事实、合规、卖点或旧设置冲突时标出冲突供人工复核，但不得把执行人工要求本身判为错误。重写时仍按人工要求执行，不得弱化或退回旧规则。`:'',feedbackPriority=has?`\n\n【客户反馈｜本轮最新人工输入，最终执行优先级】\n${feedback}\n客户反馈高于产品事实、合规边界、参考稿和历史设置；冲突时仍按反馈完成修改。审核中标出冲突供人工复核，但不得因此拒绝、弱化或退回旧规则。`:'',reviewSys=`${HQ_REVIEW_SYS_AO}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`;
   const pointRule=point?`本稿选定的唯一卖点为“${point.label}”，其他卖点全部禁止。`:'必须检查全文是否只出现一个卖点并且只用一句话带过。',historyInstruction=draftHistory.blocked?`本地历史指纹风险：${draftHistory.reason}`:'本地历史指纹未发现高相似风险。';
   const btn=document.getElementById('hf-review-btn'),out=document.getElementById('hf-review-output'),status=document.getElementById('hf-review-status');btn.disabled=true;out.textContent='正在审核…';status.textContent='正在建立逐条核错清单…';
   try{
@@ -7085,10 +7141,10 @@ async function hfRewrite(mode){
   const has=document.getElementById('hf-feedback-enabled').checked,target=hfVal('hf-rewrite-target'),localReason=hfVal('hf-rewrite-reason'),extra=hfVal('hf-rewrite-extra');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
   if(mode==='local'&&!target){toast('请从原稿逐字复制要重写的完整问题句');return;}if(mode==='local'&&!localReason){toast('请写清正确逻辑或现实情况');return;}if(mode==='local'&&hfLocalReasonIsGeneric(localReason)){toast('仅写“逻辑不清晰／不口语”无法确定正确改法，请补充实际应当发生或表达什么',3600);return;}if(mode==='local'&&(draft.split(target).length-1)!==1){toast(draft.includes(target)?'该问题句出现多次，请粘贴更完整且唯一的内容':'原稿中没有找到完全一致的问题句');return;}
   if(mode==='full'&&!String(HF.reviewReport||'').trim()){toast('请先完成核错，全文重写会逐条执行核错报告');return;}
-  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft);
+  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),standingHuman=[hfLiveRequirementText(),hfVal('hf-special')].filter(Boolean).join('\n'),humanRequirements=[standingHuman,extra].filter(Boolean).join('\n'),humanPriority=humanRequirements?`\n\n【人工输入｜本环节最高优先】\n${humanRequirements}\n与既有事实、合规、卖点或旧设置冲突时仍执行人工输入；冲突只提示人工复核，不得拒绝、弱化或退回旧规则。`:'';
   const out=document.getElementById('hf-rewrite-output'),status=document.getElementById('hf-rewrite-status'),buttons=[...document.querySelectorAll('#hf-manual-rewrite-choices button')];buttons.forEach(x=>x.disabled=true);status.textContent='正在重写并自动验收…';out.textContent='正在重写…';let buf='';
   try{
-    const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(product,point)}${hfAoPrompt(rule,HF.angle)}${hfReferencePrompt(ref,rule)}`;
+    const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(product,point)}${hfAoPrompt(rule,HF.angle)}${hfReferencePrompt(ref,rule)}${humanPriority}`;
     if(mode==='local'){
       const at=draft.indexOf(target),before=draft.slice(0,at),after=draft.slice(at+target.length),beforeCtx=before.slice(-360),afterCtx=after.slice(0,360);
       const basePrompt=`你只负责重建一个问题句，不输出全文。\n\n【目标原句】\n${target}\n\n【人工指定的正确逻辑／现实情况｜最终优先，必须落实】\n${localReason}\n\n【前文】\n${beforeCtx||'（开头）'}\n\n【后文】\n${afterCtx||'（结尾）'}\n\n要求：人工指定内容高于既有事实、合规边界与旧稿设置，冲突时仍按人工要求重写。彻底放弃原句的语义推进、句法骨架和措辞；写出符合人工指定逻辑、口语且能自然接入后文的新句。禁止近义替换和“让我停了停／说不上来／忽然想到”等无法解释因果的虚构过渡。只返回严格JSON：{"newSentence":"新句"}。`;
@@ -7102,9 +7158,9 @@ async function hfRewrite(mode){
       if(issues.length)throw new Error(`新句仍未通过：${issues.join('；')}`);
     }else{
       const ledger=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[],fullPrompt=`【全文重写的唯一验收标准】必须逐条解决核错清单中的每一个编号问题。先在内部逐项完成，不输出检查过程；逻辑或现实错误必须重建事实链，禁止只换近义表达。${extra?`\n【写手补充要求｜最终优先】\n${extra}\n该人工要求高于既有产品事实、合规边界、参考稿和历史设置；冲突时仍按要求重写，不得拒绝或退回旧规则。`:''}\n${point?`本稿唯一允许卖点：${point.label}；其他卖点禁止，且该卖点只能用一句话自然带过。`:'全文只保留一个卖点，并且只用一句话自然带过。'}${draftHistory.blocked?`\n历史指纹风险：${draftHistory.reason}；重建造成相似的表达或结构。`:''}${ref?'\n保持参考稿的长度区间、段落数、核心事件链和表达方式，但禁止复用原句。':''}\n\n【结构化核错清单】\n${JSON.stringify(ledger)}\n\n【原稿】\n${draft}\n\n只输出修正后的完整标题、正文、Tag和三条20—30字评论。每个编号错误都必须在成稿中消失；评论不得复述正文、互相改写、分析作者选择或提出建议。${extra?`\n\n【输出前最终裁决】再次逐条执行写手补充要求：\n${extra}\n如与上文任何规则冲突，以此人工要求为准。`:''}`;
-      let issues=[],closure={unresolved:ledger};for(let attempt=0;attempt<2;attempt++){const remaining=closure.unresolved.length?closure.unresolved:ledger;buf=await hfCallText(sys,attempt?`${fullPrompt}\n\n上一版仍未关闭以下问题：${JSON.stringify(remaining)}\n上一版：\n${buf}\n请保留已正确内容，彻底修正未关闭项后输出完整稿。`:fullPrompt,{maxTokens:1200,timeoutMs:90000});issues=hfRewriteAudit(buf,product,point,draft,ref,'full',target);closure=await hfIssueClosure(sys,buf,ledger,extra);if(extra||!issues.length&&!closure.unresolved.length)break;}if(!extra&&closure.unresolved.length)throw new Error(`全文重写仍未解决：${closure.unresolved.map(x=>x.id).join('、')}`);if(!extra&&issues.length)throw new Error(`全文重写仍有待解决项：${issues.slice(0,2).join('；')}`);
+      let issues=[],closure={unresolved:ledger};for(let attempt=0;attempt<2;attempt++){const remaining=closure.unresolved.length?closure.unresolved:ledger;buf=await hfCallText(sys,attempt?`${fullPrompt}\n\n上一版仍未关闭以下问题：${JSON.stringify(remaining)}\n上一版：\n${buf}\n请保留已正确内容，彻底修正未关闭项后输出完整稿。`:fullPrompt,{maxTokens:1200,timeoutMs:90000});issues=hfRewriteAudit(buf,product,point,draft,ref,'full',target);closure=await hfIssueClosure(sys,buf,ledger,humanRequirements);if(humanRequirements||!issues.length&&!closure.unresolved.length)break;}if(!humanRequirements&&closure.unresolved.length)throw new Error(`全文重写仍未解决：${closure.unresolved.map(x=>x.id).join('、')}`);if(!humanRequirements&&issues.length)throw new Error(`全文重写仍有待解决项：${issues.slice(0,2).join('；')}`);
     }
-    HF.reviewRewrite=buf.trim();HF.latest=HF.reviewRewrite;HF.reference=ref;hfRememberDraft(HF.reviewRewrite);out.innerHTML=hfHtml(HF.reviewRewrite);status.textContent=mode==='local'?'已按人工指定逻辑替换新句；如覆盖既有事实或合规边界，请人工复核':extra?'已按写手补充要求重写；与既有规则冲突项请人工复核':`已按核错清单完成修改：${HF.reviewIssues.length}/${HF.reviewIssues.length} 项已解决`;hfSaveState();
+    HF.reviewRewrite=buf.trim();HF.latest=HF.reviewRewrite;HF.reference=ref;hfRememberDraft(HF.reviewRewrite);out.innerHTML=hfHtml(HF.reviewRewrite);status.textContent=mode==='local'?'已按人工指定逻辑替换新句；如覆盖既有事实或合规边界，请人工复核':humanRequirements?'已按人工输入和核错清单重写；与既有规则冲突项请人工复核':`已按核错清单完成修改：${HF.reviewIssues.length}/${HF.reviewIssues.length} 项已解决`;hfSaveState();
   }
   catch(e){out.textContent='重写失败：'+e.message;status.textContent='重写未完成，可直接再次点击';}
   finally{buttons.forEach(x=>x.disabled=false);}
