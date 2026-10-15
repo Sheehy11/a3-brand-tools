@@ -6797,7 +6797,7 @@ function hfSafeFallback(product,direction,point,angle,plan=null){
 }
 // === 2026-09-02 客户反馈局部修改与评论兼容 START ===
 function hfCommentLines(copy){
-  const text=String(copy||'').replace(/\r\n?/g,'\n'),section=/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*{1,2})?(?:评论|评论区|评论文案)(?:\*{1,2})?\s*[：:]?/m.exec(text);
+  const text=String(copy||'').replace(/\r\n?/g,'\n'),section=/(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*{1,2})?(?:评论|评论区|评论文案|留言|留言区|留言文案)(?:\*{1,2})?\s*[：:]?/m.exec(text);
   let tail=section?text.slice(section.index+section[0].length):'';
   if(!tail){const first=/(?:^|\n)\s*(?:[-*•]\s*)?(?:\*{1,2})?(?:评论\s*)?[1-3](?:\*{1,2})?\s*[.、:：)）-]/m.exec(text);if(first)tail=text.slice(first.index);}
   if(!tail)return[];
@@ -7009,6 +7009,16 @@ function hfBatchDifferenceIssues(drafts){
   }
   return issues;
 }
+function hfIssueMayConflictHuman(issue,humanText){
+  const problem=String(issue||''),human=String(humanText||'');if(!human)return false;
+  if(/Tag|标签/.test(problem)&&/(?:Tag|TAG|tag|标签|话题|#[^\s，。；;]+)/.test(human))return true;
+  if(/字|长度|篇幅/.test(problem)&&/\d+\s*(?:—|-|至|到)?\s*\d*\s*字|字数|篇幅/.test(human))return true;
+  if(/标题/.test(problem)&&/标题|题目/.test(human))return true;
+  if(/评论|留言/.test(problem)&&/评论|留言|互动/.test(human))return true;
+  if(/卖点|第二卖点/.test(problem)&&/卖点|功效|重点写|必须写/.test(human))return true;
+  const banned=(problem.match(/出现禁用表达：(.+)$/)||problem.match(/仍出现禁用词[“"](.+?)[”"]/)||[])[1];
+  return !!(banned&&human.includes(banned));
+}
 function hfRenderBatch(drafts,warnings=[]){
   const out=document.getElementById('hf-gen-output');
   out.innerHTML=drafts.map((copy,i)=>`<article style="padding:${i?'18px 0 0':'0'};margin-top:${i?'18px':'0'};border-top:${i?'1px solid var(--hfborder)':'0'}"><h3 style="margin:0 0 10px">第${i+1}篇</h3>${warnings[i]?.length?`<div class="hf-risk">与既有边界冲突或仍需人工复核：${warnings[i].map(esc).join('；')}</div>`:''}<div>${hfHtml(copy)}</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfSendReview(${i})">审核第${i+1}篇</button></div></article>`).join('');
@@ -7038,16 +7048,17 @@ async function hfGenerateBatch(){
     if(drafts.length!==count||drafts.some(x=>!x))throw new Error(`内容服务未完整返回 ${count} 篇稿件`);
     const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans};
     let perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref)),difference=hfBatchDifferenceIssues(drafts),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
-    if(needsRepair){
+    for(let repairAttempt=0;needsRepair&&repairAttempt<2;repairAttempt++){
       status.textContent='正在对逐篇边界和同批差异做一次定向修正…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
       const repairPrompt=`修正下列批量稿件。人工输入仍是最高优先级；若问题项与人工输入冲突，执行人工输入并保留该冲突供页面提示。除此以外，必须解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。同批稿件必须保持不同故事、不同开头、不同推进、不同产品进入和不同收尾。只返回严格JSON：{"drafts":[{"copy":"完整修正稿"}]}，共${count}项。\n\n【人工输入】\n${humanText||'无'}\n\n【逐篇问题】\n${JSON.stringify(repairIssues)}\n\n【当前稿件】\n${JSON.stringify(drafts)}`;
       data=await hfCallJson(sys,repairPrompt,{maxTokens:4096,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal});
-      const repaired=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());if(repaired.length!==count||repaired.some(x=>!x))throw new Error('定向修正没有返回完整批次');drafts=repaired;perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref));difference=hfBatchDifferenceIssues(drafts);
+      const repaired=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());if(repaired.length!==count||repaired.some(x=>!x))throw new Error('定向修正没有返回完整批次');drafts=repaired;perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref));difference=hfBatchDifferenceIssues(drafts);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     if(difference.some(x=>x.length))throw new Error(`同批差异性未通过：${difference.flat().slice(0,3).join('；')}`);
-    if(!humanText&&perDraft.some(x=>x.length))throw new Error(`逐篇边界校验未通过：${perDraft.flat().slice(0,3).join('；')}`);
-    drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfRenderBatch(drafts,perDraft);hfSaveState();status.textContent=perDraft.some(x=>x.length)?`已生成 ${count} 篇明显不同稿件；人工输入与既有边界冲突项已逐篇标注复核`:`已生成 ${count} 篇明显不同稿件，并通过逐篇边界与同批差异检查`;
+    const conflictWarnings=perDraft.map(rows=>rows.filter(x=>hfIssueMayConflictHuman(x,humanText))),strictFailures=perDraft.map((rows,i)=>rows.filter(x=>!conflictWarnings[i].includes(x)));
+    if(strictFailures.some(x=>x.length))throw new Error(`逐篇边界校验未通过：${strictFailures.flat().slice(0,3).join('；')}`);
+    drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfRenderBatch(drafts,conflictWarnings);hfSaveState();status.textContent=conflictWarnings.some(x=>x.length)?`已生成 ${count} 篇明显不同稿件；可追溯到人工输入的冲突项已逐篇标注复核`:`已生成 ${count} 篇明显不同稿件，并通过逐篇边界与同批差异检查`;
   }catch(e){const message=e?.message||'批量生成失败';if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成未完成：${message}`;}}
   finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
 }
