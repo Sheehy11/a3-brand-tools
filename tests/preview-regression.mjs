@@ -37,5 +37,9 @@ expect(worker.includes("reasoning_effort:reasoningEffort"),'Worker 未启用低�
 expect(!worker.includes('upstream.arrayBuffer()'),'Worker 仍在完整缓存模型响应');
 expect(worker.includes("path[0]==='requirements'"),'共享需求接口缺失');
 expect(schema.includes('collab_requirement_workspaces')&&schema.includes('collab_requirements'),'共享需求表缺失');
+expect(worker.includes("path[0]==='state'"),'共享浏览器历史接口缺失');
+expect(schema.includes('collab_browser_state'),'共享浏览器历史表缺失');
+expect(html.includes('a3CloudStateBootstrap'),'页面未在登录后恢复跨设备历史');
+expect(html.includes("'a3_local_key'"),'跨设备同步未排除本机 API Key');
 
 console.log('preview regression: PASS');

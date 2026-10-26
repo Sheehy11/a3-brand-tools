@@ -75,3 +75,14 @@ CREATE TABLE IF NOT EXISTS collab_requirements (
 
 CREATE INDEX IF NOT EXISTS idx_collab_requirements_owner_updated ON collab_requirements(owner_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_collab_requirements_confirmed_updated ON collab_requirements(confirmed_at, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS collab_browser_state (
+  actor_id TEXT NOT NULL CHECK (actor_id IN ('yangyang','april','yixi','siyu')),
+  storage_key TEXT NOT NULL,
+  value_text TEXT,
+  deleted INTEGER NOT NULL DEFAULT 0 CHECK (deleted IN (0,1)),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (actor_id, storage_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_collab_browser_state_actor_updated ON collab_browser_state(actor_id, updated_at DESC);

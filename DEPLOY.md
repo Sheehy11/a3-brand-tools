@@ -8,7 +8,7 @@
 
 ## 1. 创建并初始化团队协作数据库
 
-跨设备稿件、反馈、版本和确认记录使用 Cloudflare D1。首次启用时，在本目录执行：
+跨设备稿件、反馈、版本、确认记录，以及浏览器中的素材库、生成记录、标题历史、人工标注和工作状态使用 Cloudflare D1。首次启用或表结构更新时，在本目录执行：
 
 ```bash
 npx wrangler login
@@ -55,13 +55,13 @@ Key 与密码只保存在 Cloudflare Secret 中，不在 HTML、浏览器存储�
 
 `index.html` 的 `a3-service-url` 已预设为：
 
-`https://a3-brand-content-api.qusiyu0311.workers.dev`
+`https://a3-brand-tools.pages.dev`
 
 如果实际 Worker 地址不同，只修改 HTML 顶部这一项。本仓库的正式网页由 GitHub Pages 发布：
 
 `https://sheehy11.github.io/a3-brand-tools/`
 
-Worker 的 `ALLOWED_ORIGINS` 应填写网页来源 `https://sheehy11.github.io`（来源不包含仓库路径）。
+Pages 服务的 `ALLOWED_ORIGINS` 应包含网页来源 `https://sheehy11.github.io`（来源不包含仓库路径）。
 
 ## 4. 上线检查
 
@@ -72,6 +72,7 @@ Worker 的 `ALLOWED_ORIGINS` 应填写网页来源 `https://sheehy11.github.io`�
 5. 阳阳或 APRIL 提交一篇初稿；在另一台设备选择“一西”，确认出现红点并能提交反馈。
 6. 回到对应写手设备，确认收到红点，可人工修改或让 AI 按反馈修改，再提交给一西。
 7. 一西分别验证“仅确认完成”和“确认并回流 few-shot”。
+8. 在设备 A 保存一条素材或生成记录；设备 B 选择同一使用人后确认记录出现，再删除并回到设备 A 确认删除同步。
 
 健康检查返回的 `collaboration` 必须为 `true`；它只代表数据库已经绑定，仍需完成一次真实的跨设备往返验收。
 

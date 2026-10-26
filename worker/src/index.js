@@ -112,6 +112,26 @@ async function handleCollab(request, env, url, origin) {
   try{
     if(path[0]==='actors'&&method==='GET')return json({actors:Object.values(COLLAB_ACTORS)},200,origin);
 
+    if(path[0]==='state'&&path.length===1&&method==='GET'){
+      const result=await db.prepare('SELECT storage_key,value_text,deleted,updated_at FROM collab_browser_state WHERE actor_id=? ORDER BY updated_at DESC LIMIT 500').bind(actor.id).all();
+      return json({actor,entries:(result.results||[]).map(row=>({key:row.storage_key,value:row.deleted?null:(row.value_text??''),deleted:Boolean(row.deleted),updatedAt:row.updated_at}))},200,origin);
+    }
+
+    if(path[0]==='state'&&path.length===1&&method==='POST'){
+      const changes=Array.isArray(input.changes)?input.changes.slice(0,120):[];
+      const statements=[],now=new Date().toISOString();
+      for(const change of changes){
+        const key=String(change?.key||'').trim();
+        if(!key||key.length>180)continue;
+        const deleted=change?.deleted===true;
+        const value=deleted?null:String(change?.value??'');
+        if(value&&value.length>4500000)return json({error:'单项历史记录过大，请先精简后重试'},413,origin);
+        statements.push(db.prepare(`INSERT INTO collab_browser_state (actor_id,storage_key,value_text,deleted,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(actor_id,storage_key) DO UPDATE SET value_text=excluded.value_text,deleted=excluded.deleted,updated_at=excluded.updated_at`).bind(actor.id,key,value,deleted?1:0,now));
+      }
+      if(statements.length)await db.batch(statements);
+      return json({ok:true,count:statements.length,updatedAt:now},200,origin);
+    }
+
     if(path[0]==='requirements'&&path.length===1&&method==='GET'){
       const workspace=await db.prepare('SELECT raw_text,draft_items_json,updated_at FROM collab_requirement_workspaces WHERE actor_id=?').bind(actor.id).first();
       const query=['admin','reviewer'].includes(actor.role)
