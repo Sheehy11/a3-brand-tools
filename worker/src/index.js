@@ -289,7 +289,7 @@ export default {
     const url=new URL(request.url),origin=allowedOrigin(request,env);
     if(!origin)return new Response('Origin not allowed',{status:403});
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin)});
-    if(url.pathname==='/api/health'&&request.method==='GET')return json({ok:true,model:env.A3_MODEL||'gpt-5.6-sol',collaboration:!!env.COLLAB_DB},200,origin);
+    if(url.pathname==='/api/health'&&request.method==='GET')return json({ok:true,models:['doubao-seed-2-1-turbo-260628'],collaboration:!!env.COLLAB_DB},200,origin);
     if(url.pathname==='/api/session'&&request.method==='POST'){
       const body=await request.json().catch(()=>({}));
       if(!sameSecret(body.password,env.ACCESS_PASSWORD))return json({error:'密码错误'},401,origin);
@@ -309,6 +309,9 @@ export default {
     if(typeof input.system==='string'&&input.system.trim())messages.push({role:'system',content:input.system.slice(0,120000)});
     for(const m of Array.isArray(input.messages)?input.messages:[]){if(['user','assistant'].includes(m?.role)&&typeof m.content==='string')messages.push({role:m.role,content:m.content.slice(0,60000)});}
     if(!messages.some(m=>m.role==='user'))return json({error:'缺少用户内容'},400,origin);
+    const allowedModels=new Set(['doubao-seed-2-1-turbo-260628']);
+    const requestedModel=typeof input.model==='string'&&input.model.trim()?input.model.trim():(env.A3_MODEL||'doubao-seed-2-1-turbo-260628');
+    if(!allowedModels.has(requestedModel))return json({error:'模型名称未获授权'},400,origin);
     const requestId=`a3-${Date.now().toString(36)}-${crypto.randomUUID().slice(0,8)}`;
     const upstreamController=new AbortController();
     const upstreamTimer=setTimeout(()=>upstreamController.abort(),180000);
@@ -318,13 +321,17 @@ export default {
     const retryable=new Set([429,500,502,503,504,520,521,522,523,524]);
     const reasoningEffort=['none','minimal','low','medium','high'].includes(input.reasoning_effort)?input.reasoning_effort:'minimal';
     const wantsStream=input.stream===true,maxAttempts=3;
+    // A3's OpenAI-compatible route rejects the provider-native `thinking`
+    // object. The shared `reasoning_effort:minimal` setting keeps the content
+    // model on the low-latency path without changing the writing prompt.
+    const upstreamBody={model:requestedModel,messages,stream:wantsStream,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096)),reasoning_effort:reasoningEffort};
     for(let attempt=0;attempt<maxAttempts;attempt++){
       try{
         upstream=await fetch(env.A3_API_URL||'https://new-api.a3database.cn/v1/chat/completions',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${env.A3_API_KEY}`},
           // 正式页默认使用完整 JSON 响应，Worker 先确认真有正文再返回。
           // 只有显式要求流式时才透传 SSE，避免 200 空内容迫使用户二次点击。
-          body:JSON.stringify({model:env.A3_MODEL||'gpt-5.6-sol',messages,stream:wantsStream,reasoning_effort:reasoningEffort,max_tokens:Math.max(256,Math.min(4096,Number(input.max_tokens)||4096))}),
+          body:JSON.stringify(upstreamBody),
           signal:upstreamController.signal
         });
       }catch(error){

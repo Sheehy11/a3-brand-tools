@@ -23,6 +23,15 @@ await context.openAIOnce('https://example.test',{}, {},text=>{received=text},nul
 expect(calls===3,'一次点击没有自动跨过临时错误与空响应');
 expect(received==='有效正文','重试后没有返回真实正文');
 
+const errorCode=source('async function responseError','async function streamProxy');
+const errorContext={Response,Error,String};
+vm.createContext(errorContext);vm.runInContext(errorCode,errorContext);
+const overdue=await errorContext.responseError(new Response(JSON.stringify({error:'The request failed because your account has an overdue balance.'}),{status:403,headers:{'Content-Type':'application/json'}}),'A3 内容服务');
+expect(overdue.message.includes('计费账户当前欠费'),'403 欠费仍被误报为 Key 权限问题');
+expect(!overdue.message.includes('无权限'),'403 欠费提示仍混入无权限判断');
+const forbidden=await errorContext.responseError(new Response(JSON.stringify({error:'Access denied: model permission missing'}),{status:403,headers:{'Content-Type':'application/json'}}),'A3 内容服务');
+expect(forbidden.message.includes('没有调用当前模型的权限'),'真实模型权限错误没有被正确分类');
+
 expect(html.includes("const reliableOptions={stream:false,reasoningEffort:'minimal',...options}"),'所有文本工作流没有统一使用完整低延迟响应');
 expect(html.includes('async function hfCallJson'),'结构化审核结果没有格式错误自动恢复');
 expect((html.match(/await hfCallJson/g)||[]).length>=3,'审核、反馈修改与改稿验收没有统一使用可靠 JSON 调用');

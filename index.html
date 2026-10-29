@@ -323,7 +323,6 @@ tr:hover td{background:rgba(109,40,217,.02)}
 .macts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 .modal-lg{width:600px;max-height:85vh;overflow-y:auto}
 .actual-knowledge-text{width:100%;min-height:58vh;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:12px;font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text);background:#F8FAFC;white-space:pre-wrap}
-
 /* TAG */
 .tag{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:500;margin:2px}
 .tg-p{background:rgba(109,40,217,.1);color:var(--g1)}
@@ -376,8 +375,9 @@ tr:hover td{background:rgba(109,40,217,.02)}
 </div>
 <script>
 window.a3IsLocalPreview=()=>location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
-window.A3_LOCAL_PROXY_URL='http://127.0.0.1:8787/v1/chat/completions';
+window.A3_LOCAL_PROXY_URL='http://127.0.0.1:8788/v1/chat/completions';
 window.a3DefaultLocalUrl=()=>['localhost','127.0.0.1'].includes(location.hostname)?window.A3_LOCAL_PROXY_URL:'https://new-api.a3database.cn/v1/chat/completions';
+window.a3StoredLocalUrl=()=>{const stored=localStorage.getItem('a3_local_url')||'';if(/^http:\/\/(?:127\.0\.0\.1|localhost):8787\//.test(stored)){localStorage.setItem('a3_local_url',window.A3_LOCAL_PROXY_URL);return window.A3_LOCAL_PROXY_URL;}return stored||window.a3DefaultLocalUrl();};
 window.a3SessionToken=function(){
   const persistent=localStorage.getItem('a3_session')||'';
   const legacy=sessionStorage.getItem('a3_session')||'';
@@ -1398,7 +1398,7 @@ window.a3ClearSession=function(){
 <div class="ov" id="modal">
   <div class="modal">
     <div class="modal-title" id="service-modal-title">共享内容服务</div>
-    <div class="mf"><label>当前模型</label><div class="fi">本地验收使用 GPT-5.6 Sol；正式站由 A3 共享服务统一配置</div></div>
+    <div class="mf"><label>当前模型</label><div class="fi">豆包 Seed 2.1 Turbo</div></div>
     <div id="local-a3-settings" style="display:none">
       <div class="mf"><label>A3 Base URL</label><input id="local-a3-url" class="fi" value="https://new-api.a3database.cn/v1/chat/completions" autocomplete="off"><div class="mhint">“保存并测试连接”会发送一次极短的真实请求；本地文件页被 A3 跨域限制时，请先启动本机转发，再使用本机地址。</div><button type="button" class="btn-sec" onclick="useLocalA3Proxy()" style="margin-top:10px;padding:7px 12px;font-size:12px">使用本机转发地址</button></div>
       <div class="mf"><label>A3 Key（仅本机验收）</label><input id="local-a3-key" class="fi" type="password" placeholder="首次粘贴管理员 A3 Key" autocomplete="off"><div class="mhint">在这台电脑的当前浏览器中持久保存；不会写入 HTML，也不会进入部署包。</div><button type="button" class="btn-sec" onclick="clearLocalA3()" style="margin-top:10px;padding:7px 12px;font-size:12px">清除本机 Key</button></div>
@@ -2151,7 +2151,7 @@ const HQ_DIRECTION_RULES = {
 };
 
 // 2026年9月 AO demo CSV：仅沉淀内容策略，不读取尚未定稿的稿件链接。
-const HQ_AO_PRODUCTS=['小森林纸尿裤','小森林拉拉裤'];
+const HQ_AO_PRODUCTS=['小森林纸尿裤','小森林拉拉裤','深睡大师','X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'];
 HQ_PRODUCT_FACTS['小森林纸尿裤']={...HQ_PRODUCT_FACTS['小森林'],facts:[...HQ_PRODUCT_FACTS['小森林'].facts]};
 HQ_PRODUCT_FACTS['小森林拉拉裤']={...HQ_PRODUCT_FACTS['小森林'],facts:[...HQ_PRODUCT_FACTS['小森林'].facts,'0痕设计腰围']};
 HQ_SELLING_POINTS['小森林纸尿裤']=(HQ_SELLING_POINTS['小森林']||[]).map(x=>({...x,terms:[...x.terms]}));
@@ -2247,7 +2247,7 @@ const HQ_AO_NATURAL_BRIEFS={
   },
   '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':{
     psychology:'认真找过替代，却发现自己真正依赖的具体设计并不好替代。',
-    outcome:'只从自家一次换纸尿裤的实际需要写便便兜，不使用“唯一、只有、全网找不到”等绝对结论。',
+    outcome:'只写所选品线已经确认的具体设计和一次真实使用需要，不跨品线借卖点，也不使用“唯一、只有、全网找不到”等绝对结论。',
     angles:[
       {label:'换来换去还是惦记便便兜',story:'比较其他选择时，真正让她犹豫的是自己已经习惯便便兜在实际换洗中的方便。',points:['poo_pocket']},
       {label:'一次换洗想起熟悉设计',story:'一次处理便便的日常场景里，想起小森林便便兜带来的熟悉体验，于是重新考虑换回。',points:['poo_pocket']}
@@ -2310,7 +2310,7 @@ const HQ_AO_DEMO_CUTS={
     {label:'帮宝适CDF厂乱七八糟，质量又差，还趁机涨价',naturalCue:'不得生成工厂、质量和涨价指控；只保留谨慎比较后选择熟悉产品的心理。',points:['surface_safe']}
   ],
   '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':[
-    {label:'不是没想过换牌，但尿便分区真的只有好奇有啊',naturalCue:'保留寻找具体设计替代的选题；小森林只可使用已确认的便便兜，不写尿便分区或“只有好奇有”的绝对结论。',points:['poo_pocket']},
+    {label:'不是没想过换牌，但尿便分区真的只有好奇有啊',naturalCue:'按执行表仅用于X系列或屁屁面膜，只写该品线已确认的尿便分区；不写“只有好奇有”等绝对结论。',points:['separation']},
     {label:'好奇的便便兜真的是别的牌子没法替代的',naturalCue:'从一次真实换洗动作写已经习惯便便兜；不写唯一、不可替代或踩其他品牌。',points:['poo_pocket']}
   ],
   '内容上要抢占“换好奇/好奇替代/小森林对比”等老客再决策搜索词':[
@@ -2324,19 +2324,51 @@ Object.entries(HQ_AO_DEMO_CUTS).forEach(([task,angles])=>{if(HQ_AO_NATURAL_BRIEF
 // === 2026-09-02 AO内容demo原始切角修正 END ===
 function hfAoNaturalBrief(rule){return rule?HQ_AO_NATURAL_BRIEFS[rule.task]||null:null;}
 function hfAoAngle(rule,label){return hfAoNaturalBrief(rule)?.angles.find(x=>x.label===label)||null;}
-function hfAoAllowedPointKeys(rule,product=''){
-  const keys=[...new Set((hfAoNaturalBrief(rule)?.angles||[]).flatMap(x=>x.points||[]))];
-  if(String(product).includes('拉拉裤')&&keys.includes('fit'))keys.push('zero_mark_waist');
+const HQ_AO_SMALL_FOREST_PRODUCTS=['小森林纸尿裤','小森林拉拉裤'];
+// 品线范围同时依据9月AO内容规划与全平台执行表中的实际分配；内容切角继续在下一层收窄。
+const HQ_AO_EXECUTION_BINDINGS={
+  '巩固高端与大牌信任':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'深睡大师','X系列','屁屁面膜'],pointPolicy:'all-product-facts'},
+  '降低焦虑，恢复熟悉感与购买确定性':{products:HQ_AO_PRODUCTS,pointPolicy:'all-product-facts'},
+  '重新争夺好奇的首选位置':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'深睡大师','X系列','屁屁面膜','小桃裤','小龙裤'],pointPolicy:'all-product-facts'},
+  '提供外部判断依据，降低检测信息理解门槛':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'深睡大师','X系列','屁屁面膜','小黑洞'],pointPolicy:'all-product-facts'},
+  '用同类用户经验坚定继续使用':{products:HQ_AO_PRODUCTS,pointPolicy:'all-product-facts'},
+  '强化消费者对既有选择的自我确认':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'深睡大师','X系列','屁屁面膜'],pointPolicy:'all-product-facts'},
+  '过去积累的手感、版型、使用习惯很难被替代。\n好奇是纸尿裤里的“白月光”。':{products:HQ_AO_SMALL_FOREST_PRODUCTS,pointPolicy:'planned-angle-points'},
+  '降低替换焦虑与重新试错成本':{products:HQ_AO_PRODUCTS,pointPolicy:'all-product-facts'},
+  '降低换牌吸引力，强化高端制造信心':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'屁屁面膜'],pointPolicy:'all-product-facts'},
+  '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':{
+    products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'],
+    pointPolicy:'execution-angle-map',
+    angleMap:{
+      '不是没想过换牌，但尿便分区真的只有好奇有啊':{'X系列':['separation'],'屁屁面膜':['separation']},
+      '好奇的便便兜真的是别的牌子没法替代的':{'小森林纸尿裤':['poo_pocket'],'小森林拉拉裤':['poo_pocket'],'小桃裤':['poo_pocket'],'小龙裤':['poo_pocket'],'小黑洞':['poo_pocket']}
+    }
+  },
+  '内容上要抢占“换好奇/好奇替代/小森林对比”等老客再决策搜索词':{products:HQ_AO_SMALL_FOREST_PRODUCTS,pointPolicy:'planned-angle-points'}
+};
+function hfAoExecutionBinding(rule){return rule?HQ_AO_EXECUTION_BINDINGS[rule.task]||null:null;}
+function hfAoAnglePointKeys(rule,angle,product=''){
+  const binding=hfAoExecutionBinding(rule),all=(HQ_SELLING_POINTS[product]||[]).map(x=>x.key);if(!binding||!binding.products.includes(product)||!angle)return[];
+  if(binding.pointPolicy==='all-product-facts')return all;
+  if(binding.pointPolicy==='execution-angle-map')return (binding.angleMap?.[angle.label]?.[product]||[]).filter(x=>all.includes(x));
+  const keys=(angle.points||[]).filter(x=>all.includes(x));
+  if(String(product).includes('拉拉裤')&&keys.includes('fit')&&all.includes('zero_mark_waist'))keys.push('zero_mark_waist');
   return [...new Set(keys)];
 }
-function hfAoPointMatches(angle,key){return !!angle&&(angle.points||[]).includes(key)||(key==='zero_mark_waist'&&(angle?.points||[]).includes('fit'));}
+function hfAoAllowedPointKeys(rule,product=''){
+  return [...new Set((hfAoNaturalBrief(rule)?.angles||[]).flatMap(angle=>hfAoAnglePointKeys(rule,angle,product)))];
+}
+function hfAoPointMatches(rule,angle,key,product=HF.product){return hfAoAnglePointKeys(rule,angle,product).includes(key);}
+function hfAoSelectionValid(rule,product,key,angleLabel){
+  return !!(rule?.products?.includes(product)&&hfAoPointMatches(rule,hfAoAngle(rule,angleLabel),key,product));
+}
 // === 2026-09-01 AO自然融合优化 END ===
 const HQ_AO_STAGES=[...new Set(HQ_AO_STRATEGIES.map(x=>x.stage))];
-const HQ_AO_DIRECTION_RULES=Object.fromEntries(HQ_AO_STRATEGIES.map(x=>[x.task,{...x,products:HQ_AO_PRODUCTS,range:[140,200],paragraphs:'2—3段',density:'继承洞察的心理与demo的故事母题，用自然生活因果展开；内部策略词不得进入成稿',angles:(HQ_AO_NATURAL_BRIEFS[x.task]?.angles||[]).map(a=>a.label),forms:['真实素人AO文']} ]));
-function hqAoKnowledge(){return `${HQ_KB}\n\n【好奇小森林 AO 基础信息补充】\n- 本轮仅覆盖好奇小森林纸尿裤与好奇小森林拉拉裤；网页总标题保留“好奇全品线”，后续再新增品线。\n- 产品事实以好奇全品线舆情知识库中“小森林”已确认信息为主：面层安全、透气、便便兜、摸起来柔软、胖宝宝穿着也不勒；“穿了不红屁屁”只能作为妈妈个人体验，不得作效果保证。\n- 拉拉裤可额外使用经既有小森林知识库确认的“0痕设计腰围”；该卖点严禁用于纸尿裤。\n\n【素人AO文专项】\n- 内容方向来自“好奇T6_6PRO素人文-9月AOdemo.csv”，按消费者阶段与核心召回任务逐行绑定消费者洞察、内容demo和图片参考；不读取F列之后的未定稿链接。\n- 内容demo用于确定故事主题、人物处境和叙事角度，不等于产品事实，也不得复制demo原句。\n- 输出只能呈现真实宝妈生活语言，不得出现“召回、舆情、稳定留存、重新决策、核心任务”等内部策略词。\n- 标题20字以内；沿用单卖点、真实素人感、合规与近期稿件避重规则。\n- “从未召回/下架、检测报告、专家背书、竞品代工厂或质量问题、独家唯一”等结论没有已批准来源时禁止生成；不得伪造专家身份、报告或评论区用户。`}
+const HQ_AO_DIRECTION_RULES=Object.fromEntries(HQ_AO_STRATEGIES.map(x=>{const binding=HQ_AO_EXECUTION_BINDINGS[x.task];return[x.task,{...x,products:[...(binding?.products||[])],range:[140,200],paragraphs:'2—3段',density:'继承洞察的心理与demo的故事母题，用自然生活因果展开；内部策略词不得进入成稿',angles:(HQ_AO_NATURAL_BRIEFS[x.task]?.angles||[]).map(a=>a.label),forms:['真实素人AO文']}];}));
+function hqAoKnowledge(){return `${HQ_KB}\n\n【好奇全品线 AO 产品边界】\n- 当前覆盖小森林纸尿裤、小森林拉拉裤、深睡大师、X系列、屁屁面膜、小桃裤、小龙裤和小黑洞；每个核心召回任务只显示执行表实际分配的品线。\n- 选择品线后，卖点和内容切角继续按该行规划收窄；严禁跨品线借用卖点或把未分配品线硬套进切角。\n- 小森林拉拉裤可额外使用“0痕设计腰围”；该卖点严禁用于纸尿裤。\n- 个人体验不得写成普遍效果或保证。\n\n【素人AO文专项】\n- 内容方向来自“好奇T6_6PRO素人文-9月AOdemo.csv”，按消费者阶段与核心召回任务逐行绑定消费者洞察、内容demo和图片参考；不读取F列之后的未定稿链接。\n- 内容demo用于确定故事主题、人物处境和叙事角度，不等于产品事实，也不得复制demo原句。\n- 输出只能呈现真实宝妈生活语言，不得出现“召回、舆情、稳定留存、重新决策、核心任务”等内部策略词。\n- 标题20字以内；沿用单卖点、真实素人感、合规与近期稿件避重规则。\n- “从未召回/下架、检测报告、专家背书、竞品代工厂或质量问题、独家唯一”等结论没有已批准来源时禁止生成；不得伪造专家身份、报告或评论区用户。`}
 function hfRules(){return HQ_CONTENT_MODE==='ao'?HQ_AO_DIRECTION_RULES:HQ_DIRECTION_RULES}
 function hfKnowledge(){return (HQ_CONTENT_MODE==='ao'&&!HF.customDirection?hqAoKnowledge():HQ_KB)+hfLiveContext()}
-function hfDisplayKnowledge(){const base=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?`${HQ_KB}\n\n【好奇小森林产品边界】\n- 当前支持小森林纸尿裤与小森林拉拉裤。\n- 产品表达仅使用知识库已确认的面层安全、透气、便便兜、柔软与穿着贴合等事实。\n- 拉拉裤可使用“0痕设计腰围”；纸尿裤不得使用该卖点。\n- 个人体验不得写成普遍效果或保证。`:HQ_KB,confirmed=(HQ_LIVE.confirmed||[]).filter(x=>x.status==='active'&&(x.scope==='both'||x.scope===HQ_CONTENT_MODE));return confirmed.length?`${base}\n\n【团队已确认动态规则】\n${confirmed.map((x,i)=>`${i+1}. [${hfLiveCategoryLabel(x.category)}] ${x.instruction}`).join('\n')}`:base}
+function hfDisplayKnowledge(){const base=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?`${HQ_KB}\n\n【好奇全品线产品边界】\n- 当前支持小森林纸尿裤、小森林拉拉裤、深睡大师、X系列、屁屁面膜、小桃裤、小龙裤和小黑洞。\n- 页面按执行表逐级过滤核心任务、品线、唯一卖点和内容切角；产品表达仅使用所选品线已确认事实。\n- 小森林拉拉裤可使用“0痕设计腰围”；纸尿裤不得使用该卖点。\n- 个人体验不得写成普遍效果或保证。`:HQ_KB,confirmed=(HQ_LIVE.confirmed||[]).filter(x=>x.status==='active'&&(x.scope==='both'||x.scope===HQ_CONTENT_MODE));return confirmed.length?`${base}\n\n【团队已确认动态规则】\n${confirmed.map((x,i)=>`${i+1}. [${hfLiveCategoryLabel(x.category)}] ${x.instruction}`).join('\n')}`:base}
 function hfConfirmedFewShotContext(){const rows=(HF.human||[]).filter(x=>x.status==='confirmed'&&x.final).map(x=>({x,score:(x.direction===HF.direction?6:0)+(x.product===HF.product?5:0)+(x.sellingPoint===HF.sellingPoint?3:0)+(x.angle===HF.angle?3:0)})).filter(r=>r.score>0).sort((a,b)=>b.score-a.score||String(b.x.confirmedAt||'').localeCompare(String(a.x.confirmedAt||''))).slice(0,3);if(!rows.length)return'';return`\n\n【内部确认 few-shot｜只学结构、语气和修改偏好】\n产品事实、可写卖点与合规边界仍以正式知识库为准，禁止从示例新增事实。\n${rows.map((r,i)=>`${i+1}. ${r.x.direction||''}｜${r.x.product||''}｜${r.x.angle||''}\n${String(r.x.final).slice(0,1800)}`).join('\n\n')}`;}
 function hfMaterial(){const base=HQ_CONTENT_MODE==='ao'?'创作素材以所选内容策略、已确认产品知识和用户提供的选填参考稿为准。':HQ_MATERIAL_LIBRARY;return base+hfConfirmedFewShotContext()}
 function hfCompactProductContext(product,point){
@@ -2725,7 +2757,7 @@ function analysisBrandContext(brandId=S.brand){
 // STATE
 // ══════════════════════════════════════════════
 const S = {
-  model:'gpt-5.6-sol', key:window.a3IsLocalPreview()?(localStorage.getItem('a3_local_key')||''):'', url:window.a3IsLocalPreview()?(localStorage.getItem('a3_local_url')||window.a3DefaultLocalUrl()):'',
+  model:'doubao-seed-2-1-turbo-260628', key:window.a3IsLocalPreview()?(localStorage.getItem('a3_local_key')||''):'', url:window.a3IsLocalPreview()?window.a3StoredLocalUrl():'',
   brand:'kotex',
   type:'ao', ad:'rep',
   writeType:'ao', writeAd:'rep',
@@ -2771,8 +2803,9 @@ const PRODUCT_RULES = {
 };
 
 const MODEL_MAP = {
-  'gpt-5.6-sol':{url:'',label:'GPT-5.6 Sol · 共享服务'},
+  'doubao-seed-2-1-turbo-260628':{url:'',label:'豆包 Seed 2.1 Turbo · 共享服务'},
 };
+const CONTENT_MODEL={id:'doubao-seed-2-1-turbo-260628',label:'豆包 Seed 2.1 Turbo'};
 
 const WORKFLOW_META={analyze:{name:'爆文拆解',icon:'🔥'},generate:{name:'文案生成',icon:'✨'},review:{name:'文案审核',icon:'✍️'},loop:{name:'数据回流',icon:'↻'}};
 let ACTIVE_WORKFLOW='';
@@ -2810,9 +2843,9 @@ function routeWorkflow(){
 // INIT
 // ══════════════════════════════════════════════
 window.onload = () => {
-  S.model='gpt-5.6-sol';
+  S.model=CONTENT_MODEL.id;
   if((window.a3IsLocalPreview()&&sessionStorage.getItem('a3_unlocked')==='1')||(!window.a3IsLocalPreview()&&window.a3SessionToken?.()))setTimeout(()=>ensureCollabIdentity(),0);
-  if(window.a3IsLocalPreview()){S.key=localStorage.getItem('a3_local_key')||'';S.url=localStorage.getItem('a3_local_url')||window.a3DefaultLocalUrl();}
+  if(window.a3IsLocalPreview()){S.key=localStorage.getItem('a3_local_key')||'';S.url=window.a3StoredLocalUrl();}
   else{S.key='';S.url='';}
   // 恢复品牌选择
   try{
@@ -3559,7 +3592,7 @@ function closeModal(){document.getElementById('modal').classList.remove('show');
 const LOCAL_A3_PROXY_URL=window.A3_LOCAL_PROXY_URL;
 function useLocalA3Proxy(){
   document.getElementById('local-a3-url').value=LOCAL_A3_PROXY_URL;
-  toast('已填写本机转发地址；请先双击 outputs 中的“启动A3本地验收”应用，应用会自动打开正确页面',5200);
+  toast('已填写本机转发地址；请先双击当前工具文件夹中的“启动A3本地验收.command”，启动后会自动打开正确页面',6200);
 }
 async function checkService(){
   if(window.a3IsLocalPreview()){
@@ -3568,9 +3601,8 @@ async function checkService(){
     localStorage.setItem('a3_local_url',S.url);localStorage.setItem('a3_local_key',S.key);refreshChip();
     const btn=document.getElementById('service-action-btn');btn.disabled=true;btn.textContent='正在测试…';
     try{
-      let reply='';
-      await streamOpenAI('你是连通性检测助手。','只回复：连接正常',t=>{reply+=t;},undefined,makeRequestId(),{maxTokens:16,timeoutMs:20000});
-      closeModal();toast('A3 连接与模型响应均正常 ✓',3200);
+      let reply='';await streamOpenAI('你是连通性检测助手。','只回复：连接正常',t=>{reply+=t;},undefined,makeRequestId(),{model:CONTENT_MODEL.id,maxTokens:16,timeoutMs:20000});if(!reply.trim())throw new Error(`${CONTENT_MODEL.label} 未返回内容`);
+      closeModal();toast('A3 连接与豆包响应正常 ✓',3200);
     }catch(e){toast(`设置已保存；${e.message}`,6500);}
     finally{btn.disabled=false;btn.textContent='保存并测试连接';}
     return;
@@ -3584,10 +3616,10 @@ function clearLocalA3(){
 function refreshChip(){
   const el=document.getElementById('model-chip');
   if(window.a3IsLocalPreview()){
-    el.textContent=S.key?'GPT-5.6 Sol · 本地验收':'GPT-5.6 Sol · 配置验收';
+    el.textContent=S.key?'豆包 Seed 2.1 Turbo · 本地':'豆包 Seed 2.1 Turbo · 配置验收';
     el.className=S.key?'tag tg-ok':'tag tg-p';
   } else if(PROXY_URL){
-    el.textContent='A3 · 共享服务';
+    el.textContent='豆包 Seed 2.1 Turbo';
     el.className='tag tg-ok';
   } else {
     el.textContent=(MODEL_MAP[S.model]?.label||S.model)+' · 未配置';
@@ -6764,14 +6796,14 @@ function hfRenderAngles(){
   if(HF.customDirection){HF.angle='按本次新增需求';el.innerHTML='<span class="hf-hint">无需选择；内容切角由新增需求决定</span>';hfUpdateSelection();return;}
   if(!HF.direction||!HF.product||!HF.sellingPoint){el.innerHTML='<span class="hf-hint">选择方向、产品和唯一卖点后显示</span>';return;}
   // 2026-09-01 AO自然融合：一篇只选一个demo母题，并按已选卖点过滤不自然的组合。
-  const rule=hfRules()[HF.direction],angles=HQ_CONTENT_MODE==='ao'?(hfAoNaturalBrief(rule)?.angles||[]).filter(x=>hfAoPointMatches(x,HF.sellingPoint)).map(x=>x.label):rule.angles;
+  const rule=hfRules()[HF.direction],angles=HQ_CONTENT_MODE==='ao'?(hfAoNaturalBrief(rule)?.angles||[]).filter(x=>hfAoPointMatches(rule,x,HF.sellingPoint,HF.product)).map(x=>x.label):rule.angles;
   if(!angles.includes(HF.angle))HF.angle='';
   el.innerHTML=angles.length?angles.map(x=>`<button class="hf-chip${HF.angle===x?' on':''}" onclick="hfSetAngle(decodeURIComponent('${encodeURIComponent(x)}'))">${x}</button>`).join(''):'<span class="hf-hint">当前卖点没有适合的内容切角，请重新选择卖点</span>';
 }
 function hfSetAngle(angle){HF.angle=angle;hfRenderAngles();hfUpdateSelection();}
 function hfUpdateSelection(){
   const box=document.getElementById('hf-gen-selection'),btn=document.getElementById('hf-gen-btn');if(!box||!btn)return;
-  const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),live=hfLiveDirectionText(),ok=HF.customDirection?!!(live&&HF.product&&point):!!(HF.direction&&HF.product&&point&&HF.angle);box.textContent=ok?(HF.customDirection?`当前选择：按新增需求生成 → 好奇${HF.product} → 唯一卖点「${point.label}」`:(HQ_CONTENT_MODE==='ao'?`当前选择：${HF.stage} → ${HF.direction} → 好奇${HF.product} → 「${point.label}」→ ${HF.angle}`:`当前选择：${HF.direction} → 好奇${HF.product} → 唯一卖点「${point.label}」→ ${HF.angle}`)):(HF.customDirection?'当前选择：请在上方输入新增需求，并选择产品与唯一卖点':(HQ_CONTENT_MODE==='ao'?'当前选择：请完成消费者阶段、召回任务、产品、唯一卖点和内容切角':'当前选择：请依次完成方向、产品、唯一卖点和切角'));btn.disabled=!ok;hfSaveState();
+  const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),live=hfLiveDirectionText(),aoValid=HQ_CONTENT_MODE!=='ao'||HF.customDirection||hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle),ok=HF.customDirection?!!(live&&HF.product&&point):!!(HF.direction&&HF.product&&point&&HF.angle&&aoValid);box.textContent=ok?(HF.customDirection?`当前选择：按新增需求生成 → 好奇${HF.product} → 唯一卖点「${point.label}」`:(HQ_CONTENT_MODE==='ao'?`当前选择：${HF.stage} → ${HF.direction} → 好奇${HF.product} → 「${point.label}」→ ${HF.angle}`:`当前选择：${HF.direction} → 好奇${HF.product} → 唯一卖点「${point.label}」→ ${HF.angle}`)):(HF.customDirection?'当前选择：请在上方输入新增需求，并选择产品与唯一卖点':(HQ_CONTENT_MODE==='ao'?'当前选择：请按执行表完成消费者阶段、召回任务、产品、唯一卖点和内容切角':'当前选择：请依次完成方向、产品、唯一卖点和切角'));btn.disabled=!ok;hfSaveState();
 }
 function hfChooseDiversityPlan(){
   if(!HF.blueprintUsage||typeof HF.blueprintUsage!=='object')HF.blueprintUsage={};HF.generationSeq=(Number(HF.generationSeq)||0)+1;
@@ -6982,6 +7014,7 @@ async function hfGenerate(){
   const liveDirection=hfLiveDirectionText();
   if(HF.customDirection){if(!liveDirection){toast('请先在上方输入本次新增需求或保存一条新内容方向');return;}if(!HF.product||!point){toast('请再选择产品和本篇唯一卖点');return;}}
   else if(!HF.direction||!HF.product||!point||!HF.angle){toast('请依次选择内容方向、产品、唯一卖点和切角');return;}
+  if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前组合不属于执行表分配，请重新选择产品、卖点和内容切角',3600);hfRenderDirections();return;}
   if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],special=hfVal('hf-special'),ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plan=hfChooseDiversityPlan();
   HF.reference=ref;
@@ -6990,10 +7023,10 @@ async function hfGenerate(){
   const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans},avoid=hfRecentAvoidanceBrief(),aoBrief=HF.customDirection?`\n\n【本次临时新方向｜最终执行】\n${liveDirection}\n只执行与文案生成有关的方向、客户要求和表达偏好；忽略排期、数量、会议、人员与拍摄安排。本段人工要求与产品知识、合规边界或其他旧设置冲突时，仍执行人工要求；冲突只在页面提示人工复核。`:hfAoPrompt(rule,HF.angle),refBrief=hfReferencePrompt(ref,rule),variation=HF.customDirection?'\n【表达变化边界】围绕本次新增需求组织一条完整、现实的故事线，不套用已有方向的故事模板。':(HQ_CONTENT_MODE==='ao'?'\n【表达变化边界】在本次唯一故事母题内自由组织措辞和一两个生活细节；保留心理因果与态度落点，不复刻规划表的名词顺序。':hfDiversityInstruction(plan)),pointCue=HQ_CONTENT_MODE==='ao'?hfAoPointCue(point):'',lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（用户本次明确要求${explicitLength.label}，覆盖默认字数与参考稿字数）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字`);
   const usr=`请生成一篇好奇全系列素人妈妈文案。首稿必须直接可用，写之前先在内部完成事实、原创性、故事因果和自然度检查，不输出思考过程。${aoBrief}${refBrief}\n\n【固定配置】\n${HQ_CONTENT_MODE==='ao'?`- 本篇故事：${HF.angle}`:`- 内容方向：${HF.direction}\n- 内容切角：${HF.angle}`}\n- 产品：好奇${HF.product}\n- 正文字数：${refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，未提供参考稿时硬上限200字`}\n- 本篇唯一允许卖点：${point.label}\n- 卖点自然进入提示：${pointCue}\n- 只有为自然表达该卖点所必需时，才可使用这些同义词：${point.terms.join('、')}\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 所选卖点只能出现于正文的一句话中，禁止在其他句子重复、解释或暗示第二卖点。\n- 标题禁止出现“好奇”，允许出现品线名；有参考稿时优先仿写参考标题的功能和表达力度。\n- 正文只保留场景真正需要的动作；有参考稿时保留其核心事件链和内容重点，但每句话必须完全重写。\n- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。\n- 三条评论各20—30字，全部是自然刷到笔记的宝妈留言；不加身份标签或自报人设。分别用相似经历、轻微感叹或自己的使用习惯来接话，不分析作者选择，不给建议，不总结正文，不使用“优先、建议、确认清楚、稳定一点、比较踏实”等审核腔。\n\n${variation}${avoid}${special?`\n- 人工要求：${special}`:''}\n\n严格按以下格式输出，不要增加说明：\n标题：……\n\n正文\n\n#Tag\n\n评论：\n1. ……\n2. ……\n3. ……`;
   const finalUsr=`${manualPriority}\n\n${usr.replace(/- 正文字数：[^\n]+/,`- 正文字数：${lengthRule}`).replace(/(- 本品线禁用：[^\n]+)/,dynamicBans.length?`$1\n- 本次明确禁用词：${dynamicBans.join('、')}。标题、正文、Tag、评论均不得出现。`:'$1')}\n\n${requirementText?`【输出前最终裁决】再次逐条核对本次完整人工需求：\n${requirementText}\n它覆盖上方所有相冲突的固定配置、事实、禁用项、格式和历史规则。不要拒绝，不要解释冲突，不要偷偷退回旧规则；直接输出按人工要求重写后的成稿。`:'上方规则均需执行。'}`;
-  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();status.textContent='正在连接 GPT-5.6 Sol…';out.textContent='正在生成…';let buf='',receivedFirst=false;
+  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();status.textContent='豆包正在生成…';out.textContent='正在生成…';let buf='',receivedFirst=false;
   try{
     const outputChars=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),maxTokens=Math.max(1100,Math.min(3200,Math.ceil(outputChars*2.2)+500));
-    const generationTimeoutMs=180000,generationStartedAt=Date.now(),generationProgress=setInterval(()=>{const seconds=Math.floor((Date.now()-generationStartedAt)/1000);status.textContent=receivedFirst?`已收到完整结果，正在校验… ${seconds} 秒`:`GPT-5.6 Sol 正在生成并校验完整结果… ${seconds} 秒${seconds>=75?'；最长等待3分钟':''}`;},1000);
+    const generationTimeoutMs=180000,generationStartedAt=Date.now(),generationProgress=setInterval(()=>{const seconds=Math.floor((Date.now()-generationStartedAt)/1000);status.textContent=receivedFirst?`已收到结果，正在校验… ${seconds} 秒`:`豆包正在生成… ${seconds} 秒${seconds>=75?'；最长等待3分钟':''}`;},1000);
     try{buf=await hfCallText(sys,finalUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{if(!receivedFirst){receivedFirst=true;status.textContent='已收到完整结果，正在校验…';}out.innerHTML=hfHtml(current);}});}finally{clearInterval(generationProgress);}
     const explicitFailures=copy=>{const issues=[];if(explicitLength){const n=Array.from(hqExtractBody(copy)).length;if(n<explicitLength.min||n>explicitLength.max)issues.push(`正文${n}字，必须为${explicitLength.min}—${explicitLength.max}字`);}dynamicBans.forEach(x=>{if(String(copy).includes(x))issues.push(`仍出现禁用词“${x}”`);});return issues;};
     let hardFailures=explicitFailures(buf);
@@ -7057,7 +7090,8 @@ async function hfGenerateBatch(){
   const prompt=`一次生成${count}篇完整稿件。所有稿件使用同一产品、唯一卖点、人工输入和参考边界，但必须是明显不同的独立创作，不得互相改写或仅替换同义词。\n\n${aoBrief}${refBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- 正文字数：${lengthRule}\n- 唯一允许卖点：${point.label}；只在正文一句话中自然出现。\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自各自正文，禁止出现“好奇”。\n- 每篇包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- 产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。\n- 同批稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。\n\n【逐篇写作路线】\n${routeText}${hfRecentAvoidanceBrief()}${manualPriority}\n\n只返回严格JSON，不要代码块、解释或额外字段：{"drafts":[{"copy":"第1篇完整稿"}]}。drafts必须正好${count}项并按写作路线顺序对应。`;
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=ref;status.textContent=`正在一次生成 ${count} 篇差异化稿件…`;out.textContent='正在生成并逐篇校验…';
   try{
-    let data=await hfCallJson(sys,prompt,{maxTokens:4096,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal}),drafts=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());
+    const bodyMax=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),batchMaxTokens=Math.max(1800,Math.min(3200,Math.ceil(count*(bodyMax*1.8+500))));
+    let data=await hfCallJson(sys,prompt,{maxTokens:batchMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal}),drafts=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());
     if(drafts.length!==count||drafts.some(x=>!x))throw new Error(`内容服务未完整返回 ${count} 篇稿件`);
     const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans};
     let perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref)),difference=hfBatchDifferenceIssues(drafts),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
@@ -7065,7 +7099,7 @@ async function hfGenerateBatch(){
       status.textContent='正在对逐篇边界和同批差异做一次定向修正…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
       const repairPrompt=`修正下列批量稿件。人工输入仍是最高优先级；若问题项与人工输入冲突，执行人工输入并保留该冲突供页面提示。除此以外，必须解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。同批稿件必须保持不同故事、不同开头、不同推进、不同产品进入和不同收尾。只返回严格JSON：{"drafts":[{"copy":"完整修正稿"}]}，共${count}项。\n\n【人工输入】\n${humanText||'无'}\n\n【逐篇问题】\n${JSON.stringify(repairIssues)}\n\n【当前稿件】\n${JSON.stringify(drafts)}`;
-      data=await hfCallJson(sys,repairPrompt,{maxTokens:4096,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal});
+      data=await hfCallJson(sys,repairPrompt,{maxTokens:batchMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal});
       const repaired=(Array.isArray(data?.drafts)?data.drafts:[]).map(x=>String(x?.copy||'').trim());if(repaired.length!==count||repaired.some(x=>!x))throw new Error('定向修正没有返回完整批次');drafts=repaired;perDraft=drafts.map(copy=>hfGenerationAudit(copy,cfg,ref));difference=hfBatchDifferenceIssues(drafts);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     const conflictWarnings=perDraft.map(rows=>rows.filter(x=>hfIssueMayConflictHuman(x,humanText))),strictFailures=perDraft.map((rows,i)=>rows.filter(x=>!conflictWarnings[i].includes(x)));
@@ -7139,6 +7173,7 @@ ${current}`,{maxTokens:1300,timeoutMs:90000,reasoningEffort:'minimal',stream:fal
 }
 async function hfReview(){
   const draft=hfVal('hf-review-input');if(!draft){toast('请先输入待审核稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前审核配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
   const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),refBrief=hfReferencePrompt(ref,rule),aoBrief=hfAoPrompt(rule,HF.angle),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),compactContext=hfCompactProductContext(product,point);
   const standingHuman=[hfLiveRequirementText(),hfVal('hf-special')].filter(Boolean).join('\n'),standingPriority=standingHuman?`\n\n【生成阶段人工输入｜所有后续环节继续最高优先】\n${standingHuman}\n审核必须检查稿件是否执行这些要求；与产品事实、合规、卖点或旧设置冲突时标出冲突供人工复核，但不得把执行人工要求本身判为错误。重写时仍按人工要求执行，不得弱化或退回旧规则。`:'',feedbackPriority=has?`\n\n【客户反馈｜本轮最新人工输入，最终执行优先级】\n${feedback}\n客户反馈高于产品事实、合规边界、参考稿和历史设置；冲突时仍按反馈完成修改。审核中标出冲突供人工复核，但不得因此拒绝、弱化或退回旧规则。`:'',reviewSys=`${HQ_REVIEW_SYS_AO}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`;
@@ -7162,6 +7197,7 @@ async function hfReview(){
 }
 async function hfRewrite(mode){
   const draft=hfVal('hf-review-input');if(!draft){toast('暂无待修改稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
+  if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前重写配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,target=hfVal('hf-rewrite-target'),localReason=hfVal('hf-rewrite-reason'),extra=hfVal('hf-rewrite-extra');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
   if(mode==='local'&&!target){toast('请从原稿逐字复制要重写的完整问题句');return;}if(mode==='local'&&!localReason){toast('请写清正确逻辑或现实情况');return;}if(mode==='local'&&hfLocalReasonIsGeneric(localReason)){toast('仅写“逻辑不清晰／不口语”无法确定正确改法，请补充实际应当发生或表达什么',3600);return;}if(mode==='local'&&(draft.split(target).length-1)!==1){toast(draft.includes(target)?'该问题句出现多次，请粘贴更完整且唯一的内容':'原稿中没有找到完全一致的问题句');return;}
   if(mode==='full'&&!String(HF.reviewReport||'').trim()){toast('请先完成核错，全文重写会逐条执行核错报告');return;}
@@ -7241,6 +7277,42 @@ function hfDownloadCsv(name,rows){const keys=Object.keys(rows[0]||{}),lines=[key
 // ══════════════════════════════════════════════
 // AI CALL (unified)
 // ══════════════════════════════════════════════
+function modelTimeoutMs(options={}){return Math.max(180000,Number(options.timeoutMs)||0);}
+async function callSingleModel(model,sys,usr,signal,options={}){
+  const timeoutMs=modelTimeoutMs(options),label=MODEL_MAP[model]?.label||model,maxAttempts=2;
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    let text='',timedOut=false;const requestId=makeRequestId(),collect=chunk=>{text+=chunk;},controller=new AbortController(),forwardAbort=()=>controller.abort(signal?.reason);
+    if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
+    const timer=setTimeout(()=>{timedOut=true;controller.abort('model-timeout');},timeoutMs);
+    try{
+      if(window.a3IsLocalPreview())await streamOpenAI(sys,usr,collect,controller.signal,requestId,{...options,model,timeoutMs});
+      else if(PROXY_URL)await streamProxy(sys,usr,collect,controller.signal,requestId,{...options,model,timeoutMs});
+      else throw new Error('共享内容服务尚未配置，请联系管理员');
+      text=text.trim();if(!text)throw new Error('内容服务没有返回有效正文');return text;
+    }catch(error){
+      if(signal?.aborted)throw new DOMException('已停止','AbortError');
+      const message=timedOut?`${label} 超过 ${Math.round(timeoutMs/1000)} 秒仍未返回`:String(error?.message||error||'生成失败'),nonRetryable=/欠费|余额不足|额度不足|无权限|无效|已过期|不被接受|不支持|拒绝/.test(message),retryable=!nonRetryable&&(timedOut||/超时|暂时|请求较多|上游|无法连接|没有返回|网络/.test(message));
+      if(attempt<maxAttempts&&retryable){await new Promise(resolve=>setTimeout(resolve,900));continue;}
+      if(retryable)throw new Error(`${message}；已自动重试仍未成功，请稍后重试`);
+      throw error;
+    }finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',forwardAbort);}
+  }
+}
+async function ensureLocalProxyReady(signal){
+  if(!window.a3IsLocalPreview())return;
+  let url;try{url=new URL(String(S.url||''));}catch{return;}
+  if(!['127.0.0.1','localhost'].includes(url.hostname))return;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),2500),forward=()=>controller.abort();
+  if(signal){if(signal.aborted)forward();else signal.addEventListener('abort',forward,{once:true});}
+  try{
+    const response=await fetch(`${url.protocol}//${url.host}/health`,{cache:'no-store',signal:controller.signal});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||data.ok!==true)throw new Error('health failed');
+  }catch(error){
+    if(signal?.aborted)throw new DOMException('已停止','AbortError');
+    throw new Error('A3 本机转发尚未启动。请双击当前工具文件夹中的“启动A3本地验收.command”，等待浏览器自动打开后再生成。');
+  }finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',forward);}
+}
 async function callAI(sys,usr,cb,signal,options={}){
   if(['haoqi','bayer'].includes(S.brand)){
     const sharedExamples=await collabFewShot(collabCurrentModule());
@@ -7248,19 +7320,12 @@ async function callAI(sys,usr,cb,signal,options={}){
   }
   const requestBrand=S.brand,requestEpoch=S.brandEpoch;
   const requestId=makeRequestId();
-  S.lastCallContext={requestId,time:new Date().toLocaleString('zh-CN'),brand:BC()?.name||S.brand,workflow:ACTIVE_WORKFLOW||'当前工作台',system:sys,user:usr};
+  S.lastCallContext={requestId,time:new Date().toLocaleString('zh-CN'),brand:BC()?.name||S.brand,workflow:ACTIVE_WORKFLOW||'当前工作台',models:[CONTENT_MODEL.id],selectedModel:CONTENT_MODEL.id,system:sys,user:usr};
   const actualBtn=document.getElementById('actual-kb-btn');if(actualBtn)actualBtn.disabled=false;
-  const safeCb=chunk=>{
-    if(S.brand===requestBrand&&S.brandEpoch===requestEpoch)cb(chunk);
-  };
-  if(window.a3IsLocalPreview()){
-    if(!S.key){openModal();throw new Error('请先在顶部模型设置中填写管理员 A3 Key，再进行本地生成验收。');}
-    await streamOpenAI(sys,usr,safeCb,signal,requestId,options);
-  } else if(PROXY_URL){
-    await streamProxy(sys,usr,safeCb,signal,requestId,options);
-  } else {
-    throw new Error('共享内容服务尚未配置，请联系管理员');
-  }
+  if(window.a3IsLocalPreview()&&!S.key){openModal();throw new Error('请先在顶部模型设置中填写管理员 A3 Key，再进行本地生成验收。');}
+  await ensureLocalProxyReady(signal);
+  const text=await callSingleModel(CONTENT_MODEL.id,sys,usr,signal,options);
+  if(S.brand===requestBrand&&S.brandEpoch===requestEpoch)cb(text);
 }
 
 function makeRequestId(){
@@ -7269,7 +7334,7 @@ function makeRequestId(){
 function showActualKnowledge(){
   if(!S.lastCallContext){toast('尚未发起 AI 请求');return;}
   const c=S.lastCallContext;
-  document.getElementById('actual-knowledge-meta').textContent=`${c.time}｜${c.brand}｜请求编号：${c.requestId}`;
+  document.getElementById('actual-knowledge-meta').textContent=`${c.time}｜${c.brand}｜模型：${MODEL_MAP[c.selectedModel]?.label||c.selectedModel||CONTENT_MODEL.label}｜请求编号：${c.requestId}`;
   document.getElementById('actual-knowledge-text').value=`【实际传给 AI 的系统知识与规则】\n${c.system}\n\n【本次任务参数与输入】\n${c.user}`;
   document.getElementById('actual-knowledge-modal').style.display='flex';
 }
@@ -7354,16 +7419,26 @@ async function responseError(response,label='内容服务'){
   const requestId=data.requestId||response.headers?.get?.('X-Request-ID')||'';
   const suffix=requestId?`（请求编号：${requestId}）`:'';
   const map=label==='A3 内容服务'
-    ?{400:'A3 请求参数或模型名称不被接受',401:'A3 Key 无效或已过期',403:'A3 Key 无权限，或接口拒绝当前网页请求',404:'A3 Base URL 或模型名称不可用',413:'本次提交内容过大',429:'A3 请求较多，请稍后重试',502:'A3 上游模型暂时异常',503:'A3 内容服务暂不可用',504:'A3 模型响应超时'}
+    ?{400:'A3 请求参数或模型名称不被接受',401:'A3 Key 无效或已过期',403:'A3 请求被上游拒绝',404:'A3 Base URL 或模型名称不可用',413:'本次提交内容过大',429:'A3 请求较多，请稍后重试',502:'A3 上游模型暂时异常',503:'A3 内容服务暂不可用',504:'A3 模型响应超时'}
     :{400:'请求内容不完整',401:'登录已过期',403:'当前网页来源未获授权',413:'本次提交内容过大',429:'服务请求较多，请稍后重试',502:'上游内容服务暂时异常',503:'内容服务暂不可用',504:'内容服务响应超时'};
   const detail=typeof data.error==='string'?data.error:(data.error?.message||data.message||'');
-  return new Error(`${map[response.status]||detail||label+'请求失败'}${suffix}`);
+  const lower=String(detail).toLowerCase();
+  const classified=/(overdue balance|past due|account.*overdue)/.test(lower)
+    ?'A3 上游计费账户当前欠费，请充值或联系 A3 服务管理员恢复计费后重试'
+    :/(insufficient (balance|credit)|balance.*insufficient|quota.*(exceeded|insufficient))/.test(lower)
+      ?'A3 上游计费余额或额度不足，请充值或联系 A3 服务管理员补充额度后重试'
+      :response.status===403&&/(permission|forbidden|not authorized|access denied)/.test(lower)
+        ?'A3 Key 没有调用当前模型的权限'
+        :'';
+  const summary=classified||map[response.status]||label+'请求失败',specific=!classified&&detail&&!summary.includes(detail)?`：${String(detail).slice(0,240)}`:'';
+  return new Error(`${summary}${specific}${suffix}`);
 }
 
 async function streamProxy(sys,usr,cb,signal,requestId,options={}){
   const token=window.a3SessionToken?.()||'';
   if(!token)throw new Error('共享内容服务尚未登录，请刷新页面后重新输入访问密码。');
-  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={system:sys,messages:[{role:'user',content:usr}],stream:options.stream===true,reasoning_effort:options.reasoningEffort||'minimal',max_tokens:options.maxTokens||4096};
+  const selectedModel=options.model||S.model;
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token}`},body={model:selectedModel,system:sys,messages:[{role:'user',content:usr}],stream:options.stream===true,reasoning_effort:options.reasoningEffort||'minimal',max_tokens:options.maxTokens||4096};
   const localController=new AbortController(),forwardAbort=()=>localController.abort(signal?.reason);
   if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
   const activeSignal=localController.signal,timeoutMs=Number(options.timeoutMs)||180000,timeout=setTimeout(()=>localController.abort('timeout'),timeoutMs);
@@ -7387,7 +7462,7 @@ async function localA3ConnectionMessage(error,url){
   // 就误报为“本地验收服务没有响应”。
   if(/^A3\s/.test(message)||/Key|参数|模型名称|无权限|Base URL|提交内容过大|请求较多|上游模型|没有返回|本机转发/.test(message))return message;
   if(navigator.onLine===false)return '当前电脑处于离线状态，请恢复网络后重试。';
-  if(/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host))return 'A3 本地验收服务没有响应。请打开 outputs 文件夹，双击“启动A3本地验收”应用；应用会自动完成健康检查并打开正确页面。';
+  if(/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host))return 'A3 本机转发尚未启动。请双击当前工具文件夹中的“启动A3本地验收.command”，等待浏览器自动打开后再生成。';
   // 主请求拿不到 HTTP 状态时，再发一个不带 Key、不可读正文的 no-cors GET。
   // 它只用于区分“网络根本到不了”与“域名可达但 POST/CORS 预检被拒绝”，不会生成内容。
   const probe=new AbortController(),timer=setTimeout(()=>probe.abort(),8000);
@@ -7405,7 +7480,8 @@ async function streamOpenAI(sys,usr,cb,signal,requestId,options={}){
   const headers={'Content-Type':'application/json','Authorization':`Bearer ${S.key}`};
   // A3 的部分模型会保持 SSE 连接但不发送结束帧，本地文件预览因此会一直等待到超时。
   // 本地验收统一使用非流式完整响应，避免“已生成但页面仍超时”，同时保持同一模型与同一提示词。
-  const body={model:S.model,stream:false,max_tokens:options.maxTokens||4096,messages:[{role:'system',content:sys},{role:'user',content:usr}]};
+  const selectedModel=options.model||S.model;
+  const body={model:selectedModel,stream:false,max_tokens:options.maxTokens||4096,reasoning_effort:options.reasoningEffort||'minimal',messages:[{role:'system',content:sys},{role:'user',content:usr}]};
   const localController=signal?null:new AbortController(),activeSignal=signal||localController.signal,timeout=localController?setTimeout(()=>localController.abort(),options.timeoutMs||45000):null;
   // 仅在上游明确返回 429/502/503/504、且尚未返回任何内容时安全重试一次。
   try{await openAIOnce(url,headers,body,cb,activeSignal,'A3 内容服务',true);}
