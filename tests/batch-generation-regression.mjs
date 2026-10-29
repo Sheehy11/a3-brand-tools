@@ -16,6 +16,11 @@ if(!html.includes('人工输入｜本环节最高优先'))throw new Error('重�
 if(!html.includes('HF.generationController=null'))throw new Error('页面加载未清理失效的生成控制器');
 if(!html.includes('const{generationController,...persisted}=HF'))throw new Error('生成控制器仍会被写入本地状态');
 if(!html.includes('自动修正后仍有 ${strictFailures.flat().length+difference.flat().length} 项需进入审核重写'))throw new Error('自动修正后仍有问题时整批稿件未被保留供审核重写');
+if(!html.includes('Promise.allSettled(indices.map(i=>generateOne(i,retry)))'))throw new Error('多篇稿件未并行独立生成');
+if(!html.includes('正在仅重试未完成的 ${pending.length} 篇'))throw new Error('批量生成没有只重试失败单篇');
+if(!html.includes('只输出这一篇完整稿件，不要JSON'))throw new Error('单篇请求仍可能被批量JSON截断');
+if(html.includes('内容服务未完整返回 ${count} 篇稿件'))throw new Error('仍保留单个JSON缺项即整批失败的旧逻辑');
+if(html.includes('drafts必须正好${count}项'))throw new Error('批量生成仍依赖模型一次返回固定数组项数');
 
 const tagCode=source('function hfTagAudit','function hfStyleAudit');
 const tagContext={HQ_CONTENT_MODE:'ao'};

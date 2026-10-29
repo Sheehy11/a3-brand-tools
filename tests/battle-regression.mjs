@@ -19,7 +19,7 @@ expect(html.includes('nonRetryable=/欠费|余额不足|额度不足|无权限')
 expect(html.includes('A3 上游计费账户当前欠费'),'欠费错误仍被误报为模型权限问题');
 expect(html.includes('A3 Key 没有调用当前模型的权限'),'真实权限错误缺少独立提示');
 expect(html.includes('return Math.max(180000,Number(options.timeoutMs)||0)'),'豆包完整生成等待时间不足三分钟');
-expect(html.includes('maxTokens:batchMaxTokens,timeoutMs:180000'),'批量生成没有使用完整等待时间');
+expect(html.includes('maxTokens:perDraftMaxTokens,timeoutMs:180000'),'批量单篇生成没有使用完整等待时间');
 expect(html.includes('await ensureLocalProxyReady(signal)'),'请求前没有检查本机转发');
 expect(html.includes("reasoning_effort:options.reasoningEffort||'minimal'"),'页面没有使用低延迟推理档位');
 expect(!html.includes("thinking:{type:'disabled'}"),'页面仍发送 A3 网关不兼容的 thinking 字段');
