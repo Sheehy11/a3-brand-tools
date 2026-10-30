@@ -14,7 +14,7 @@ if(!html.includes('onclick="hfGenerateBatch()"'))throw new Error('生成按钮�
 if(!html.includes('生成阶段人工输入｜所有后续环节继续最高优先'))throw new Error('审核未继承生成阶段人工输入');
 if(!html.includes('人工输入｜本环节最高优先'))throw new Error('重写未继承人工输入最高优先级');
 if(!html.includes('HF.generationController=null'))throw new Error('页面加载未清理失效的生成控制器');
-if(!html.includes('const{generationController,...persisted}=HF'))throw new Error('生成控制器仍会被写入本地状态');
+if(!html.includes('const{generationController,customDirection,...persisted}=HF'))throw new Error('生成控制器或临时新增方向状态仍会被写入本地状态');
 if(!html.includes('自动修正后仍有 ${strictFailures.flat().length+difference.flat().length} 项需进入审核重写'))throw new Error('自动修正后仍有问题时整批稿件未被保留供审核重写');
 if(!html.includes('Promise.allSettled(indices.map(i=>generateOne(i,retry)))'))throw new Error('多篇稿件未并行独立生成');
 if(!html.includes('正在仅重试未完成的 ${pending.length} 篇'))throw new Error('批量生成没有只重试失败单篇');
