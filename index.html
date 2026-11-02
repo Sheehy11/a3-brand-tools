@@ -4,6 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
+<meta name="a3-build" content="20261102-2">
+<script>
+(()=>{
+  const BUILD='20261102-2',VERSION_PARAM='__a3v';
+  window.A3_BUILD_ID=BUILD;
+  const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
+  let cleanUrl=false;
+  [VERSION_PARAM,'v'].forEach(key=>{if(current.searchParams.has(key)){current.searchParams.delete(key);cleanUrl=true;}});
+  if(cleanUrl)history.replaceState(null,'',current.pathname+(current.search||'')+current.hash);
+  if(!/^https?:$/.test(location.protocol))return;
+  const versionUrl=new URL('version.json',location.href);
+  versionUrl.searchParams.set('_',Date.now().toString(36));
+  fetch(versionUrl,{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
+    const latest=String(data?.build||'');
+    if(!latest||latest===BUILD||requestedBuild===latest)return;
+    const target=new URL(location.href);
+    target.searchParams.set(VERSION_PARAM,latest);
+    location.replace(target.href);
+  }).catch(()=>{});
+})();
+</script>
 <title>AI品牌内容工具</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- LOCAL_JSZIP --><script>/*!
@@ -6567,7 +6588,7 @@ function doCopy(t){
 // 好奇全系列独立工作台（沿用拜耳六模块操作逻辑）
 // ══════════════════════════════════════════════
 function hfStoreKey(){return `hq_full_workflow_v3_${HQ_CONTENT_MODE}`}
-const HF={page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
+const HF={buildId:window.A3_BUILD_ID||'',page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
 const HQ_LIVE_STORAGE='a3_haoqi_live_copy_requirements_v2';
 const HQ_LIVE={workspaces:{},items:[],confirmed:[],attachments:[]};
 let HQ_LIVE_SAVE_TIMER=null;
@@ -6650,12 +6671,19 @@ const HQ_DIVERSITY_AXES={
   ending:['停在宝宝接下来的真实动作','停在妈妈下一次购买或使用决定','用一句口语感受自然结束','停在当时看到的具体结果','以一个未展开的小细节结束']
 };
 function hfLoadState(){
-  try{Object.assign(HF,JSON.parse(localStorage.getItem(hfStoreKey())||'{}'));}catch{}
+  try{
+    const saved=JSON.parse(localStorage.getItem(hfStoreKey())||'{}');
+    if(saved.buildId!==(window.A3_BUILD_ID||'')){
+      ['latest','latestBatch','generationRequirement','reviewReport','reviewIssues','reviewRewrite','performance','loopAnalysis'].forEach(key=>delete saved[key]);
+    }
+    Object.assign(HF,saved);
+  }catch{}
+  HF.buildId=window.A3_BUILD_ID||'';
   HF.customDirection=false;HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
   const ws=hfLiveWorkspace();ws.raw='';ws.draftItems=[];
 }
 function hfSaveState(){
-  try{const{generationController,customDirection,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,customDirection:false,pendingUrls:[]}));}catch{}
+  try{const{generationController,customDirection,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:false,pendingUrls:[]}));}catch{}
 }
 function hfHtml(s){return md(String(s||''));}
 function hfVal(id){return document.getElementById(id)?.value?.trim()||'';}
