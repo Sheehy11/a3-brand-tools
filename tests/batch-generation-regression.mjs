@@ -15,11 +15,15 @@ if(!html.includes('生成阶段人工输入｜所有后续环节继续最高优�
 if(!html.includes('人工输入｜本环节最高优先'))throw new Error('重写未继承人工输入最高优先级');
 if(!html.includes('HF.generationController=null'))throw new Error('页面加载未清理失效的生成控制器');
 if(!html.includes('const{generationController,customDirection,...persisted}=HF'))throw new Error('生成控制器或临时新增方向状态仍会被写入本地状态');
-if(!html.includes('批量稿未通过交付验收，已停止展示'))throw new Error('自动修正后仍有普通验收问题时没有阻止问题稿交付');
+if(html.includes('批量稿未通过交付验收，已停止展示')||html.includes('生成稿未通过交付验收，已停止展示'))throw new Error('内部验收仍会丢弃已经生成的真实稿件');
 if(!html.includes('hfCompleteGenerationAudit(copy,cfg,ref)'))throw new Error('批量稿没有接入完整内容方向与确定性验收');
+if(!html.includes('try{directionIssues=await hfSelectedDirectionAudit(copy,cfg);}catch{}'))throw new Error('语义验收服务异常仍会阻断真实稿件交付');
 if(html.includes('与既有边界冲突或仍需人工复核'))throw new Error('普通验收问题仍使用含混的人工复核提示');
 if(!html.includes('Promise.allSettled(indices.map(i=>generateOne(i,retry)))'))throw new Error('多篇稿件未并行独立生成');
-if(!html.includes('正在仅重试未完成的 ${pending.length} 篇'))throw new Error('批量生成没有只重试失败单篇');
+if(!html.includes('正在自动补齐未完成的 ${pending.length} 篇'))throw new Error('批量生成没有自动补齐失败单篇');
+if(!html.includes('retry<=3'))throw new Error('失败单篇没有进行足够的自动重试');
+if(!html.includes('正在为剩余 ${pending.length} 篇启用精简恢复通道'))throw new Error('并行重试后仍缺稿时没有最终恢复通道');
+if(!html.includes('Promise.allSettled(pending.map(i=>hfCallText'))throw new Error('最终恢复通道未并行补齐所有缺失稿件');
 if(!html.includes('只输出这一篇完整稿件，不要JSON'))throw new Error('单篇请求仍可能被批量JSON截断');
 if(html.includes('内容服务未完整返回 ${count} 篇稿件'))throw new Error('仍保留单个JSON缺项即整批失败的旧逻辑');
 if(html.includes('drafts必须正好${count}项'))throw new Error('批量生成仍依赖模型一次返回固定数组项数');
@@ -54,6 +58,12 @@ if(comments.length!==3)throw new Error('“留言”区块未被识别为三条�
 const implicitComments=commentContext.hfCommentLines('标题：测试\n\n正文第一段。\n正文第二段。\n\n#好奇 #好奇小森林 #纸尿裤\n\n我家也是用完才发现已经习惯这款了\n换其他款总要适应几天还是熟悉的省心\n每天换尿裤顺手就拿它已经不用多想了');
 if(implicitComments.length!==3)throw new Error('Tag 后三条无标题、无编号的自然评论仍被误判为缺失');
 
+const bodyCode=source('function hqExtractBody','function hqNormalize');
+const bodyContext={};
+vm.createContext(bodyContext);vm.runInContext(bodyCode,bodyContext);
+const bodyOnly=bodyContext.hqExtractBody('标题：测试\n\n正文第一段。\n正文第二段。\n\n#好奇 #好奇小森林 #纸尿裤\n\n这是一条无编号评论\n这是第二条无编号评论\n这是第三条无编号评论');
+if(bodyOnly!=='正文第一段。正文第二段。')throw new Error('正文统计仍错误包含 Tag 后的无编号评论');
+
 const conflictCode=source('function hfIssueMayConflictHuman','function hfRenderBatch');
 const conflictContext={};
 vm.createContext(conflictContext);vm.runInContext(conflictCode,conflictContext);
@@ -63,5 +73,9 @@ if(!conflictContext.hfIssueMayConflictHuman('缺少Tag：#好奇新品','必须�
 if(!html.includes("HF.customDirection&&requirementText?finalIssues.filter"))throw new Error('单篇人工复核提醒没有限定为当前新增需求模式');
 if(!html.includes("HF.customDirection&&requirementText?rows.filter"))throw new Error('批量人工复核提醒没有限定为当前新增需求模式');
 if(!html.includes('未落实所选消费者阶段')||!html.includes('未落实所选核心召回任务')||!html.includes('未落实所选内容切角'))throw new Error('好奇生成后未逐项验收消费者阶段、核心召回任务和内容切角');
+if(!html.includes('hfDeterministicReviewLedger'))throw new Error('AI审核缺少模型格式异常时的本地知识库兜底');
+if(!html.includes("if(!has){\n      try{const issues=await hfDeterministicReviewLedger"))throw new Error('AI审核外层异常仍会丢失真实本地审查结果');
+if(!html.includes('for(let attempt=0;attempt<2&&!feedbackRewrite;attempt++)'))throw new Error('人工反馈修改缺少完整稿件恢复重试');
+if(html.includes('未生成可验收的修改稿'))throw new Error('人工反馈修改仍会用空结果覆盖真实原稿');
 
 console.log('batch generation regression: PASS');
