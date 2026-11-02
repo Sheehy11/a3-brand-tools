@@ -15,7 +15,9 @@ if(!html.includes('生成阶段人工输入｜所有后续环节继续最高优�
 if(!html.includes('人工输入｜本环节最高优先'))throw new Error('重写未继承人工输入最高优先级');
 if(!html.includes('HF.generationController=null'))throw new Error('页面加载未清理失效的生成控制器');
 if(!html.includes('const{generationController,customDirection,...persisted}=HF'))throw new Error('生成控制器或临时新增方向状态仍会被写入本地状态');
-if(!html.includes('自动修正后仍有 ${strictFailures.flat().length+difference.flat().length} 项需进入审核重写'))throw new Error('自动修正后仍有问题时整批稿件未被保留供审核重写');
+if(!html.includes('批量稿未通过交付验收，已停止展示'))throw new Error('自动修正后仍有普通验收问题时没有阻止问题稿交付');
+if(!html.includes('hfCompleteGenerationAudit(copy,cfg,ref)'))throw new Error('批量稿没有接入完整内容方向与确定性验收');
+if(html.includes('与既有边界冲突或仍需人工复核'))throw new Error('普通验收问题仍使用含混的人工复核提示');
 if(!html.includes('Promise.allSettled(indices.map(i=>generateOne(i,retry)))'))throw new Error('多篇稿件未并行独立生成');
 if(!html.includes('正在仅重试未完成的 ${pending.length} 篇'))throw new Error('批量生成没有只重试失败单篇');
 if(!html.includes('只输出这一篇完整稿件，不要JSON'))throw new Error('单篇请求仍可能被批量JSON截断');
@@ -49,11 +51,17 @@ const commentContext={};
 vm.createContext(commentContext);vm.runInContext(commentCode,commentContext);
 const comments=commentContext.hfCommentLines('标题：测试\n\n正文。\n\n留言：\n第一条自然留言内容\n第二条自然留言内容\n第三条自然留言内容');
 if(comments.length!==3)throw new Error('“留言”区块未被识别为三条评论');
+const implicitComments=commentContext.hfCommentLines('标题：测试\n\n正文第一段。\n正文第二段。\n\n#好奇 #好奇小森林 #纸尿裤\n\n我家也是用完才发现已经习惯这款了\n换其他款总要适应几天还是熟悉的省心\n每天换尿裤顺手就拿它已经不用多想了');
+if(implicitComments.length!==3)throw new Error('Tag 后三条无标题、无编号的自然评论仍被误判为缺失');
 
 const conflictCode=source('function hfIssueMayConflictHuman','function hfRenderBatch');
 const conflictContext={};
 vm.createContext(conflictContext);vm.runInContext(conflictCode,conflictContext);
 if(conflictContext.hfIssueMayConflictHuman('评论必须正好三条','必须带Tag #好奇新品'))throw new Error('无关评论错误被人工Tag要求错误放行');
 if(!conflictContext.hfIssueMayConflictHuman('缺少Tag：#好奇新品','必须带Tag #好奇新品'))throw new Error('可追溯人工Tag冲突未被识别');
+
+if(!html.includes("HF.customDirection&&requirementText?finalIssues.filter"))throw new Error('单篇人工复核提醒没有限定为当前新增需求模式');
+if(!html.includes("HF.customDirection&&requirementText?rows.filter"))throw new Error('批量人工复核提醒没有限定为当前新增需求模式');
+if(!html.includes('未落实所选消费者阶段')||!html.includes('未落实所选核心召回任务')||!html.includes('未落实所选内容切角'))throw new Error('好奇生成后未逐项验收消费者阶段、核心召回任务和内容切角');
 
 console.log('batch generation regression: PASS');
