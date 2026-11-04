@@ -11,10 +11,10 @@ function source(from,to){
 if(!html.includes('id="hf-generate-count"'))throw new Error('生成页缺少1—5篇数量选择');
 for(let i=1;i<=5;i++)if(!html.includes(`<option value="${i}">${i}篇</option>`))throw new Error(`缺少${i}篇选项`);
 if(!html.includes('onclick="hfGenerateBatch()"'))throw new Error('生成按钮未接入批量流程');
-if(!html.includes('生成阶段人工输入｜所有后续环节继续最高优先'))throw new Error('审核未继承生成阶段人工输入');
-if(!html.includes('人工输入｜本环节最高优先'))throw new Error('重写未继承人工输入最高优先级');
+if(!html.includes('【生成阶段人工输入】'))throw new Error('审核未继承生成阶段人工输入');
+if(!html.includes('产品事实与合规边界保持最高优先级'))throw new Error('审核与重写丢失知识库优先边界');
 if(!html.includes('HF.generationController=null'))throw new Error('页面加载未清理失效的生成控制器');
-if(!html.includes('const{generationController,customDirection,...persisted}=HF'))throw new Error('生成控制器或临时新增方向状态仍会被写入本地状态');
+if(!html.includes('const{generationController,...persisted}=HF'))throw new Error('生成控制器仍会被写入本地状态');
 if(html.includes('批量稿未通过交付验收，已停止展示')||html.includes('生成稿未通过交付验收，已停止展示'))throw new Error('内部验收仍会丢弃已经生成的真实稿件');
 if(!html.includes('hfCompleteGenerationAudit(copy,cfg,ref)'))throw new Error('批量稿没有接入完整内容方向与确定性验收');
 if(!html.includes('try{directionIssues=await hfSelectedDirectionAudit(copy,cfg);}catch{}'))throw new Error('语义验收服务异常仍会阻断真实稿件交付');

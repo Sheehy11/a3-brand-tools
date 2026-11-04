@@ -38,6 +38,6 @@ expect((html.match(/await hfCallJson/g)||[]).length>=3,'审核、反馈修改与
 expect(html.includes("buttons.forEach(x=>x.disabled=true)"),'重写过程中没有阻止重复提交');
 expect(html.includes("finally{buttons.forEach(x=>x.disabled=false);}"),'重写失败后按钮没有恢复');
 expect(html.includes("out.textContent='正在审核…'"),'审核开始时没有清理旧结果');
-expect(html.includes('客户反馈高于产品事实、合规边界、参考稿和历史设置'),'审核流程丢失人工需求最高优先级');
+expect(html.includes('在已确认产品事实与合规边界内执行'),'审核流程丢失客户反馈与知识库边界');
 
 console.log('reliability regression: PASS');

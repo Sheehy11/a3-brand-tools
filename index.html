@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261102-4">
+<meta name="a3-build" content="20261104-1">
 <script>
 (()=>{
-  const BUILD='20261102-4',VERSION_PARAM='__a3v';
+  const BUILD='20261104-1',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -499,6 +499,7 @@ window.a3ClearSession=function(){
         <button class="brand-btn" data-brand="haoqi" onclick="switchBrand('haoqi')">好奇</button>
         <button class="brand-btn" data-brand="xiahu" onclick="switchBrand('xiahu')">霞湖世家</button>
         <button class="brand-btn" data-brand="bayer" onclick="switchBrand('bayer')">拜耳</button>
+        <button class="brand-btn" data-brand="sheyan" onclick="switchBrand('sheyan')">她研社</button>
       </div>
     </div>
     <div class="workflow-context"><div id="workflow-context-label">尚未选择任务</div><button onclick="showWorkflowHome()">重新选择任务与品牌</button></div>
@@ -566,6 +567,16 @@ window.a3ClearSession=function(){
       <div class="sb-section">优化闭环</div>
       <div class="sb-item" data-by-page="loop" onclick="bayerNavigate('loop')">↻ 数据回流</div>
     </nav>
+    <nav class="sb-nav" id="sheyan-sidebar-nav" style="display:none">
+      <div class="sb-section">知识与规则</div>
+      <div class="sb-item active" role="button" tabindex="0" data-sy-page="kb" onclick="syNavigate('kb')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();syNavigate('kb')}">◆ 品牌知识库</div>
+      <div class="sb-section">创作与审核</div>
+      <div class="sb-item" role="button" tabindex="0" data-sy-page="generate" onclick="syNavigate('generate')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();syNavigate('generate')}">✨ 文案生成</div>
+      <div class="sb-item" role="button" tabindex="0" data-sy-page="review" onclick="syNavigate('review')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();syNavigate('review')}">🔍 AI审核与重写</div>
+      <div class="sb-item" role="button" tabindex="0" data-sy-page="human" onclick="syNavigate('human')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();syNavigate('human')}">✍️ 写手人工标注</div>
+      <div class="sb-section">优化闭环</div>
+      <div class="sb-item" role="button" tabindex="0" data-sy-page="loop" onclick="syNavigate('loop')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();syNavigate('loop')}">↻ 数据回流</div>
+    </nav>
   </aside>
 
   <!-- MAIN -->
@@ -573,8 +584,8 @@ window.a3ClearSession=function(){
     <div id="hq-choice-host" style="display:none;padding:34px;max-width:900px;margin:0 auto">
       <div class="page-hd"><h2>请选择好奇板块</h2><p>两个板块的知识库、素材库、生成记录和人工评审相互隔离</p></div>
       <div class="agent-grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-        <div class="agent-card" onclick="switchHqMode('full')"><div class="ac-icon">◈</div><div class="ac-name">好奇全系列</div><div class="ac-desc">三方向、七品线、65篇归纳素材库及新审核规则</div></div>
-        <div class="agent-card" onclick="switchHqMode('legacy')"><div class="ac-icon">🌲</div><div class="ac-name">小森林问一问</div><div class="ac-desc">保留原有小森林低敏问一问的全部功能与数据</div></div>
+        <div class="agent-card" onclick="switchHqMode('full')"><div class="ac-icon">◈</div><div class="ac-name">好奇全系列</div><div class="ac-desc">覆盖七条产品线的内容生成、审核与回流</div></div>
+        <div class="agent-card" onclick="switchHqMode('legacy')"><div class="ac-icon">🌲</div><div class="ac-name">小森林问一问</div><div class="ac-desc">小森林专项内容生成与审核</div></div>
       </div>
     </div>
     <div id="hq-full-host" style="display:none;min-height:100%;padding:0"></div>
@@ -1342,6 +1353,7 @@ window.a3ClearSession=function(){
     <div id="bayer-host" style="display:none;min-height:100%;padding:0"></div>
     <div id="bayer-liquid-host" style="display:none;min-height:100%;padding:0"></div>
     <div id="bayer-heart-host" style="display:none;min-height:100%;padding:0"></div>
+    <div id="sheyan-host" style="display:none;min-height:100%;padding:0"></div>
   </main>
 </div>
 
@@ -1454,7 +1466,7 @@ const XHS_FETCH_URL = 'https://fancy-haze-0811xhs-fetch.qusiyu0311.workers.dev';
 // ── 团队协作：共享密码后的身份、任务与反馈 ──────────────
 const COLLAB_BASE=(document.querySelector('meta[name="a3-service-url"]')?.content||'').replace(/\/$/,'')+'/api/collab';
 const COLLAB_ACTORS={yangyang:{id:'yangyang',name:'阳阳',role:'writer'},april:{id:'april',name:'APRIL',role:'writer'},yixi:{id:'yixi',name:'一西',role:'reviewer'},siyu:{id:'siyu',name:'思雨',role:'admin'}};
-const COLLAB_MODULE_LABELS={haoqi_ao:'好奇 · 素人AO文',haoqi_opinion:'好奇 · 舆情文',haoqi_legacy:'好奇 · 小森林问一问',bayer_timepro:'拜耳 · 时光片Pro',bayer_liquid:'拜耳 · 氨糖液体钙',bayer_heart:'拜耳 · 心肝宝'};
+const COLLAB_MODULE_LABELS={haoqi_ao:'好奇 · 素人AO文',haoqi_opinion:'好奇 · 舆情文',haoqi_legacy:'好奇 · 小森林问一问',bayer_timepro:'拜耳 · 时光片Pro',bayer_liquid:'拜耳 · 氨糖液体钙',bayer_heart:'拜耳 · 心肝宝',sheyan_fullfamily:'她研社 · 六款全家福'};
 let COLLAB_TASKS=[],COLLAB_ACTIVE_ID='',COLLAB_PREFILL=null,COLLAB_TIMER=null;
 const COLLAB_FEWSHOT_CACHE=new Map();
 const collabEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1501,19 +1513,20 @@ function collabUnreadFor(task,a=collabActor()){return Number(a?.role==='writer'?
 async function collabRefresh(openFirst=false){if(!collabActor()){collabUpdateBadge(0);return}const data=await collabApi('/tasks');COLLAB_TASKS=data.tasks||[];const unread=COLLAB_TASKS.filter(t=>collabUnreadFor(t)).length;collabUpdateBadge(unread);collabRenderList();if(openFirst&&!COLLAB_ACTIVE_ID&&COLLAB_TASKS[0])await collabOpenTask(COLLAB_TASKS[0].id)}
 function collabUpdateBadge(n){const b=document.getElementById('collab-unread-badge');if(!b)return;b.textContent=n;b.style.display=n?'inline-block':'none'}
 function collabRenderList(){const box=document.getElementById('collab-task-list');if(!box)return;if(!COLLAB_TASKS.length){box.innerHTML='<div class="mhint" style="padding:18px">暂无协作稿件。</div>';return}box.innerHTML=COLLAB_TASKS.map(t=>{const unread=collabUnreadFor(t);return `<button class="collab-item ${t.id===COLLAB_ACTIVE_ID?'active':''}" onclick="collabOpenTask('${t.id}')"><b>${unread?'<span class="collab-dot"></span>':''}${collabEsc(t.code)}</b><small>${collabEsc(COLLAB_MODULE_LABELS[t.module]||t.module)}<br>${collabEsc(t.writer_name)} · ${collabEsc(t.statusLabel||t.status)}</small></button>`}).join('')}
-function collabShowNew(prefill=COLLAB_PREFILL){const a=collabActor();if(a?.role!=='writer'){toast('只有写手可以提交初稿');return}COLLAB_ACTIVE_ID='';collabRenderList();const module=prefill?.module||collabCurrentModule(),brand=(module||'').startsWith('haoqi_')?'haoqi':'bayer',ai=prefill?.aiDraft||'',draft=prefill?.initialDraft||'';document.getElementById('collab-task-detail').innerHTML=`<h3 style="margin-top:0">提交初稿给一西</h3><div class="mf"><label>所属模块</label><select id="collab-new-module" class="fi">${Object.entries(COLLAB_MODULE_LABELS).map(([id,label])=>`<option value="${id}" ${id===module?'selected':''}>${collabEsc(label)}</option>`).join('')}</select></div><div class="mf"><label>AI 提供的最新稿件（可选）</label><textarea id="collab-new-ai" class="ft" rows="7">${collabEsc(ai)}</textarea></div><div class="mf"><label>写手初稿</label><textarea id="collab-new-draft" class="ft" rows="10" placeholder="粘贴写手准备提交审核的版本">${collabEsc(draft||ai)}</textarea></div><div class="macts"><button class="btn-pri" onclick="collabSubmitNew()">提交给一西</button></div>`;COLLAB_PREFILL=null}
-function collabCurrentModule(){if(S?.brand==='haoqi')return HQ_MODE==='legacy'?'haoqi_legacy':(HQ_CONTENT_MODE==='opinion'?'haoqi_opinion':'haoqi_ao');if(S?.brand==='bayer')return BAYER_PRODUCT==='liquid'?'bayer_liquid':(BAYER_PRODUCT==='heart'?'bayer_heart':'bayer_timepro');return 'haoqi_ao'}
+function collabBrandForModule(module){return String(module||'').startsWith('haoqi_')?'haoqi':String(module||'').startsWith('sheyan_')?'sheyan':'bayer'}
+function collabShowNew(prefill=COLLAB_PREFILL){const a=collabActor();if(a?.role!=='writer'){toast('只有写手可以提交初稿');return}COLLAB_ACTIVE_ID='';collabRenderList();const module=prefill?.module||collabCurrentModule(),brand=collabBrandForModule(module),ai=prefill?.aiDraft||'',draft=prefill?.initialDraft||'';document.getElementById('collab-task-detail').innerHTML=`<h3 style="margin-top:0">提交初稿给一西</h3><div class="mf"><label>所属模块</label><select id="collab-new-module" class="fi">${Object.entries(COLLAB_MODULE_LABELS).map(([id,label])=>`<option value="${id}" ${id===module?'selected':''}>${collabEsc(label)}</option>`).join('')}</select></div><div class="mf"><label>AI 提供的最新稿件（可选）</label><textarea id="collab-new-ai" class="ft" rows="7">${collabEsc(ai)}</textarea></div><div class="mf"><label>写手初稿</label><textarea id="collab-new-draft" class="ft" rows="10" placeholder="粘贴写手准备提交审核的版本">${collabEsc(draft||ai)}</textarea></div><div class="macts"><button class="btn-pri" onclick="collabSubmitNew()">提交给一西</button></div>`;COLLAB_PREFILL=null}
+function collabCurrentModule(){if(S?.brand==='haoqi')return HQ_MODE==='legacy'?'haoqi_legacy':(HQ_CONTENT_MODE==='opinion'?'haoqi_opinion':'haoqi_ao');if(S?.brand==='bayer')return BAYER_PRODUCT==='liquid'?'bayer_liquid':(BAYER_PRODUCT==='heart'?'bayer_heart':'bayer_timepro');if(S?.brand==='sheyan')return'sheyan_fullfamily';return 'haoqi_ao'}
 function openCollabNew(payload={}){if(!collabActor())return openCollabIdentity();COLLAB_PREFILL=payload;if(collabActor().role!=='writer'){openCollabCenter();if(window.a3IsLocalPreview()){document.getElementById('collab-task-detail').innerHTML='<h3>请选择写手身份提交</h3><p class="mhint">点击上方“阳阳”或“APRIL”，页面会保留当前稿件并打开提交表单。</p>';return;}toast('请切换为阳阳或 APRIL 后提交初稿');return;}openCollabCenter()}
-async function collabSubmitNew(){const module=document.getElementById('collab-new-module').value,aiDraft=document.getElementById('collab-new-ai').value.trim(),initialDraft=document.getElementById('collab-new-draft').value.trim();if(!initialDraft)return toast('写手初稿不能为空');const brand=module.startsWith('haoqi_')?'haoqi':'bayer';try{const r=await collabApi('/tasks',{method:'POST',body:{brand,module,aiDraft,initialDraft}});toast(`已提交给一西：${r.code} ✓`,2400);await collabRefresh();await collabOpenTask(r.id)}catch(e){collabShowError(e)}}
+async function collabSubmitNew(){const module=document.getElementById('collab-new-module').value,aiDraft=document.getElementById('collab-new-ai').value.trim(),initialDraft=document.getElementById('collab-new-draft').value.trim();if(!initialDraft)return toast('写手初稿不能为空');const brand=collabBrandForModule(module);try{const r=await collabApi('/tasks',{method:'POST',body:{brand,module,aiDraft,initialDraft}});toast(`已提交给一西：${r.code} ✓`,2400);await collabRefresh();await collabOpenTask(r.id)}catch(e){collabShowError(e)}}
 async function collabOpenTask(id){COLLAB_ACTIVE_ID=id;collabRenderList();try{const data=await collabApi('/tasks/'+encodeURIComponent(id));collabRenderDetail(data);await collabApi('/tasks/'+encodeURIComponent(id)+'/read',{method:'POST',body:{}}).catch(()=>{});collabRefresh().catch(()=>{})}catch(e){collabShowError(e)}}
 function collabLatest(data){return (data.versions||[]).at(-1)?.content||data.task.initial_draft||''}
 function collabRenderDetail(data){const {task}=data,a=collabActor(),latest=collabLatest(data),waitingReview=task.status==='review_pending',writerTurn=task.status==='writer_action';const events=[];(data.versions||[]).forEach(v=>events.push({time:v.created_at,html:`<div class="collab-event"><b>${collabEsc(v.author_name)}提交第 ${v.version_no} 版</b><pre>${collabEsc(v.content)}</pre></div>`}));(data.feedback||[]).forEach(f=>events.push({time:f.created_at,html:`<div class="collab-event feedback"><b>一西反馈 · 第 ${f.round_no} 轮</b><pre>${collabEsc(f.content)}</pre></div>`}));events.sort((x,y)=>String(x.time).localeCompare(String(y.time)));let actions='';if(a.role==='reviewer'&&waitingReview)actions=`<div class="collab-block wide"><h4>审核处理</h4><textarea id="collab-feedback" class="ft" rows="5" placeholder="如需修改，请写明具体位置和要求"></textarea><div class="macts" style="justify-content:flex-start"><button class="btn-pri" onclick="collabSendFeedback('${task.id}')">提交反馈给${collabEsc(task.writer_name)}</button><button class="btn-sec" onclick="collabConfirm('${task.id}',false)">仅确认完成</button><button class="btn-sec" onclick="collabConfirm('${task.id}',true)">确认并回流 few-shot</button></div></div>`;else if(a.role==='writer'&&writerTurn)actions=`<div class="collab-block wide"><h4>按反馈修改</h4><textarea id="collab-revision" class="ft" rows="13">${collabEsc(latest)}</textarea><div class="macts" style="justify-content:flex-start"><button class="btn-sec" onclick="collabAIRevision('${task.id}')">AI 按反馈修改</button><button class="btn-pri" onclick="collabSubmitRevision('${task.id}')">提交修改稿给一西</button></div><div class="mhint">AI 只修改反馈涉及的位置及必要衔接，未涉及内容保持不变。</div></div>`;else actions=`<div class="collab-block wide"><b>${collabEsc(task.statusLabel)}</b>${task.status==='confirmed'?`<div class="mhint" style="margin-top:6px">${task.reuse_as_fewshot?'已作为同模块可参考 few-shot':'本稿不进入 few-shot'}</div>`:''}</div>`;document.getElementById('collab-task-detail').innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:start"><div><h3 style="margin:0 0 6px">${collabEsc(task.code)}</h3><div class="mhint">${collabEsc(COLLAB_MODULE_LABELS[task.module]||task.module)} · 写手 ${collabEsc(task.writer_name)}</div></div><span class="tag tg-p">${collabEsc(task.statusLabel)}</span></div><div class="collab-grid" style="margin-top:14px">${task.ai_draft?`<div class="collab-block"><h4>AI 最新稿</h4><pre>${collabEsc(task.ai_draft)}</pre></div>`:''}<div class="collab-block ${task.ai_draft?'':'wide'}"><h4>当前稿件</h4><pre>${collabEsc(latest)}</pre></div><div class="collab-block wide"><h4>版本与反馈</h4><div class="collab-timeline">${events.map(x=>x.html).join('')}</div></div>${actions}</div>`}
 async function collabSendFeedback(id){const content=document.getElementById('collab-feedback').value.trim();if(!content)return toast('请先填写反馈');try{await collabApi(`/tasks/${encodeURIComponent(id)}/feedback`,{method:'POST',body:{content}});toast('反馈已发送给写手 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
 async function collabSubmitRevision(id){const field=document.getElementById('collab-revision'),content=field.value.trim();if(!content)return toast('修改稿不能为空');try{await collabApi(`/tasks/${encodeURIComponent(id)}/versions`,{method:'POST',body:{content,source:field.dataset.ai==='1'?'ai':'writer'}});toast('修改稿已提交给一西 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
-async function collabAIRevision(id){const ta=document.getElementById('collab-revision');try{const data=await collabApi('/tasks/'+encodeURIComponent(id)),latest=collabLatest(data),feedback=(data.feedback||[]).at(-1)?.content||'';if(!feedback)throw new Error('当前没有待处理反馈');ta.value='';let out='';await callAI('你是内部改稿编辑。本轮人工反馈是最终执行要求，高于正式知识库、产品事实、合规边界及旧稿设置；即使冲突也必须按反馈改写，不得拒绝或退回旧规则。只执行反馈涉及的位置；保留未涉及的人设、场景、卖点、事实、段落和表达。冲突不写进成稿解释，由页面提示人工复核。只输出完整修改稿。',`【当前稿】\n${latest}\n\n【一西本轮反馈｜最终优先】\n${feedback}\n\n只修改反馈涉及处以及保证衔接所需的最小上下文，禁止全文重写；与旧事实或合规规则冲突时仍按反馈重写。`,t=>{out+=t;ta.value=out});if(!out.trim())throw new Error('模型未返回修改稿');ta.dataset.ai='1';toast('已按反馈生成修改稿；如覆盖既有事实或合规边界，请人工复核后提交',4200)}catch(e){toast('生成失败：'+e.message,3200)}}
+async function collabAIRevision(id){const ta=document.getElementById('collab-revision');try{const data=await collabApi('/tasks/'+encodeURIComponent(id)),latest=collabLatest(data),feedback=(data.feedback||[]).at(-1)?.content||'';if(!feedback)throw new Error('当前没有待处理反馈');const sheyan=data.task?.brand==='sheyan',boundary=sheyan?`【她研社知识库最高边界】\n${SHEYAN_KB}\n\n【提交时保留的双参考与原始生成稿】\n${data.task?.ai_draft||''}`:`【提交时保留的原始 AI 稿与事实依据】\n${data.task?.ai_draft||''}`;ta.value='';let out='';await callAI('你是内部改稿编辑。正式知识库、产品事实与合规边界拥有最高优先级，人工反馈不得突破这些边界。只执行反馈涉及的位置，保留未涉及的人设、场景、卖点、事实、段落和表达；如反馈与边界冲突，保留合规事实并在稿外提示人工处理。只输出完整修改稿。',`${boundary}\n\n【当前稿】\n${latest}\n\n【一西本轮反馈】\n${feedback}\n\n只修改反馈涉及处以及保证衔接所需的最小上下文，禁止无关的全文重写。${sheyan?'正文与花字都必须继续遵循提交时的双参考结构、内容重点与非抄袭要求；六款产品必须全部出现，禁止薄款和轻透款。':''}`,t=>{out+=t;ta.value=out});if(!out.trim())throw new Error('模型未返回修改稿');ta.dataset.ai='1';toast('已按反馈改稿，并保留知识库与参考边界',3200)}catch(e){toast('生成失败：'+e.message,3200)}}
 async function collabConfirm(id,reuseAsFewshot){try{await collabApi(`/tasks/${encodeURIComponent(id)}/confirm`,{method:'POST',body:{reuseAsFewshot}});toast(reuseAsFewshot?'已确认并回流 few-shot ✓':'已确认完成 ✓');await collabRefresh();await collabOpenTask(id)}catch(e){collabShowError(e)}}
 function collabStartPolling(){clearInterval(COLLAB_TIMER);if(!collabActor())return;collabRefresh().catch(()=>{});COLLAB_TIMER=setInterval(()=>collabRefresh().catch(()=>{}),window.a3IsLocalPreview()?5000:15000)}
-async function collabFewShot(module){if(!collabActor())return '';const cached=COLLAB_FEWSHOT_CACHE.get(module);if(cached&&Date.now()-cached.time<60000)return cached.text;try{const brand=module.startsWith('haoqi_')?'haoqi':'bayer',r=await collabApi(`/few-shots?brand=${brand}&module=${encodeURIComponent(module)}`),text=(r.fewShots||[]).map((x,i)=>`【已确认参考稿${i+1}】\n${x.content}`).join('\n\n');COLLAB_FEWSHOT_CACHE.set(module,{time:Date.now(),text});return text}catch{return ''}}
+async function collabFewShot(module){if(!collabActor())return '';const cached=COLLAB_FEWSHOT_CACHE.get(module);if(cached&&Date.now()-cached.time<60000)return cached.text;try{const brand=collabBrandForModule(module),r=await collabApi(`/few-shots?brand=${brand}&module=${encodeURIComponent(module)}`),text=(r.fewShots||[]).map((x,i)=>`【已确认参考稿${i+1}】\n${x.content}`).join('\n\n');COLLAB_FEWSHOT_CACHE.set(module,{time:Date.now(),text});return text}catch{return ''}}
 function installBayerCollabPanel(shadow,kind){const map={timepro:['by','bayer_timepro'],liquid:['lc','bayer_liquid'],heart:['hb','bayer_heart']},[prefix,module]=map[kind],page=shadow.getElementById(`${prefix}-page-human`),grid=page?.querySelector('.grid');if(!grid||grid.dataset.shared)return;grid.dataset.shared='1';[...grid.children].forEach(x=>x.style.display='none');const panel=document.createElement('div');panel.className='card wide';panel.style.display='block';panel.innerHTML=`<h3>提交写手初稿</h3><p class="hint">初稿提交后，一西会在自己的设备看到并反馈；写手收到红点后继续修改。</p><label>AI 提供的最新稿件（可选）</label><textarea id="${prefix}-shared-ai" readonly></textarea><label>写手初稿</label><textarea id="${prefix}-shared-writer" placeholder="粘贴准备提交审核的版本"></textarea><div class="actions"><button class="btn primary" type="button">提交给一西</button><button class="btn ghost" type="button">打开协作任务</button></div>`;grid.prepend(panel);const sync=()=>{panel.querySelector(`#${prefix}-shared-ai`).value=shadow.getElementById(`${prefix}-human-ai`)?.value||'';panel.querySelector(`#${prefix}-shared-writer`).value=shadow.getElementById(`${prefix}-human-writer`)?.value||panel.querySelector(`#${prefix}-shared-ai`).value};new MutationObserver(sync).observe(page,{attributes:true,subtree:true});panel.querySelector('.primary').onclick=()=>{sync();openCollabNew({brand:'bayer',module,aiDraft:panel.querySelector(`#${prefix}-shared-ai`).value,initialDraft:panel.querySelector(`#${prefix}-shared-writer`).value})};panel.querySelector('.ghost').onclick=openCollabCenter;setTimeout(sync,0)}
 
 // ══════════════════════════════════════════════
@@ -2070,35 +2083,35 @@ let HQ_CONTENT_MODE='ao';
 
 const HQ_PRODUCT_FACTS = {
   '小森林':{
-    facts:['面层安全','透气','便便兜','摸起来柔软','胖宝宝穿着也不勒'],
+    facts:['面层安全','面层柔软细腻','天然纤维','透气','便便兜只兜软便','新包装魔术贴袋口密封防潮'],
     personal:['穿了不红屁屁'],
-    bans:['低敏','敏宝','低敏天花板']
+    bans:['低敏','敏宝','低敏天花板','防漏','兜尿','吸量','大吸量','反渗','返渗','睡整觉','晚上','夜里','夜间','夜晚','过夜','一整夜','整晚','到天亮']
   },
   '深睡大师':{
-    facts:['防漏','挡屎条'],
+    facts:['大吸量','防漏','睡觉时更安稳','睡整觉','腰围弹性不勒'],
     personal:[],
-    bans:['晚上','夜里','夜间','过夜','一整夜','整晚','到天亮','一夜','长时不换','安睡一夜']
+    bans:['夜用','晚上','夜里','夜间','夜晚','过夜','一整夜','整晚','到天亮','一夜','长时不换','安睡一夜']
   },
   'X系列':{
-    facts:['能吸','越吸越快','物理隔菌','不滋生细菌','清爽','尿便分区','吸量大'],
-    personal:[],bans:[]
+    facts:['X超导芯吸得快','干爽不闷不潮','物理隔菌','0.8D超细纤维','专利挡屎条便便兜','0痕腰围','0添加真温和','吸后透气提升'],
+    personal:[],bans:['杀菌','抗菌','透气+200%','透气＋200%','用了好几年','一直在替我兜底']
   },
   '屁屁面膜':{
-    facts:['自带护臀精华','用了不用抹护臀霜','尿便分区','吸量大'],
-    personal:[],bans:[]
+    facts:['面层自带4道护臀乳','边穿边护臀','省掉护臀膏','尿便分区','加宽便便兜','0.6D极细纤维','反重力吸收芯','第二代泡泡腰贴仅NB和S码','升级安心封口贴','0人手接触产线','查三代和多道检测'],
+    personal:[],bans:['1包3支次抛','1天1支']
   },
   '小桃裤':{
-    facts:['透气散热','专门适合汗宝','摸起来柔软','胖宝宝穿着也不勒','便便兜'],
-    personal:['穿了不红屁屁'],bans:[]
+    facts:['透气不闷汗','薄','吸收防漏在线','干爽不闷红'],
+    personal:['穿了不红屁屁'],bans:['大吸量','睡整觉']
   },
   '小龙裤':{
     facts:['摸上去柔软','穿着透气','便便兜'],
     personal:[],bans:[]
   },
   '小黑洞':{
-    facts:['速吸','吸收力','不反渗','柔软','透气','便便兜','胖宝宝穿着也不勒'],
+    facts:['速干不反渗','弱酸亲肤表层','轻薄透气柔软','防漏隔边宽','海量吸收'],
     personal:[],
-    bans:['物理隔菌','不滋生细菌','尿便分区']
+    bans:['物理隔菌','不滋生细菌','尿便分区','7次嘘嘘','30倍自重']
   }
 };
 
@@ -2107,32 +2120,42 @@ const HQ_SELLING_POINTS = {
   '小森林':[
     {key:'surface_safe',label:'面层安全',terms:['面层安全','安全面层','面层用着放心','贴身用着安心','贴着宝宝皮肤也安心']},
     {key:'breathability',label:'透气',terms:['透气','不闷','闷热']},
-    {key:'poo_pocket',label:'便便兜',terms:['便便兜','兜住便便','兜住粑粑']},
-    {key:'soft',label:'柔软',terms:['柔软','软乎','软糯','摸着软','手感软']},
-    {key:'fit',label:'胖宝宝穿着也不勒',terms:['不勒','勒痕','胖宝宝','胖宝','活动自在']},
+    {key:'poo_pocket',label:'便便兜（仅软便）',terms:['便便兜','兜住软便','兜软便']},
+    {key:'soft',label:'面层柔软细腻',terms:['柔软','软乎','软糯','细腻','天然纤维']},
+    {key:'package_seal',label:'新包装密封防潮',terms:['魔术贴袋口','密封防潮','封口防潮']},
     {key:'red_butt',label:'穿了不红屁屁（仅个人体验）',terms:['不红屁屁','没红屁屁','红屁屁']}
   ],
   '深睡大师':[
+    {key:'capacity',label:'大吸量',terms:['大吸量','吸量大','能吸']},
     {key:'leakproof',label:'防漏',terms:['防漏','不漏','漏尿','侧漏','后漏']},
-    {key:'poo_bar',label:'挡屎条',terms:['挡屎条','挡住便便','挡住粑粑']}
+    {key:'sleep',label:'睡觉更安稳',terms:['睡觉更安稳','睡得安稳','睡整觉']},
+    {key:'waist',label:'弹性腰围不勒',terms:['弹性腰围','腰围不勒','不勒肚子']}
   ],
   'X系列':[
-    {key:'absorption',label:'能吸，越吸越快',terms:['能吸','越吸越快','吸得快','速吸']},
-    {key:'physical_barrier',label:'物理隔菌，不滋生细菌',terms:['物理隔菌','不滋生细菌','隔开细菌']},
-    {key:'fresh',label:'清爽',terms:['清爽','干爽']},
-    {key:'separation',label:'尿便分区',terms:['尿便分区','尿便分离']},
-    {key:'capacity',label:'吸量大',terms:['吸量大','吸得多','大吸量']}
+    {key:'absorption',label:'X超导芯吸得快',terms:['X超导芯','吸得快','速吸']},
+    {key:'physical_barrier',label:'物理隔菌',terms:['物理隔菌','隔开细菌']},
+    {key:'fresh',label:'干爽不闷不潮',terms:['干爽','不闷不潮','清爽']},
+    {key:'fiber',label:'0.8D超细纤维',terms:['0.8D超细纤维','超细纤维']},
+    {key:'poo_pocket',label:'专利挡屎条便便兜',terms:['专利挡屎条','便便兜']},
+    {key:'waist',label:'0痕腰围',terms:['0痕腰围','腰围不勒']},
+    {key:'gentle',label:'0添加真温和',terms:['0添加','温和']},
+    {key:'breathability',label:'吸后仍透气（数字模糊化）',terms:['吸后仍透气','吸完也透气','透气提升']}
   ],
   '屁屁面膜':[
-    {key:'skincare',label:'自带护臀精华，用了不用抹护臀霜',terms:['护臀精华','不用抹护臀霜','不用涂护臀霜']},
-    {key:'separation',label:'尿便分区',terms:['尿便分区','尿便分离']},
-    {key:'capacity',label:'吸量大',terms:['吸量大','吸得多','大吸量']}
+    {key:'skincare',label:'面层自带4道护臀乳',terms:['4道护臀乳','护臀乳','省掉护臀膏']},
+    {key:'separation',label:'尿便分区＋加宽便便兜',terms:['尿便分区','加宽便便兜']},
+    {key:'fiber',label:'0.6D极细纤维',terms:['0.6D极细纤维','极细纤维']},
+    {key:'core',label:'反重力吸收芯',terms:['反重力吸收芯','吸收芯']},
+    {key:'waist',label:'第二代泡泡腰贴（仅NB／S码）',terms:['第二代泡泡腰贴','泡泡腰贴']},
+    {key:'seal',label:'升级安心封口贴',terms:['安心封口贴','封口贴']},
+    {key:'production',label:'0人手接触产线',terms:['0人手接触','全自动产线']},
+    {key:'inspection',label:'查三代＋多道检测',terms:['查三代','多道检测']}
   ],
   '小桃裤':[
-    {key:'breathability',label:'透气散热，适合汗宝',terms:['透气','散热','汗宝','不闷','清爽','干爽']},
-    {key:'soft',label:'柔软',terms:['柔软','软乎','软糯','摸着软','手感软']},
-    {key:'fit',label:'胖宝宝穿着也不勒',terms:['不勒','勒痕','胖宝宝','胖宝','活动自在']},
-    {key:'poo_pocket',label:'便便兜',terms:['便便兜','兜住便便','兜住粑粑']},
+    {key:'breathability',label:'透气不闷汗',terms:['透气','不闷汗','不闷']},
+    {key:'thin',label:'薄',terms:['轻薄','薄']},
+    {key:'absorption',label:'吸收防漏在线（轻提）',terms:['吸收在线','防漏在线','吸收防漏']},
+    {key:'fresh',label:'干爽不闷红',terms:['干爽','不闷红']},
     {key:'red_butt',label:'穿了不红屁屁（仅个人体验）',terms:['不红屁屁','没红屁屁','红屁屁']}
   ],
   '小龙裤':[
@@ -2141,12 +2164,11 @@ const HQ_SELLING_POINTS = {
     {key:'poo_pocket',label:'便便兜',terms:['便便兜','兜住便便','兜住粑粑']}
   ],
   '小黑洞':[
-    {key:'absorption',label:'速吸',terms:['速吸','吸得快','吸收快']},
-    {key:'absorption_lock',label:'吸收力、不反渗',terms:['吸收力','不反渗','不返渗']},
-    {key:'soft',label:'柔软',terms:['柔软','软乎','软糯','摸着软','手感软']},
-    {key:'breathability',label:'透气',terms:['透气','不闷']},
-    {key:'poo_pocket',label:'便便兜',terms:['便便兜','兜住便便','兜住粑粑']},
-    {key:'fit',label:'胖宝宝穿着也不勒',terms:['不勒','勒痕','胖宝宝','胖宝','活动自在']}
+    {key:'absorption_lock',label:'速干不反渗',terms:['速干','不反渗','不返渗']},
+    {key:'surface',label:'弱酸亲肤表层',terms:['弱酸亲肤','弱酸表层']},
+    {key:'soft',label:'轻薄透气柔软',terms:['轻薄透气','透气柔软','轻薄柔软']},
+    {key:'leakproof',label:'防漏隔边宽',terms:['防漏隔边','隔边宽']},
+    {key:'capacity',label:'海量吸收（数字模糊化）',terms:['海量吸收','能吸不少','吸得多']}
   ]
 };
 
@@ -2192,7 +2214,7 @@ const HQ_AO_STRATEGIES=[
 ];
 // === 2026-09-01 AO自然融合优化 START ===
 // 本区只把规划表转译为可写的故事母题：保留心理、核心事件和态度落点，不要求复刻demo表面元素。
-const HQ_AO_NATURAL_FUSION_VERSION='2026-09-02-v4';
+const HQ_AO_NATURAL_FUSION_VERSION='2026-11-03-v5';
 const HQ_AO_NATURAL_BRIEFS={
   '巩固高端与大牌信任':{
     psychology:'已经长期使用，外界讨论没有改变她对熟悉大牌和正规渠道的基本信任。',
@@ -2287,7 +2309,7 @@ const HQ_AO_NATURAL_BRIEFS={
 // 页面可选项逐条来自规划表“内容demo”；naturalCue仅负责后台自然衔接与合规转译，不新增选题。
 const HQ_AO_DEMO_CUTS={
   '巩固高端与大牌信任':[
-    {label:'好奇从来没有召回过、下架过产品，说明产品真的没有问题',naturalCue:'保留“外界信息没有动摇长期信任”的选题意图；召回、下架及绝对安全结论没有批准来源时不得写成事实。',points:['surface_safe']},
+    {label:'好奇从来没有召回过、下架过产品，说明产品真的没有问题',claim:'no_recall_delist',naturalCue:'正文必须同时传达品牌过往没有发生产品召回、也没有发生产品下架这两层信息，并把它作为妈妈继续信任和选择的核心依据；不得照抄切角标签，不得弱化成泛泛的大牌信任，也不得扩大为绝对安全结论。',points:['surface_safe']},
     {label:'如果连好奇都不能用了，我不知道还能用什么',naturalCue:'保留长期使用者面对信息时仍信任熟悉大牌的心理，不照抄原句，不写绝对品牌结论。',points:['surface_safe','soft','breathability','fit']},
     {label:'国外朋友都托我代购好奇——探亲向',naturalCue:'围绕国外或香港朋友探亲时托带、出发前囤几包的生活事件展开；版本差异不是必写事实。',points:['surface_safe','soft','breathability']}
   ],
@@ -2345,6 +2367,9 @@ Object.entries(HQ_AO_DEMO_CUTS).forEach(([task,angles])=>{if(HQ_AO_NATURAL_BRIEF
 // === 2026-09-02 AO内容demo原始切角修正 END ===
 function hfAoNaturalBrief(rule){return rule?HQ_AO_NATURAL_BRIEFS[rule.task]||null:null;}
 function hfAoAngle(rule,label){return hfAoNaturalBrief(rule)?.angles.find(x=>x.label===label)||null;}
+function hfAoWritingAngleLabel(rule,label){const angle=hfAoAngle(rule,label);return angle?.claim==='no_recall_delist'?'核查品牌过往产品记录后形成继续使用的信任判断':label;}
+function hfAoClaimContract(angle){if(angle?.claim!=='no_recall_delist')return'';const routes=['先写一次主动查证，再分别交代召回与下架两项记录，最后回到个人选择','从外界讨论触发，用两种不同句式分别回应召回和下架，随后马上写补货或继续使用','先写自己为什么犹豫，再把召回记录与下架记录作为两个判断依据，最后落到当下动作','把两项品牌记录拆进前后相邻的生活句中，不单独写品牌宣言，并用个人决定收口'],route=routes[(Number(HF.generationSeq)||0)%routes.length];return`\n【本切角语义合同】\n- 正文必须同时传达三项信息：主体是好奇；过往没有发生产品召回；过往没有发生产品下架。三项缺一不可。\n- 只保留事实语义，禁止照抄页面切角标签；尤其禁止采用“品牌名开头，后接从未召回与没有下架”的固定并列句，也禁止只替换一两个否定词。\n- 本次组织路线：${route}。必须结合人物查证、讨论、补货或继续使用的动作重新造句。\n- 这两项记录要成为人物继续信任的因果依据，不得弱化成“熟悉、大牌、一直在用、用着安心”等泛化替代。\n- 不得据此推导所有产品绝对安全或一定没有问题。`;}
+function hfAoClaimAudit(copy,angle){if(angle?.claim!=='no_recall_delist')return[];const body=hqHistoryBody(copy),normalized=hqHistoryNormalize(body),issues=[],hasBrand=body.includes('好奇'),combined=/(?:从未|从来没有|没有|没|未发生)[^。！？\n]{0,18}召回[^。！？\n]{0,16}下架/.test(body),noRecall=/(?:从未|从来没有|没有|没|未发生)[^。！？\n]{0,10}召回|召回[^。！？\n]{0,14}(?:没有|没发生|未发生|空白|空着|零记录)/.test(body),noDelist=/(?:从未|从来没有|没有|没|未发生)[^。！？\n]{0,10}下架|下架[^。！？\n]{0,14}(?:没有|没发生|未发生|空白|空着|零记录)/.test(body),blankRecords=/(?:召回|下架)[^。！？\n]{0,10}(?:和|与|、)[^。！？\n]{0,10}(?:召回|下架)[^。！？\n]{0,12}(?:空白|没有记录|零记录)/.test(body);if(!(hasBrand&&(combined||noRecall&&noDelist||blankRecords)))issues.push('所选切角必须用全新表达同时传达：主体是好奇、没有产品召回记录、没有产品下架记录');if(normalized.includes('好奇从未召回过产品也没有下架过产品')||normalized.includes('好奇从来没有召回过下架过产品'))issues.push('使用了已知重复句式，必须保留事实语义但彻底重组句子、动作和信息顺序');return issues;}
 const HQ_AO_SMALL_FOREST_PRODUCTS=['小森林纸尿裤','小森林拉拉裤'];
 // 品线范围同时依据9月AO内容规划与全平台执行表中的实际分配；内容切角继续在下一层收窄。
 const HQ_AO_EXECUTION_BINDINGS={
@@ -2358,11 +2383,11 @@ const HQ_AO_EXECUTION_BINDINGS={
   '降低替换焦虑与重新试错成本':{products:HQ_AO_PRODUCTS,pointPolicy:'all-product-facts'},
   '降低换牌吸引力，强化高端制造信心':{products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'屁屁面膜'],pointPolicy:'all-product-facts'},
   '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':{
-    products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'],
+    products:[...HQ_AO_SMALL_FOREST_PRODUCTS,'屁屁面膜','小龙裤'],
     pointPolicy:'execution-angle-map',
     angleMap:{
-      '不是没想过换牌，但尿便分区真的只有好奇有啊':{'X系列':['separation'],'屁屁面膜':['separation']},
-      '好奇的便便兜真的是别的牌子没法替代的':{'小森林纸尿裤':['poo_pocket'],'小森林拉拉裤':['poo_pocket'],'小桃裤':['poo_pocket'],'小龙裤':['poo_pocket'],'小黑洞':['poo_pocket']}
+      '不是没想过换牌，但尿便分区真的只有好奇有啊':{'屁屁面膜':['separation']},
+      '好奇的便便兜真的是别的牌子没法替代的':{'小森林纸尿裤':['poo_pocket'],'小森林拉拉裤':['poo_pocket'],'小龙裤':['poo_pocket']}
     }
   },
   '内容上要抢占“换好奇/好奇替代/小森林对比”等老客再决策搜索词':{products:HQ_AO_SMALL_FOREST_PRODUCTS,pointPolicy:'planned-angle-points'}
@@ -2386,7 +2411,7 @@ function hfAoSelectionValid(rule,product,key,angleLabel){
 // === 2026-09-01 AO自然融合优化 END ===
 const HQ_AO_STAGES=[...new Set(HQ_AO_STRATEGIES.map(x=>x.stage))];
 const HQ_AO_DIRECTION_RULES=Object.fromEntries(HQ_AO_STRATEGIES.map(x=>{const binding=HQ_AO_EXECUTION_BINDINGS[x.task];return[x.task,{...x,products:[...(binding?.products||[])],range:[140,200],paragraphs:'2—3段',density:'继承洞察的心理与demo的故事母题，用自然生活因果展开；内部策略词不得进入成稿',angles:(HQ_AO_NATURAL_BRIEFS[x.task]?.angles||[]).map(a=>a.label),forms:['真实素人AO文']}];}));
-function hqAoKnowledge(){return `${HQ_KB}\n\n【好奇全品线 AO 产品边界】\n- 当前覆盖小森林纸尿裤、小森林拉拉裤、深睡大师、X系列、屁屁面膜、小桃裤、小龙裤和小黑洞；每个核心召回任务只显示执行表实际分配的品线。\n- 选择品线后，卖点和内容切角继续按该行规划收窄；严禁跨品线借用卖点或把未分配品线硬套进切角。\n- 小森林拉拉裤可额外使用“0痕设计腰围”；该卖点严禁用于纸尿裤。\n- 个人体验不得写成普遍效果或保证。\n\n【素人AO文专项】\n- 内容方向来自“好奇T6_6PRO素人文-9月AOdemo.csv”，按消费者阶段与核心召回任务逐行绑定消费者洞察、内容demo和图片参考；不读取F列之后的未定稿链接。\n- 内容demo用于确定故事主题、人物处境和叙事角度，不等于产品事实，也不得复制demo原句。\n- 输出只能呈现真实宝妈生活语言，不得出现“召回、舆情、稳定留存、重新决策、核心任务”等内部策略词。\n- 标题20字以内；沿用单卖点、真实素人感、合规与近期稿件避重规则。\n- “从未召回/下架、检测报告、专家背书、竞品代工厂或质量问题、独家唯一”等结论没有已批准来源时禁止生成；不得伪造专家身份、报告或评论区用户。`}
+function hqAoKnowledge(){return `${HQ_KB}\n\n【好奇全品线 AO 产品边界】\n- 当前覆盖小森林纸尿裤、小森林拉拉裤、深睡大师、X系列、屁屁面膜、小桃裤、小龙裤和小黑洞；每个核心召回任务只显示执行表实际分配的品线。\n- 选择品线后，卖点和内容切角继续按该行规划收窄；严禁跨品线借用卖点或把未分配品线硬套进切角。\n- 小森林拉拉裤可额外使用“0痕设计腰围”；该卖点严禁用于纸尿裤。\n- 个人体验不得写成普遍效果或保证。\n\n【素人AO文专项】\n- 内容方向来自“好奇T6_6PRO素人文-9月AOdemo.csv”，按消费者阶段与核心召回任务逐行绑定消费者洞察、内容demo和图片参考；不读取F列之后的未定稿链接。\n- 内容demo用于确定故事主题、人物处境和叙事角度，不等于产品事实，也不得复制demo原句。\n- 输出只能呈现真实宝妈生活语言，不得出现“舆情、稳定留存、重新决策、核心任务”等内部策略词。\n- 标题20字以内；沿用单卖点、真实素人感、合规与近期稿件避重规则。\n- 仅当所选内容demo要求核查品牌过往产品记录时，按已确认规划口径同时传达“没有产品召回记录”和“没有产品下架记录”两层语义；必须结合人物动作重新组织表达，禁止复制页面标签或固定句式，也不得扩展成绝对安全结论。其他切角不得自行带入。检测报告、专家背书、竞品代工厂或质量问题、独家唯一等结论没有已批准来源时禁止生成；不得伪造专家身份、报告或评论区用户。`}
 function hfRules(){return HQ_CONTENT_MODE==='ao'?HQ_AO_DIRECTION_RULES:HQ_DIRECTION_RULES}
 function hfKnowledge(){return (HQ_CONTENT_MODE==='ao'&&!HF.customDirection?hqAoKnowledge():HQ_KB)+hfLiveContext()}
 function hfDisplayKnowledge(){const base=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?`${HQ_KB}\n\n【好奇全品线产品边界】\n- 当前支持小森林纸尿裤、小森林拉拉裤、深睡大师、X系列、屁屁面膜、小桃裤、小龙裤和小黑洞。\n- 页面按执行表逐级过滤核心任务、品线、唯一卖点和内容切角；产品表达仅使用所选品线已确认事实。\n- 小森林拉拉裤可使用“0痕设计腰围”；纸尿裤不得使用该卖点。\n- 个人体验不得写成普遍效果或保证。`:HQ_KB,confirmed=(HQ_LIVE.confirmed||[]).filter(x=>x.status==='active'&&(x.scope==='both'||x.scope===HQ_CONTENT_MODE));return confirmed.length?`${base}\n\n【团队已确认动态规则】\n${confirmed.map((x,i)=>`${i+1}. [${hfLiveCategoryLabel(x.category)}] ${x.instruction}`).join('\n')}`:base}
@@ -2399,10 +2424,11 @@ function hfCompactProductContext(product,point){
 }
 function hfModeName(){return HQ_CONTENT_MODE==='ao'?'好奇全品线 · 素人AO文':'好奇全品线 · 舆情文'}
 // === 2026-09-01 AO自然融合优化 START ===
-function hfAoPrompt(rule,angleLabel=HF.angle){
+function hfAoPrompt(rule,angleLabel=HF.angle,point=null,product=HF.product){
   if(HQ_CONTENT_MODE!=='ao'||!rule)return'';
   const brief=hfAoNaturalBrief(rule),angle=hfAoAngle(rule,angleLabel);if(!brief||!angle)return'';
-  return `\n\n【本次AO内部创作简报｜选题直接来自规划表内容demo】\n- 宝妈当前状态：${brief.psychology}\n- 本篇所选内容demo：${angle.label}\n- 自然化与合规处理：${angle.naturalCue||'保持该demo的核心事件与选择逻辑，用自然生活语言完整展开。'}\n- 最终态度落点：${brief.outcome}\n\n写作前请在内部先连成一条短因果线：一个必要动作触发 → 产品自然进入 → 一个使用观察支持选择 → 停在个人决定或当下动作。不要输出这条分析。\n\n融合边界：\n1. 必须保留所选内容demo的核心选题、上述心理状态和态度落点；不得另起故事，也不得混入本行其他demo。\n2. demo里的地点、包装、照片、订单、相册、家人等只在该选题需要时使用，不要为了逐项对应而机械堆入正文。\n3. 只补足一个必要动作和一句当下反应，不得在产品前连续解释育儿观念、选择标准或心理转变；产品最迟在正文前45%自然出现。\n4. 唯一卖点必须成为故事原有选择的一个生活依据：由前文动作或心理自然引出，说完立即回到当下反应；禁止另起一段突然宣布“我更看重/我选择它是因为/它的优势是”。\n5. 核心任务只校准最后态度，不得直接写成品牌结论；成稿不得出现消费者阶段、核心任务、内容demo、召回策略等内部词。\n6. 原表涉及召回/下架、检测、专家、工厂、竞品质量、独家唯一或效果结论时，严格执行本切角的合规处理；没有知识库依据的事实一律不写。`;
+  const writingAngle=hfAoWritingAngleLabel(rule,angleLabel),pointBridge=point?`\n- 本篇唯一卖点：${point.label}\n- 切角与卖点的连接方式：先发生“${writingAngle}”对应的生活事件，再通过一个与好奇${product}有关的真实动作或观察自然带出该卖点；卖点只能作为这次选择的生活依据，不能另起规格介绍。${hfAoPointCue(point)}`:'',claimContract=hfAoClaimContract(angle);
+  return `\n\n【本次AO内部创作简报｜选题来自规划表，禁止复制页面标签】\n- 宝妈当前状态：${brief.psychology}\n- 本篇选题语义：${writingAngle}\n- 自然化与合规处理：${angle.naturalCue||'保持该选题的核心事件与选择逻辑，用自然生活语言完整展开。'}\n- 最终态度落点：${brief.outcome}${pointBridge}${claimContract}\n\n写作前请在内部先连成一条短因果线：所选切角事件触发 → 产品通过动作自然进入 → 所选卖点解释这个动作或选择 → 回到人物当下反应与决定。不要输出这条分析。\n\n融合边界：\n1. 必须保留所选内容demo的核心选题、上述心理状态和态度落点；不得另起故事，也不得混入本行其他demo。\n2. demo里的地点、包装、照片、订单、相册、家人等只在该选题需要时使用，不要为了逐项对应而机械堆入正文。\n3. 只补足一个必要动作和一句当下反应，不得在产品前连续解释育儿观念、选择标准或心理转变；产品最迟在正文前45%自然出现。\n4. 唯一卖点必须回答“为什么这个切角中的人物会继续这次选择”，并与前一句动作、后一句反应形成因果；禁止把卖点写成可拆走的规格句，禁止另起一段突然宣布“我更看重/我选择它是因为/它的优势是”。\n5. 核心任务只校准最后态度，不得直接写成未经确认的品牌结论；本切角另有核心信息合同时，必须原意执行该合同。成稿不得出现消费者阶段、核心任务、内容demo、召回策略等内部词。\n6. 原表涉及召回/下架、检测、专家、工厂、竞品质量、独家唯一或效果结论时，严格执行本切角的合规处理；没有知识库依据的事实一律不写。`;
 }
 function hfAoPointCue(point){
   const cues={
@@ -2446,51 +2472,48 @@ const HQ_FORMS = {
 
 const HQ_KB = `【好奇全系列素人内容知识库】
 
-■ 1. 数据与事实来源
-- 研究底稿：65个唯一飞书链接的本地正文快照；42篇已发布、3篇待发布、2篇待二审、7篇待审核、11篇空白。
-- 方向分布：44篇强品口碑向、11篇其他产品口碑、10篇真实体验；网站统一命名为“真实场景”。
-- 品线分布：小森林31、深睡大师13、小桃裤6、小黑洞6、X系列4、小龙裤3、屁屁面膜2。
-- 评论与修订区共抽取495行，用于归纳删改偏好；不把每一行当成独立客户结论。
-- 最新用户确认高于历史稿；历史中与当前边界冲突的内容只用于审核拦截。
+■ 1. 知识优先级
+- 已确认产品事实与合规边界 > 当前任务卡 > 用户表达要求与参考稿 > 历史内容方向。
+- 当前任务可以改变选题、人物、场景、篇幅和卖点组合，但不能把未经确认的信息改写成产品事实或覆盖合规红线。
+- 用户补充信息默认只对当前稿件生效；只有人工明确确认写入知识库后，才成为长期规则。
+- 内容方向以本次需求为准；内容模板只在主动选择时使用。
 
-■ 2. 七品线产品事实与边界
-【小森林】面层安全，但禁止写低敏；可写透气、便便兜、柔软、胖宝宝穿着不勒。“穿了不红屁屁”只允许写成妈妈个人使用体验，不得保证效果。
-【深睡大师】第一卖点防漏，可写挡屎条；可出现午睡、入睡等普通睡觉动作，但禁止晚上、夜里、夜间、过夜、一整夜、整晚、到天亮、长时不换等场景。
-【X系列】可写能吸、越吸越快、物理隔菌、不滋生细菌、清爽、尿便分区、吸量大。
-【屁屁面膜】可写自带护臀精华、用了不用抹护臀霜、尿便分区、吸量大；不得扩写治疗或医学效果。
-【小桃裤】可写透气散热、专门适合汗宝、柔软、胖宝宝穿着不勒、便便兜。“穿了不红屁屁”只允许作为个人体验。
-【小龙裤】可写摸上去柔软、穿着透气、便便兜。
-【小黑洞】独立品线；主卖点速吸，也可调用一个通用卖点；不得借用X系列的物理隔菌、不滋生细菌、尿便分区等事实。
+■ 2. 产品事实与边界
+【小森林】主线为面层安全；可写面层柔软细腻、天然纤维、透气、只兜软便的便便兜、新包装魔术贴袋口密封防潮。“不红屁屁”只能写个人体验。禁写防漏、兜尿、吸量、反渗、睡整觉和夜晚词。
+【X系列】可写X超导芯吸得快、干爽不闷不潮、物理隔菌、0.8D超细纤维、专利挡屎条便便兜、0痕腰围、0添加真温和、吸后仍透气。禁写杀菌或抗菌强宣称；透气提升数字必须模糊化；新品不得写长期使用多年。
+【深睡大师】可写大吸量、防漏、睡得安稳或睡整觉、腰围弹性不勒。只能写睡觉、睡眠、整觉，禁写夜用、晚上、夜里、夜间、夜晚。
+【小黑洞】可写速干不反渗、弱酸亲肤表层、轻薄透气柔软、防漏隔边宽、海量吸收；吸收数字必须模糊化。
+【小桃裤】核心为透气不闷汗；可写薄、轻提吸收防漏、干爽不闷红。禁写大吸量、睡整觉等其他品线卖点。
+【屁屁面膜】可写4道护臀乳、尿便分区和加宽便便兜、0.6D极细纤维、反重力吸收芯、第二代泡泡腰贴仅NB／S码、升级安心封口贴、0人手接触产线、查三代和多道检测。“1包3支次抛／1天1支”不得用于素人文。
+【小龙裤】继续保留；当前仅可写摸上去柔软、穿着透气、便便兜，不自行补充其他事实。
 
-■ 3. 三方向开放范围
-【强品口碑】只开放小森林、深睡大师、X系列、屁屁面膜；120—170字，2—3段；稍侧重卖点但情绪淡。
-【其他产品口碑】七品线全部开放；100—150字，2段为主；轻卖点、混脸熟，冷门品线自然露出。
-【真实场景】七品线全部开放；140—200字，2—3段；更重场景和体验，产品进入最晚。
+■ 3. 早产儿产品线
+- 仅当用户明确要求早产儿、NICU或公益相关内容时调用，普通好奇稿件不主动带入。
+- 已确认可用事实：2009年在美国推出早产儿纸尿裤；2025年联合儿童医研开发NICU中国专属款；产品只捐不卖，累计捐赠76万片；2025年11月16日向上海儿童医学中心捐赠50万片。
+- 可确认事实不足或资料存在冲突时，审核环节提示用户补充，不猜测、不拼接不同版本数字。
+- 人设只能写本人刷到内容或看到报道，不虚构亲友受邀、探访或亲历。
 
-■ 4. 统一创作规则
-- 素人妈妈第一人称；标题平实不激进，标题禁止出现“好奇”，允许出现品线名。
-- 单卖点是所有方向、所有品线的统一硬规则：每篇必须由写手从该品线已确认卖点按钮中选择唯一一项，并且只用一句话带过。
-- 除所选唯一卖点外，其他产品事实即使本身正确，本篇也禁止出现；同一卖点不得在第二句话重复、解释或换词再讲一次。
-- 生成与重写完成后执行本地单卖点检查；出现第二卖点、遗漏所选卖点或卖点跨句展开时直接拦截，不作为成稿展示。
-- 未提供参考稿时，各方向正文硬上限200字；提供参考稿时，以参考正文的长度区间和段落结构为准，允许超过200字。
-- 操作顺序固定为“先选内容方向 → 再选该方向允许的产品 → 选择本篇唯一卖点 → 最后选内容切角”。
-- 先写真实可观察动作，再写有限体感；不虚构宝宝病症、数据、购买价格、人物对白或效果。
-- Tag使用：#纸尿裤哪个安全 #安全的纸尿裤 #什么纸尿裤安全 #好奇纸尿裤 #好奇 #好奇[品线名]，再补1—2个母婴相关Tag。
-- 历史原文短摘录仅供知识库核验，禁止注入生成提示、禁止复制历史标题、完整句子、连续表达或人物经历。
-- 生成后必须与65篇历史全文的不可逆本地指纹逐篇比对；历史稿只用于避重，不得反向新增事实或直接提供可复制句子。
+■ 4. 统一写作规则
+- 一篇只走一条因果链：一个触发场景 → 一个选择或动作 → 一个生活体感 → 一个当下决定。减少心理戏、跳跃转折和无关铺垫。
+- 默认只写本人和宝宝；不得虚构亲友、同事、宝妈群、月嫂、工厂探访或人物对白。只有当前任务明确要求且不与事实边界冲突时，才使用额外人物或场景。
+- 参数必须转化成可感知的生活体验，卖点句后立即回到动作或观察；禁止连续规格句和卖点罗列。
+- 默认一个核心卖点且只用一句话；仅当前任务明确要求时可增加一个辅助卖点，两者仍须服务同一条因果链。
+- 标题以15字内为目标，18字为硬上限；必须从正文真实内容提炼。人物或明星任务按任务要求在正文与标题中出现人物名。
+- 有参考稿时，保持正文的字数、段数、内容重点、段落功能和推进顺序相近，但标题、句式骨架、措辞、场景细节必须重新表达，禁止只换产品名、卖点或同义词。
+- 三条评论必须承接正文，分别从相似经历、轻微感叹、个人习惯等不同角度自然接话；不得复述正文、互相改写、提出建议或呈现水军口吻。
+- 标题、正文和评论使用中文全角标点。
+- 同批及近期稿件须同时变化开头、推进顺序、机理表达、产品进入动作、段落节奏、收尾和评论角度。
+- 禁止绝对功效、保证性话术、实验情节、嗅觉细节、营销热词和未经确认的精确数据。
 
-■ 5. 客户修改规律
-- 同批标题和收尾要变化，不能反复写同一句“换回/不折腾”。
-- 删除重复对白和冗长心理过程，保留触发、动作和决定。
-- 产品出现过多、卖点展开过长时，优先压缩为一句。
-- 篇幅过长时先删第二卖点、重复感受、无关人物铺垫和广告式结论。
-- 客户否定过的强品牌话、强安利、品牌普遍结论进入审核拦截。
+■ 5. 内容方向管理
+- 当前任务卡决定本次活动、内容重点、必须出现和禁止出现的信息、有效期、标题／评论／Tag要求及篇幅。
+- 本次需求完成后清空；持续方向必须经人工确认后保存。内容模板只在主动选择时使用。
+- 生成、审核、局部重写和全文重写使用同一份产品知识、任务卡和参考稿快照，防止重写后方向漂移。
 
-■ 6. 审核与重写
-- 无客户反馈：完整检查方向、品线、切角、字数、单卖点、标题、Tag及合规边界。
-- 有客户反馈：先定位受影响的标题、段落、事实和卖点；局部重写只改必要部分，其余逐字保留。
-- 方向/品线选错、事实根基错误、结构整体失效或用户明确要求时，才进行全文重写。
-- 人工评分与人工改稿继续本地保存；不会因为保存过一次就自动升级为产品事实。`;
+■ 6. 审核与回流
+- 能自动修正的事实、格式、标题、标点、相似度和评论问题在交付前直接修正，不把错误稿当成最终结果。
+- 局部反馈只改命中位置及必要衔接；全文重写须同时解决全部审核问题，但不得改变已确认产品事实。
+- 数据回流和人工补充默认形成待验证经验；只有人工明确确认写入知识库，才成为长期知识。`;
 
 const HQ_SOURCE_EVIDENCE_TEXT = `【65篇原文证据（仅查看，禁止用于生成）】
 说明：以下短摘录只证明系统确实读过原文及客户修订，不进入文案生成或重写提示词。
@@ -2577,22 +2600,24 @@ const HQ_MATERIAL_LIBRARY = `【好奇全系列可生成素材库 v3.0】
 const HQ_WRITE_SYS = `你是好奇品牌全系列的素人妈妈内容创作专家。
 
 【最高优先级】
-1. 只使用知识库已确认的产品事实；每篇只选一个卖点，只用一句话带过。
-2. 严格执行内容方向＋品线＋切角的联动配置和方向对应字数区间，全文不得超过200字。本项目不区分报备/非报备，不设置目标人群或内容形式分类。
-3. 标题平实不激进，标题禁止出现“好奇”，允许出现品线名。
-4. 素人妈妈第一人称，场景与可观察动作优先，不虚构具体病症、数据、价格、人物对白或保证性效果。
-5. 禁止低敏、敏宝、低敏天花板、森命力、森呼吸等旧版表达。
-6. 历史定稿原句证据未注入本提示。用户提供参考原文时，可参考其人物关系、生活事件、内容重点、表达方式、段落功能、长度和节奏；但标题和每句话必须重新表达，禁止复制完整句子、连续短语或句式骨架。
-7. 一次输出标题、正文、Tag和三条20—30字评论。三条评论全部来自自然刷到笔记的宝妈，不添加“二胎妈妈、高知妈妈、理工爸爸”等身份标签或自报人设；像评论区顺手接话，可分享相似经历、轻微感叹或使用习惯，不能复述正文、分析作者选择、提出建议、互相改写或使用固定捧场话术。
-8. 网页会提供本次内容切角或差异化蓝图。必须服从它规定的故事母题、标题功能、产品进入方式和收尾功能，但绝不改变产品事实、唯一卖点与合规边界。
-9. 不得在正文或评论里解释写作策略。禁止使用“没有特意/没有刻意/没有逐项比较/只记录/不下结论/不扩展其他功能/品线不是开场”等自证自然或暴露规则的说法。
-10. 动作只保留真实场景必需的一两个，不得为了显得生活化而把纸巾、垫子、衣物、纸尿裤逐样摆放、依次准备或逐步收回。
+1. 只使用知识库已确认的产品事实。当前任务、特殊要求和参考稿可以改变内容方向，但不能覆盖产品事实或合规边界。
+2. 默认只选一个核心卖点并用一句话自然带过；仅当前任务明确要求时允许一个辅助卖点，且两者必须服务同一条因果链，禁止连续罗列。
+3. 有参考稿时跟随其有效正文的字数、段数、内容重点、段落功能和推进顺序；无参考稿时使用当前任务或默认区间。
+4. 标题平实不激进，以15字内为目标、18字为硬上限；标题禁止出现“好奇”，允许出现品线名。
+5. 素人妈妈第一人称，默认只写本人和宝宝。除非当前任务明确要求，否则禁止虚构亲友、同事、宝妈群、月嫂、工厂探访、具体病症、数据、价格或人物对白。
+6. 禁止低敏、敏宝、低敏天花板、森命力、森呼吸等旧版表达。
+7. 历史定稿原句证据未注入本提示。用户提供参考原文时，可参考其人物关系、生活事件、内容重点、表达方式、段落功能、长度和节奏；但标题和每句话必须重新表达，禁止复制完整句子、连续短语或句式骨架。
+8. 一次输出标题、正文、Tag和三条20—30字评论。评论必须承接正文，并从相似经历、轻微感叹、个人习惯三个不同角度自然接话；不添加身份标签，不复述正文、分析作者选择、提出建议、互相改写或使用固定捧场话术。
+9. 网页会提供本次内容切角或差异化蓝图。必须服从它规定的故事母题、标题功能、产品进入方式和收尾功能，但绝不改变产品事实、唯一卖点与合规边界。
+10. 不得在正文或评论里解释写作策略。禁止使用“没有特意/没有刻意/没有逐项比较/只记录/不下结论/不扩展其他功能/品线不是开场”等自证自然或暴露规则的说法。
+11. 动作只保留真实场景必需的一两个，不得为了显得生活化而把纸巾、垫子、衣物、纸尿裤逐样摆放、依次准备或逐步收回。
+12. 标题、正文和评论使用中文全角标点；英文、数字、小数点和合法链接内部符号除外。
 
 【写作节奏】
-- 第一段只建立一个真实场景或动作，用一两句话说清触发点；不连续解释背景、育儿观念或选择标准。
+- 全文只走一条因果链：一个触发场景 → 一个选择或动作 → 一个生活体感 → 一个当下决定。第一段只建立一个真实场景或动作，不连续解释背景、育儿观念或选择标准。
 - 产品最迟在正文前45%自然出现，不把“为什么关注、为什么比较、为什么改变”拆成多层铺垫。
 - 产品按照所选方向规定的位置进入。
-- 一个卖点句之后立即回到妈妈的使用观察或个人决定。
+- 所有参数都先翻译成生活动作或可观察体感；一个卖点句之后立即回到妈妈的使用观察或个人决定。
 - 不写强安利、购买号召、竞品攻击或品牌普遍结论。
 
 【生活化口语】
@@ -2608,22 +2633,25 @@ const HQ_REVIEW_SYS_AO = `【好奇全系列专项核错规则】
 
 ▌ 产品事实与品线边界
 - 检查是否使用未确认卖点、串用其他品线事实或写出禁用边界。
-- 全文超过一个卖点、出现未选卖点，或所选卖点超过一句：直接判定不合格；重写稿必须通过网页本地单卖点检查。
+- 默认全文只允许一个核心卖点且只用一句话；只有当前任务明确要求时才允许一个辅助卖点，两者必须服务同一条因果链且不得连续罗列。
 - 检查“不红屁屁”是否被写成保证而非妈妈个人体验。
 
-▌ 方向/品线/切角联动
-- 强品口碑不得出现小桃裤、小龙裤或小黑洞。
-- 检查字数区间、产品进入位置和切角是否符合方向。
-- AO稿必须继承内部创作简报的心理状态、唯一故事母题和态度落点，但不得逐项复述规划表载体；若把demo名词依次拼进正文，或另起一段生硬介绍卖点，判定不合格。
+▌ 本次需求与内容模板
+- 本次需求决定当前内容方向；内容模板只在用户主动选择时生效，不得用模板否定新的临时需求。
+- 检查字数、段数、内容重点、产品进入位置和切角是否符合当前任务；有参考稿时以参考稿有效正文为结构依据。
+- 生成、审核和重写必须沿用同一任务快照，不得在重写时切回旧AO方向。
 
 ▌ 真实感与客户偏好
 - 检查开篇即推产品、重复产品名、堆功效、强品牌宣言、冗长人物对白。
-- 检查是否缺少具体动作或可观察体验。
+- 检查全文是否只走一条因果链，是否存在心理戏过多、跳跃转折或新的无关痛点。
+- 默认人物只能是本人和宝宝；若当前任务没有明确要求，亲友、同事、群聊、月嫂或探厂经历均属于虚构风险。
+- 参数必须转化成生活动作和可观察体感；连续规格句或逐项罗列卖点判定不合格。
 
 ▌ 标题、Tag与评论
-- 检查标题出现“好奇”、过度激进或堆卖点。
+- 检查标题出现“好奇”、超过18字、过度激进、堆卖点或没有正文依据。
 - 检查必需Tag是否缺失。
-- 完整稿必须包含三条20—30字评论；评论全部是自然刷到笔记的宝妈，不得标注身份人设。评论应像顺手接话，可说相似经历、轻微感叹或自己的使用习惯；不得分析作者选择、提出建议、复述正文、互相改写或套用固定捧场话术。
+- 完整稿必须包含三条20—30字评论；三条分别从不同角度承接正文，不得标注身份人设、分析作者选择、提出建议、复述正文、互相改写或套用固定捧场话术。
+- 标题、正文和评论使用中文全角标点。
 
 ▌ 自然表达（硬性门槛）
 - 出现自证自然、解释写法、逐项摆放道具、为了完整而补动作、模板式克制收束或系统规则泄漏：不合格。
@@ -2632,6 +2660,7 @@ const HQ_REVIEW_SYS_AO = `【好奇全系列专项核错规则】
 ▌ 原创与历史隔离
 - 疑似复制历史标题、完整句子、连续表达或人物经历：不合格并要求重新表达。
 - 网页本地65篇全文指纹检查命中连续表达、标题或正文高相似：必须定位并改写对应句子或结构；不得为了避重改动已确认产品事实。
+- 同批及近期内容必须同时检查开头、推进顺序、机理表达、产品进入、收尾与评论角度，不能只替换同义词。
 
 【两条审核路径】
 - 无客户反馈：完整审核全部维度，只输出审核报告，之后由写手选择修改路径。
@@ -2718,6 +2747,13 @@ const BRAND_CONFIG = {
     products:[{value:'时光片Pro',label:'拜耳时光片Pro'}],
     hasTypeToggle:false, hasAdToggle:false, refRequired:false,
     kb:()=>BAYER_KB, writeSys:()=>'', reviewSys:()=>'', dirSubs:()=>({}),
+    sharedLibrary:()=>[], sharedPatterns:()=>''
+  },
+  sheyan: {
+    name:'她研社', prefix:'sheyan_fullfamily',
+    products:[{value:'全家福合集',label:'她研社全家福合集'}],
+    hasTypeToggle:false, hasAdToggle:false, refRequired:false,
+    kb:()=>SHEYAN_KB, writeSys:()=>SHEYAN_WRITE_SYS, reviewSys:()=>SHEYAN_REVIEW_SYS, dirSubs:()=>({}),
     sharedLibrary:()=>[], sharedPatterns:()=>''
   }
 };
@@ -2833,21 +2869,21 @@ const WORKFLOW_META={analyze:{name:'爆文拆解',icon:'🔥'},generate:{name:'�
 let ACTIVE_WORKFLOW='';
 function showWorkflowHome(){document.getElementById('workflow-home').style.display='block';document.getElementById('workflow-brand-step').style.display='none';}
 function chooseWorkflow(kind){
-  ACTIVE_WORKFLOW=kind;const names={kotex:'高洁丝',kangwang:'康王',haoqi:'好奇',xiahu:'霞湖世家',bayer:'拜耳'};
-  const supported=kind==='loop'?['haoqi','bayer']:Object.keys(names),grid=document.getElementById('workflow-brand-grid');
+  ACTIVE_WORKFLOW=kind;const names={kotex:'高洁丝',kangwang:'康王',haoqi:'好奇',xiahu:'霞湖世家',bayer:'拜耳',sheyan:'她研社'};
+  const supported=kind==='loop'?['haoqi','bayer','sheyan']:(kind==='analyze'?['kotex','kangwang','haoqi','xiahu','bayer']:Object.keys(names)),grid=document.getElementById('workflow-brand-grid');
   document.getElementById('workflow-step-title').textContent='选择品牌';grid.innerHTML=Object.entries(names).map(([id,name])=>`<button class="workflow-card" ${supported.includes(id)?`onclick="chooseWorkflowBrand('${id}')"`:'disabled style="opacity:.42;cursor:not-allowed"'}><h3>${name}</h3><p>${supported.includes(id)?'进入对应品牌工作台':'暂未接入数据回流'}</p></button>`).join('');
   document.getElementById('workflow-brand-step').style.display='block';document.getElementById('workflow-brand-step').scrollIntoView({behavior:'smooth'});
 }
 function chooseWorkflowBrand(brand){
   switchBrand(brand);if(brand==='haoqi'){
     document.getElementById('workflow-step-title').textContent='选择好奇内容类型';
-    document.getElementById('workflow-brand-grid').innerHTML=`<button class="workflow-card" onclick="chooseHqWorkflowMode('ao')"><h3>全品线 · 素人AO文</h3><p>按消费者状态与内容方向生成真实宝妈分享。</p></button><button class="workflow-card" onclick="chooseHqWorkflowMode('opinion')"><h3>全品线 · 舆情文</h3><p>结合产品知识与舆情内容规律生成。</p></button><button class="workflow-card" onclick="chooseHqWorkflowMode('legacy')"><h3>小森林问一问</h3><p>进入原有小森林专项工作台。</p></button>`;return;
+    document.getElementById('workflow-brand-grid').innerHTML=`<button class="workflow-card" onclick="chooseHqWorkflowMode('ao')"><h3>全品线 · 素人AO文</h3><p>按本次需求与产品知识生成真实宝妈分享。</p></button><button class="workflow-card" onclick="chooseHqWorkflowMode('opinion')"><h3>全品线 · 舆情文</h3><p>结合产品知识与舆情内容规律生成。</p></button><button class="workflow-card" onclick="chooseHqWorkflowMode('legacy')"><h3>小森林问一问</h3><p>进入小森林专项工作台。</p></button>`;return;
   }
   routeWorkflow();
 }
 function chooseHqWorkflowMode(mode){if(mode==='legacy'){switchHqMode('legacy');routeWorkflow();return;}chooseHqContentMode(mode);routeWorkflow();}
 function chooseHqContentMode(mode){
-  if(!['ao','opinion'].includes(mode))return;if(HQ_CONTENT_MODE!==mode){hfSaveState?.();HQ_CONTENT_MODE=mode;Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});_hfArchiveReady=false;const host=document.getElementById('hq-full-host');if(host){host.dataset.ready='';host.innerHTML='';}}
+  if(!['ao','opinion'].includes(mode))return;if(HQ_CONTENT_MODE!==mode){hfSaveState?.();HQ_CONTENT_MODE=mode;Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:mode==='ao',product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});_hfArchiveReady=false;const host=document.getElementById('hq-full-host');if(host){host.dataset.ready='';host.innerHTML='';}}
   if(HQ_MODE!=='full')switchHqMode('full');else{updateHqModeButtons();loadHqFullModule();routeWorkflow();}
   toast(`已进入${hfModeName()} ✓`,1600);
 }
@@ -2856,6 +2892,7 @@ function routeWorkflow(){
   if(S.brand==='haoqi'&&HQ_MODE==='full')hfNavigate({analyze:'trends',generate:'generate',review:'review',loop:'loop'}[kind]);
   else if(S.brand==='bayer')bayerNavigate({analyze:'trends',generate:'generate',review:'review',loop:'loop'}[kind]);
   else if(S.brand==='xiahu')xiahuNavigate({analyze:'refs',generate:'generate',review:'review'}[kind]||'refs');
+  else if(S.brand==='sheyan')syNavigate({generate:'generate',review:'review',loop:'loop'}[kind]||'kb');
   else{navigate('studio');selectAgent({analyze:'analyze',generate:'copywrite',review:'review'}[kind]||'analyze');}
   document.getElementById('workflow-home').style.display='none';
   const label=document.getElementById('workflow-context-label');if(label)label.textContent=`${WORKFLOW_META[kind].icon} ${WORKFLOW_META[kind].name} / ${BRAND_CONFIG[S.brand].name}${S.brand==='haoqi'&&HQ_MODE==='full'?' / '+hfModeName():''}`;
@@ -2893,6 +2930,7 @@ window.onload = () => {
   updateBrandUI();
   if(S.brand==='xiahu') loadXiahuModule();
   if(S.brand==='bayer') loadBayerModule();
+  if(S.brand==='sheyan') loadSheyanModule();
   if(S.batchResults.length){
     buildBatchTable(S.batchResults);
     document.getElementById('batch-result').style.display='';
@@ -3031,6 +3069,11 @@ function switchBrand(brandId){
     toast('已切换到霞湖世家 ✓',1500);
     return;
   }
+  if(brandId==='sheyan'){
+    loadSheyanModule();
+    toast('已切换到她研社全家福 ✓',1500);
+    return;
+  }
   if(!COMMON_BRAND_IDS.has(brandId))throw new Error(`品牌 ${next.name} 尚未接入公共工作台`);
   navigate('studio');
   selectAgent(null);
@@ -3055,13 +3098,15 @@ function updateBrandUI(){
     b.classList.toggle('active',b.dataset.brand===S.brand));
   const isXiahu=S.brand==='xiahu';
   const isBayer=S.brand==='bayer';
+  const isSheyan=S.brand==='sheyan';
   const isHq=S.brand==='haoqi';
   const isHqChoosing=isHq&&!HQ_MODE;
   const isHqFull=isHq&&HQ_MODE==='full';
-  const isSpecial=isXiahu||isBayer||isHqFull;
+  const isSpecial=isXiahu||isBayer||isSheyan||isHqFull;
   document.getElementById('common-sidebar-nav').style.display=(isSpecial||isHqChoosing)?'none':'';
   document.getElementById('xiahu-sidebar-nav').style.display=isXiahu?'':'none';
   document.getElementById('bayer-sidebar-nav').style.display=isBayer?'':'none';
+  document.getElementById('sheyan-sidebar-nav').style.display=isSheyan?'':'none';
   const hfNav=document.getElementById('hq-full-sidebar-nav');if(hfNav)hfNav.style.display=isHqFull?'':'none';
   const hqSwitcher=document.getElementById('hq-mode-switcher');if(hqSwitcher)hqSwitcher.style.display=isHq?'':'none';
   updateHqModeButtons();
@@ -3074,11 +3119,14 @@ function updateBrandUI(){
   const byHost=document.getElementById('bayer-host');
   const lcHost=document.getElementById('bayer-liquid-host');
   const hbHost=document.getElementById('bayer-heart-host');
+  const syHost=document.getElementById('sheyan-host');
   if(byHost) byHost.style.display=isBayer&&BAYER_PRODUCT==='timepro'?'':'none';
   if(lcHost) lcHost.style.display=isBayer&&BAYER_PRODUCT==='liquid'?'':'none';
   if(hbHost) hbHost.style.display=isBayer&&BAYER_PRODUCT==='heart'?'':'none';
+  if(syHost) syHost.style.display=isSheyan?'':'none';
   updateBayerProductButtons();
   if(isBayer){loadBayerProduct();return;}
+  if(isSheyan){loadSheyanModule();return;}
   if(isHqFull){loadHqFullModule();return;}
   if(isXiahu||isHqChoosing)return;
   const ui=commonBrandUi();
@@ -5981,11 +6029,13 @@ function hqLocalAudit(copy,cfg,ref=''){
   const refSpec=HQ_CONTENT_MODE==='ao'&&ref?hfParseReference(ref):null,minChars=cfg.explicitLength?.min??(refSpec?.bodyChars?refSpec.minChars:cfg.rule.range[0]),maxChars=cfg.explicitLength?.max??(refSpec?.bodyChars?refSpec.maxChars:cfg.rule.range[1]);
   if(bodyCount<minChars||bodyCount>maxChars)issues.push(`正文约${bodyCount}字，不在${minChars}—${maxChars}字区间`);
   const title=(String(copy).match(/标题[：:]\s*([^\n]+)/)||[])[1]||String(copy).split('\n')[0]||'';
-  if(Array.from(title.replace(/^标题[：:]\s*/,'' ).trim()).length>20)issues.push('标题超过20字');
+  if(Array.from(title.replace(/^标题[：:]\s*/,'' ).trim()).length>18)issues.push('标题超过18字');
   if(title.includes('好奇'))issues.push('标题出现“好奇”');
   if(!hqTitleFollowsBody(copy))issues.push('标题必须只概括本篇正文真实出现的人物、场景、问题或结果');
   const globalBans=['低敏','敏宝','低敏天花板','森命力','森呼吸'];
   [...globalBans,...cfg.facts.bans,...(cfg.dynamicBans||[])].forEach(x=>{if(x&&String(copy).includes(x))issues.push(`出现禁用表达：${x}`);});
+  const personaPermission=HF.generationRequirement||hfLiveRequirementText()||'';
+  if(!/(?:允许|使用|加入|写|出现).{0,10}(?:朋友|亲友|同事|月嫂|奶奶|宝爸|探厂)/.test(personaPermission)&&/(?:我(?:朋友|同事|亲戚|婆婆|妈妈)|宝妈群|月嫂|奶奶|受邀探厂|去工厂|参观工厂)/.test(hqHistoryBody(copy)))issues.push('默认人设只能是本人和宝宝；当前任务未授权其他人物或探厂经历');
   if(cfg.direction==='强品口碑'&&!HQ_DIRECTION_RULES['强品口碑'].products.includes(cfg.product))issues.push('强品口碑使用了未开放品线');
   const risk=hqCopyRisk(copy,ref);if(risk)issues.push(`疑似复用连续表达：${risk}`);
   const historyRisk=hqHistoricalSimilarity(copy);if(historyRisk.blocked)issues.push(`与65篇历史稿相似：${historyRisk.reason}`);
@@ -6318,7 +6368,7 @@ function hqlNewSession(ai=''){return{id:Date.now(),sourceType:'ai',ai,writerInit
 function hqlPrepare(){const latest=document.getElementById('rw-text')?.innerText.trim()||document.getElementById('draft')?.value.trim()||'',s=hqlGetSession()||hqlNewSession(latest);if(!s.ai)s.ai=latest;hqlSaveSession(s);hqlRenderSession(s);}
 function hqlRenderSession(s=hqlGetSession()){if(!s)return;hqlSet('hql-human-ai',s.ai);hqlSet('hql-human-writer',s.writerInitial);hqlSet('hql-human-current',s.current);hqlSet('hql-human-final',s.writerFinal);const el=document.getElementById('hql-human-timeline');if(el)el.textContent=s.rounds?.length?s.rounds.map((r,i)=>`第${i+1}轮｜${r.time}\n反馈：${r.feedback}\n已生成下一版`).join('\n\n'):'暂无反馈轮次';}
 function hqlUseSource(kind){const s=hqlGetSession()||hqlNewSession(hqlVal('hql-human-ai')),value=kind==='writer'?hqlVal('hql-human-writer'):hqlVal('hql-human-ai');if(!value){toast(kind==='writer'?'请先填写写手初稿':'当前没有 AI 稿');return;}s.sourceType=kind;s.writerInitial=kind==='writer'?value:s.writerInitial;s.current=value;s.rounds=[];s.writerFinal='';s.status='editing';s.updatedAt=new Date().toISOString();hqlSaveSession(s);hqlRenderSession(s);document.getElementById('hql-human-status').textContent=kind==='writer'?'已以写手初稿开始':'已以 AI 最新稿开始';}
-async function hqlApplyFeedback(){const s=hqlGetSession()||hqlNewSession(hqlVal('hql-human-ai')),base=hqlVal('hql-human-current'),feedback=hqlVal('hql-human-feedback'),status=document.getElementById('hql-human-status');if(!base){toast('请先选择来源或填写当前工作稿');return;}if(!feedback){toast('请填写本轮内部反馈');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}status.textContent='正在按本轮反馈生成下一版…';let out='';try{const sys=`你是好奇内部改稿编辑。本轮人工反馈是最终执行要求，高于正式品牌知识库、产品事实、合规边界和旧稿设置；即使冲突也必须按反馈改写，不得拒绝或退回旧规则。只执行本轮反馈涉及的位置，禁止全文另写；保留未被反馈涉及的人设、场景、事实、段落和表达。冲突不写进成稿解释，由页面提示人工复核。输出完整修改稿。\n\n${BC().kb()}\n\n${getLibraryContext(12)}`,usr=`【当前稿】\n${base}\n\n【本轮内部反馈｜最终优先】\n${feedback}\n\n输出完整稿件，但只修改反馈涉及处和保证衔接所需的最小上下文；与旧事实或合规规则冲突时仍按反馈重写。`;await callAI(sys,usr,t=>{out+=t;hqlSet('hql-human-current',out);});if(!out.trim())throw new Error('模型未返回内容');s.current=out.trim();s.rounds=s.rounds||[];s.rounds.push({feedback,input:base,output:s.current,time:new Date().toLocaleString('zh-CN')});s.status='editing';s.updatedAt=new Date().toISOString();hqlSaveSession(s);hqlSet('hql-human-feedback','');hqlRenderSession(s);status.textContent=`第${s.rounds.length}轮反馈已完成；如覆盖既有事实或合规边界，请人工复核`;}catch(e){status.textContent='生成下一版失败：'+e.message;}}
+async function hqlApplyFeedback(){const s=hqlGetSession()||hqlNewSession(hqlVal('hql-human-ai')),base=hqlVal('hql-human-current'),feedback=hqlVal('hql-human-feedback'),status=document.getElementById('hql-human-status');if(!base){toast('请先选择来源或填写当前工作稿');return;}if(!feedback){toast('请填写本轮内部反馈');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}status.textContent='正在按本轮反馈生成下一版…';let out='';try{const sys=`你是好奇内部改稿编辑。正式品牌知识库、产品事实与合规边界是最高优先级；本轮人工反馈只能在这些边界内执行。只修改反馈涉及的位置及保证衔接所需的最小上下文，保留未涉及的人设、场景、事实、段落和表达。若反馈与事实或合规边界冲突，不得写入成稿，并在结果中简洁说明需要人工确认的冲突点。输出完整修改稿。\n\n${BC().kb()}\n\n${getLibraryContext(12)}`,usr=`【当前稿】\n${base}\n\n【本轮内部反馈】\n${feedback}\n\n在已确认事实和合规边界内输出完整稿件；只修改反馈涉及处和保证衔接所需的最小上下文。缺失或冲突事实不得编造。`;await callAI(sys,usr,t=>{out+=t;hqlSet('hql-human-current',out);});if(!out.trim())throw new Error('模型未返回内容');s.current=out.trim();s.rounds=s.rounds||[];s.rounds.push({feedback,input:base,output:s.current,time:new Date().toLocaleString('zh-CN')});s.status='editing';s.updatedAt=new Date().toISOString();hqlSaveSession(s);hqlSet('hql-human-feedback','');hqlRenderSession(s);status.textContent=`第${s.rounds.length}轮反馈已完成`;}catch(e){status.textContent='生成下一版失败：'+e.message;}}
 function hqlSaveFinal(){const s=hqlGetSession()||hqlNewSession(),finalText=hqlVal('hql-human-current');if(!finalText){toast('当前工作稿为空');return;}s.current=finalText;s.writerFinal=finalText;s.status='pending_confirmation';s.updatedAt=new Date().toISOString();hqlSaveSession(s);hqlRenderSession(s);document.getElementById('hql-human-status').textContent='写手终稿已保存，等待内部确认';}
 function hqlContinueFeedback(){const s=hqlGetSession();if(!s?.writerFinal){toast('请先保存写手终稿');return;}s.current=hqlVal('hql-human-final')||s.writerFinal;s.writerFinal='';s.status='editing';s.updatedAt=new Date().toISOString();hqlSaveSession(s);hqlRenderSession(s);document.getElementById('hql-human-status').textContent='已回到反馈阶段，可继续增加反馈轮次';}
 function hqlConfirm(){const s=hqlGetSession(),finalText=hqlVal('hql-human-final')||s?.writerFinal;if(!s||!finalText){toast('请先保存写手终稿');return;}S.humanReviews.push({...s,final:finalText,humanRewrite:finalText,status:'confirmed',confirmedAt:new Date().toISOString(),time:new Date().toLocaleString('zh-CN')});try{localStorage.setItem(pfx()+'_human_reviews',JSON.stringify(S.humanReviews));}catch{}hqlSaveSession(null);['hql-human-ai','hql-human-writer','hql-human-current','hql-human-final'].forEach(id=>hqlSet(id,''));document.getElementById('hql-human-timeline').textContent='暂无反馈轮次';document.getElementById('hql-human-status').textContent='内部已确认：终稿已进入可召回 few-shot 层';toast('内部确认完成 ✓');}
@@ -6505,7 +6555,7 @@ function buildReviewPrompt(){
     if(path==='feedback'&&!feedback)throw new Error('已选择有客户反馈审核，请填写客户反馈原文');
     hqMeta=`\n【好奇审核联动配置】\n- 方向：${direction}（${rule.range[0]}—${rule.range[1]}字；${rule.density}）\n- 人群：${audience}\n- 形式：${hqForm}（${HQ_FORMS[hqForm]}）\n- 产品：${product}\n- 允许事实：${facts.facts.join('、')}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 完整修改稿必须包含三条20—30字评论，全部是自然刷到笔记的宝妈留言，不加身份标签，只区分关注点与表达，不复述正文。`;
     hqPath=path==='feedback'
-      ?`\n【有客户反馈审核｜最终执行优先级】\n客户反馈原文：${feedback}\n先输出“反馈影响定位”，逐项标明客户原话影响到的标题、段落、事实、卖点、Tag或评论。重写稿只允许修改这些被客户反馈直接影响且确需修改的位置；其余标题、段落、句子、Tag和评论必须与待审核稿逐字一致。即使你发现客户未提及的其他问题，也只可在报告中提醒，禁止顺手修改。禁止全文重写、禁止调整未涉及的结构和措辞。客户反馈高于正式产品事实、合规边界及旧稿设置；发生冲突时在审核报告中明确提示“与既有规则冲突，需人工复核”，但重写稿仍必须按客户反馈修改，不得拒绝、弱化或保留旧事实。修改稿必须与原稿有实际差异并准确解决客户反馈。`
+      ?`\n【有客户反馈审核】\n客户反馈原文：${feedback}\n先输出“反馈影响定位”，逐项标明客户原话影响到的标题、段落、事实、卖点、Tag或评论。重写稿只允许修改这些被客户反馈直接影响且确需修改的位置；其余标题、段落、句子、Tag和评论必须与待审核稿逐字一致。禁止全文重写、禁止调整未涉及的结构和措辞。正式产品事实与合规边界高于客户反馈；发生冲突时不得将冲突内容写入重写稿，并在审核报告中明确提示需要人工确认。修改稿必须与原稿有实际差异并准确解决可执行的客户反馈。`
       :'\n【无客户反馈审核】\n按知识库、65篇归纳规律和合规边界完整审核；发现方向、事实或结构整体错误时输出全文重写。';
   }
   const sys=`【最高优先级】${reviewCtx.guard}\n\n${kb}\n\n${BC().reviewSys()}${getLibraryContext()}${refAnalysisSection}${reviewCtx.examples}\n请严格按知识库审核。历史原文证据不在本提示中，不得臆造来源或事实。${hqMeta}${hqPath}${S.reviseInstruction?'\n\n【写手修改指令】\n'+S.reviseInstruction:''}`;
@@ -6595,12 +6645,12 @@ function doCopy(t){
 // 好奇全系列独立工作台（沿用拜耳六模块操作逻辑）
 // ══════════════════════════════════════════════
 function hfStoreKey(){return `hq_full_workflow_v3_${HQ_CONTENT_MODE}`}
-const HF={buildId:window.A3_BUILD_ID||'',page:'kb',stage:'',direction:'',customDirection:false,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
+const HF={buildId:window.A3_BUILD_ID||'',page:'kb',stage:'',direction:'',customDirection:true,product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],humanSession:null,loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[],generationController:null};
 const HQ_LIVE_STORAGE='a3_haoqi_live_copy_requirements_v2';
 const HQ_LIVE={workspaces:{},items:[],confirmed:[],attachments:[]};
 let HQ_LIVE_SAVE_TIMER=null;
 function hfLiveActor(){return collabActor()||{id:'local',name:'本机使用人',role:'writer'};}
-function hfLiveWorkspace(){const id=hfLiveActor().id;return HQ_LIVE.workspaces[id]||(HQ_LIVE.workspaces[id]={raw:'',draftItems:[]});}
+function hfLiveWorkspace(){const id=hfLiveActor().id,ws=HQ_LIVE.workspaces[id]||(HQ_LIVE.workspaces[id]={raw:'',preference:'',draftItems:[]});if(typeof ws.preference!=='string')ws.preference='';return ws;}
 function hfLiveLoad(){try{let saved=JSON.parse(localStorage.getItem(HQ_LIVE_STORAGE)||'{}');if(!saved.workspaces){const old=JSON.parse(localStorage.getItem('a3_haoqi_live_copy_requirements_v1')||'{}'),now=new Date().toISOString();saved={workspaces:{siyu:{raw:String(old.raw||''),draftItems:Array.isArray(old.draftItems)?old.draftItems:[]}},items:(Array.isArray(old.items)?old.items:[]).map((x,i)=>({...x,id:`legacy-${i}`,ownerId:'siyu',ownerName:'思雨',approvals:{},createdAt:x.publishedAt||now})),confirmed:[],attachments:[]};}HQ_LIVE.workspaces=saved.workspaces&&typeof saved.workspaces==='object'?saved.workspaces:{};HQ_LIVE.items=Array.isArray(saved.items)?saved.items:[];HQ_LIVE.confirmed=Array.isArray(saved.confirmed)?saved.confirmed:[];HQ_LIVE.attachments=Array.isArray(saved.attachments)?saved.attachments:[];}catch{HQ_LIVE.workspaces={};HQ_LIVE.items=[];HQ_LIVE.confirmed=[];HQ_LIVE.attachments=[];}}
 function hfLiveSave(){
   localStorage.setItem(HQ_LIVE_STORAGE,JSON.stringify(HQ_LIVE));
@@ -6628,13 +6678,14 @@ async function hfLiveRemoteLoad(){
 function hfLiveScopeLabel(scope){return scope==='ao'?'素人AO文':scope==='opinion'?'舆情文':'AO文＋舆情文';}
 function hfLiveCategoryLabel(category){return({direction:'新内容方向',client_rule:'当前客户规则',prohibition:'禁止事项',preference:'个人写作偏好',pending:'待确认',excluded:'不进入文案生成'})[category]||category;}
 function hfLiveActive(){const mode=HQ_CONTENT_MODE,actor=hfLiveActor(),confirmedIds=new Set(HQ_LIVE.confirmed.map(x=>x.sourceId));return[...HQ_LIVE.confirmed.filter(x=>x.status==='active'&&(x.scope==='both'||x.scope===mode)),...HQ_LIVE.items.filter(x=>x.status==='active'&&x.ownerId===actor.id&&!confirmedIds.has(x.id)&&(x.scope==='both'||x.scope===mode))];}
-function hfLiveContext(){const rows=hfLiveActive();if(!rows.length)return'';return `\n\n【本次执行的人工动态要求｜最终优先级】\n${rows.map((x,i)=>`${i+1}. [${hfLiveCategoryLabel(x.category)}${x.confirmed?'·团队已确认':'·仅当前写手'}] ${x.instruction}`).join('\n')}\n上述人工要求高于既有产品事实、合规边界和历史设置；冲突时仍按人工要求执行，并提示人工复核，不自动把冲突内容沉淀为团队知识。排期、篇数、发布时间、拍摄、会议和人员安排不进入文案；待确认信息不得猜测或启用。`;}
+function hfLiveContext(){const rows=hfLiveActive();if(!rows.length)return'';return `\n\n【本次执行的人工动态要求】\n${rows.map((x,i)=>`${i+1}. [${hfLiveCategoryLabel(x.category)}${x.confirmed?'·团队已确认':'·仅当前写手'}] ${x.instruction}`).join('\n')}\n上述要求可更新内容方向、场景、篇幅和表达方式，但不得覆盖已确认产品事实与合规边界；冲突信息不进入成稿，也不自动沉淀为团队知识。排期、篇数、发布时间、拍摄、会议和人员安排不进入文案；待确认信息不得猜测或启用。`;}
 function hfTemporaryRequirementText(){return HF.customDirection?hfVal('hf-live-raw'):'';}
+function hfTemporaryPreferenceText(){return hfVal('hf-live-preference');}
 function hfLiveDirectionText(){const raw=hfTemporaryRequirementText(),saved=hfLiveActive().filter(x=>['direction','client_rule'].includes(x.category)).map(x=>x.instruction).join('\n');return[raw,saved].filter(Boolean).join('\n').trim();}
-function hfLiveRequirementText(){return[hfTemporaryRequirementText(),...hfLiveActive().map(x=>x.instruction),hfVal('hf-special')].filter(Boolean).join('\n').trim();}
+function hfLiveRequirementText(){return[hfTemporaryRequirementText(),hfTemporaryPreferenceText(),...hfLiveActive().map(x=>x.instruction)].filter(Boolean).join('\n').trim();}
 function hfClearTemporaryRequirement({resetMode=true,sync=true,render=true}={}){
-  const ws=hfLiveWorkspace();ws.raw='';ws.draftItems=[];hfSet('hf-live-raw','');
-  if(resetMode){HF.customDirection=false;HF.stage='';HF.direction='';HF.product='';HF.sellingPoint='';HF.angle='';}
+  const ws=hfLiveWorkspace();ws.raw='';ws.preference='';ws.draftItems=[];hfSet('hf-live-raw','');hfSet('hf-live-preference','');
+  if(resetMode){HF.customDirection=HQ_CONTENT_MODE==='ao';HF.stage='';HF.direction='';HF.product='';HF.sellingPoint='';HF.angle='';}
   if(sync)hfLiveSave();
   if(render){hfLiveRender();hfRenderDirections();hfUpdateSelection();}
   hfSaveState();
@@ -6648,16 +6699,16 @@ function hfExplicitLength(text){
   return null;
 }
 function hfExplicitBans(text){const value=String(text||''),terms=[];for(const m of value.matchAll(/(?:不得|不要|禁止|避免)(?:在正文中?)?(?:使用|出现|写)?\s*[“"'‘]?([^”"'’、，。；;\s]{1,12})[”"'’]?(?:这个|一)?(?:词|表达|字眼)?/g)){const term=String(m[1]||'').replace(/^(?:使用|出现|写)/,'').trim();if(term)terms.push(term);}return[...new Set(terms)];}
-function hfLiveRenderTemporary(){const box=document.getElementById('hf-live-temporary');if(!box)return;const text=hfVal('hf-live-raw');box.innerHTML=HF.customDirection&&text?`<div class="hf-selected" style="margin-bottom:8px"><b>本次临时要求｜仅本次生成｜最终优先</b><br>${esc(text)}<br><small>如与既有产品事实或合规边界冲突，仍按本次人工要求重写，并在结果处提示人工复核；生成完成、取消或离开任务后自动清空，不会自动写入团队知识。</small></div>`:'<div class="hf-hint">只有勾选“按上方新增需求生成”时，输入框内容才用于当前一次生成；生成完成、取消或离开任务后自动清空。点击“保存为我的要求”后才会持续执行。</div>';}
+function hfLiveRenderTemporary(){const box=document.getElementById('hf-live-temporary');if(!box)return;const direction=hfVal('hf-live-raw'),preference=hfVal('hf-live-preference'),parts=[];if(HF.customDirection&&direction)parts.push(`<div class="hf-selected" style="margin-bottom:8px"><b>本次需求</b><br>${esc(direction)}</div>`);if(preference)parts.push(`<div class="hf-selected" style="margin-bottom:8px"><b>个人写作偏好</b><br>${esc(preference)}</div>`);box.innerHTML=parts.length?parts.join(''):'<div class="hf-hint">填写后用于本次生成；需要持续使用的要求可整理后保存。</div>';}
 function hfCustomProducts(){return HQ_CONTENT_MODE==='ao'?[{value:'小森林纸尿裤',label:'好奇小森林纸尿裤'},{value:'小森林拉拉裤',label:'好奇小森林拉拉裤'},...HQ_PRODUCTS.filter(x=>x.value!=='小森林')]:HQ_PRODUCTS;}
 function hfCurrentRule(){return hfRules()[HF.direction]||{task:'按本次新增需求',products:hfCustomProducts().map(x=>x.value),range:[140,200],paragraphs:'2—3段',density:'按本次新增需求',angles:[],forms:['真实素人文']};}
 function hfLiveRoleCanEdit(){return Boolean(hfLiveActor());}
 function hfLiveParseJson(raw){const clean=String(raw||'').replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/```(?:json)?/gi,'').replace(/```/g,'').trim(),a=clean.indexOf('{'),b=clean.lastIndexOf('}');if(a<0||b<a)throw new Error('模型未返回可读取的整理结果');return JSON.parse(clean.slice(a,b+1));}
 function hfLiveRender(){const ws=hfLiveWorkspace(),actor=hfLiveActor(),raw=document.getElementById('hf-live-raw');if(raw)raw.value=ws.raw||'';const role=document.getElementById('hf-live-role');if(role)role.innerHTML=`当前身份：<b>${esc(actor.name)}</b>。保存后先只影响本人的生成；经思雨与一西共同确认后进入团队知识。`;const draft=document.getElementById('hf-live-draft');if(draft)draft.innerHTML=ws.draftItems.length?ws.draftItems.map((x,i)=>`<div class="hf-selected" style="margin-bottom:10px"><div class="hf-row"><div><label>适用模块</label><select data-live-scope="${i}"><option value="ao" ${x.scope==='ao'?'selected':''}>素人AO文</option><option value="opinion" ${x.scope==='opinion'?'selected':''}>舆情文</option><option value="both" ${x.scope==='both'?'selected':''}>两者</option></select></div><div><label>分类</label><select data-live-category="${i}"><option value="direction" ${x.category==='direction'?'selected':''}>新内容方向</option><option value="client_rule" ${x.category==='client_rule'?'selected':''}>当前客户规则</option><option value="prohibition" ${x.category==='prohibition'?'selected':''}>禁止事项</option><option value="preference" ${x.category==='preference'?'selected':''}>个人写作偏好</option><option value="pending" ${x.category==='pending'?'selected':''}>待确认</option><option value="excluded" ${x.category==='excluded'?'selected':''}>不进入生成</option></select></div></div><textarea data-live-instruction="${i}" style="min-height:76px">${esc(x.instruction||'')}</textarea><div class="hf-hint">来源：${esc(x.source||'—')}</div></div>`).join(''):'<div class="hf-hint">尚未整理。</div>';const active=document.getElementById('hf-live-active'),rows=hfLiveActive();if(active)active.innerHTML=rows.length?rows.map(x=>`<div class="hf-selected" style="margin-bottom:8px"><b>${x.confirmed?'团队已确认':`仅${esc(actor.name)}`}｜${hfLiveCategoryLabel(x.category)}｜${hfLiveScopeLabel(x.scope)}</b><br>${esc(x.instruction)}${!x.confirmed?`<div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveEdit('${x.id}')">编辑</button><button class="hf-btn ghost" onclick="hfLiveDeactivate('${x.id}')">删除</button></div>`:''}</div>`).join(''):'<div class="hf-hint">暂无已保存的持续要求。</div>';hfLiveRenderTemporary();hfLiveRenderWeekly();}
 function hfLiveRenderWeekly(){const box=document.getElementById('hf-live-weekly');if(!box)return;const a=hfLiveActor(),canApprove=['admin','reviewer'].includes(a.role),items=HQ_LIVE.items.slice().reverse();box.innerHTML=items.length?`<h3 style="margin-top:16px">待周确认</h3>${items.map(x=>`<div class="hf-selected" style="margin-bottom:8px"><b>${esc(x.ownerName)}｜${hfLiveCategoryLabel(x.category)}</b>　${esc(x.instruction)}<br><span class="hf-hint">思雨：${x.approvals?.siyu?'已确认':'未确认'}｜一西：${x.approvals?.yixi?'已确认':'未确认'}</span>${canApprove&&!x.approvals?.[a.id]?`<div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveApprove('${x.id}')">以${esc(a.name)}确认</button></div>`:''}</div>`).join('')}`:'<div class="hf-hint">本周暂无候选要求。</div>';}
-function hfLiveSyncDraft(){const ws=hfLiveWorkspace();ws.draftItems=ws.draftItems.map((x,i)=>({...x,scope:document.querySelector(`[data-live-scope="${i}"]`)?.value||x.scope,category:document.querySelector(`[data-live-category="${i}"]`)?.value||x.category,instruction:document.querySelector(`[data-live-instruction="${i}"]`)?.value.trim()||''})).filter(x=>x.instruction);ws.raw=hfVal('hf-live-raw');hfLiveSave();}
-async function hfLiveOrganize(){const raw=hfVal('hf-live-raw');if(!raw)return toast('请粘贴需求、反馈或偏好');if(!S.key&&!PROXY_URL)return openModal();const status=document.getElementById('hf-live-status');status.textContent='正在区分可执行要求、个人偏好和无关事项…';try{const sys='你是品牌内容需求整理员。只整理与文案生成直接有关的规则，不补全或猜测。排期、篇数、交付时间、会议、人员安排、拍摄和素材供应归为excluded；含糊信息归为pending。只返回严格JSON。',usr=`当前只试点好奇。逐条忠实整理，返回 {"items":[{"scope":"ao|opinion|both","category":"direction|client_rule|prohibition|preference|pending|excluded","instruction":"明确可执行要求或忠实原意","source":"对应原话","reason":"分类原因"}]}。不得新增产品事实。\n\n【原始内容】\n${raw}`;const data=hfLiveParseJson(await hfCallText(sys,usr,{maxTokens:700,timeoutMs:90000})),allowed=['direction','client_rule','prohibition','preference','pending','excluded'];hfLiveWorkspace().raw=raw;hfLiveWorkspace().draftItems=(Array.isArray(data.items)?data.items:[]).filter(x=>x&&x.instruction).map(x=>({scope:['ao','opinion','both'].includes(x.scope)?x.scope:'both',category:allowed.includes(x.category)?x.category:'pending',instruction:String(x.instruction).trim(),source:String(x.source||'').trim(),reason:String(x.reason||'').trim()}));hfLiveSave();hfLiveRender();status.textContent=`整理完成：${hfLiveWorkspace().draftItems.length} 条。本次勾选新增需求时会直接执行；需要以后持续执行，再点击“保存为我的要求”。`;}catch(e){status.textContent='整理失败：'+e.message;}}
-async function hfLivePublish(){hfLiveSyncDraft();const actor=hfLiveActor(),ws=hfLiveWorkspace(),rows=ws.draftItems.filter(x=>['direction','client_rule','prohibition','preference'].includes(x.category));if(!rows.length)return toast('没有可保存的明确文案要求');try{if(window.a3IsLocalPreview()){const now=new Date().toISOString();rows.forEach((x,i)=>HQ_LIVE.items.push({...x,id:`req-${Date.now()}-${i}`,ownerId:actor.id,ownerName:actor.name,status:'active',approvals:{},createdAt:now}));ws.raw='';ws.draftItems=[];hfLiveSave();hfLiveRender();}else{await collabApi('/requirements',{method:'POST',body:{items:rows}});await hfLiveRemoteLoad();}toast(`已保存并跨设备同步，仅影响${actor.name}的生成 ✓`,2600);}catch(e){toast('保存失败：'+e.message,3200)}}
+function hfLiveSyncDraft(){const ws=hfLiveWorkspace();ws.draftItems=ws.draftItems.map((x,i)=>({...x,scope:document.querySelector(`[data-live-scope="${i}"]`)?.value||x.scope,category:document.querySelector(`[data-live-category="${i}"]`)?.value||x.category,instruction:document.querySelector(`[data-live-instruction="${i}"]`)?.value.trim()||''})).filter(x=>x.instruction);ws.raw=hfVal('hf-live-raw');ws.preference=hfVal('hf-live-preference');hfLiveSave();}
+async function hfLiveOrganize(){const raw=hfVal('hf-live-raw'),preference=hfVal('hf-live-preference');if(!raw&&!preference)return toast('请填写本次需求或个人写作偏好');if(!S.key&&!PROXY_URL)return openModal();const status=document.getElementById('hf-live-status');status.textContent='正在整理内容方向与写作偏好…';try{const sys='你是品牌内容需求整理员。只整理与文案生成直接有关的规则，不补全或猜测。本次需求通常是宏观内容方向或切角；个人写作偏好是段落、措辞、禁词等微观要求。排期、篇数、交付时间、会议、人员安排、拍摄和素材供应归为excluded；含糊信息归为pending。只返回严格JSON。',usr=`逐条忠实整理，返回 {"items":[{"scope":"ao|opinion|both","category":"direction|client_rule|prohibition|preference|pending|excluded","instruction":"明确可执行要求或忠实原意","source":"对应原话","reason":"分类原因"}]}。不得新增产品事实。个人写作偏好区中的明确内容优先归为 preference 或 prohibition。\n\n【本次需求｜宏观方向与切角】\n${raw||'无'}\n\n【个人写作偏好｜微观写法】\n${preference||'无'}`;const data=hfLiveParseJson(await hfCallText(sys,usr,{maxTokens:700,timeoutMs:90000})),allowed=['direction','client_rule','prohibition','preference','pending','excluded'],ws=hfLiveWorkspace();ws.raw=raw;ws.preference=preference;ws.draftItems=(Array.isArray(data.items)?data.items:[]).filter(x=>x&&x.instruction).map(x=>({scope:['ao','opinion','both'].includes(x.scope)?x.scope:'both',category:allowed.includes(x.category)?x.category:'pending',instruction:String(x.instruction).trim(),source:String(x.source||'').trim(),reason:String(x.reason||'').trim()}));hfLiveSave();hfLiveRender();status.textContent=`已整理 ${ws.draftItems.length} 条要求`;}catch(e){status.textContent='整理失败：'+e.message;}}
+async function hfLivePublish(){hfLiveSyncDraft();const actor=hfLiveActor(),ws=hfLiveWorkspace(),rows=ws.draftItems.filter(x=>['direction','client_rule','prohibition','preference'].includes(x.category));if(!rows.length)return toast('没有可保存的明确文案要求');try{if(window.a3IsLocalPreview()){const now=new Date().toISOString();rows.forEach((x,i)=>HQ_LIVE.items.push({...x,id:`req-${Date.now()}-${i}`,ownerId:actor.id,ownerName:actor.name,status:'active',approvals:{},createdAt:now}));ws.raw='';ws.preference='';ws.draftItems=[];hfSet('hf-live-preference','');hfLiveSave();hfLiveRender();}else{await collabApi('/requirements',{method:'POST',body:{items:rows}});await hfLiveRemoteLoad();}toast(`已保存并跨设备同步，仅影响${actor.name}的生成 ✓`,2600);}catch(e){toast('保存失败：'+e.message,3200)}}
 async function hfLiveEdit(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&x.ownerId===actor.id);if(i<0)return toast('只能编辑自己的要求');const item=HQ_LIVE.items[i],ws=hfLiveWorkspace();ws.raw=item.source||item.instruction;ws.draftItems=[{scope:item.scope,category:item.category,instruction:item.instruction,source:item.source||'',reason:item.reason||''}];try{if(!window.a3IsLocalPreview())await collabApi(`/requirements/${id}/delete`,{method:'POST',body:{}});else HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();document.getElementById('hf-live-panel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('已放回编辑区，修改后重新保存');}catch(e){toast('暂时无法编辑：'+e.message,3000)}}
 async function hfLiveDeactivate(id){const actor=hfLiveActor(),i=HQ_LIVE.items.findIndex(x=>x.id===id&&(x.ownerId===actor.id||actor.role==='admin'));if(i<0)return toast('只能删除自己的要求');try{if(!window.a3IsLocalPreview()){await collabApi(`/requirements/${id}/delete`,{method:'POST',body:{}});await hfLiveRemoteLoad();}else{HQ_LIVE.items.splice(i,1);hfLiveSave();hfLiveRender();}toast('已删除要求');}catch(e){toast('删除失败：'+e.message,3000)}}
 async function hfLiveApprove(id){const actor=hfLiveActor();if(!['admin','reviewer'].includes(actor.role))return toast('仅思雨和一西确认周规则');try{if(!window.a3IsLocalPreview()){const result=await collabApi(`/requirements/${id}/approve`,{method:'POST',body:{}});await hfLiveRemoteLoad();toast(result.item?.confirmed?'双方已确认，已进入团队知识 ✓':`已记录${actor.name}确认`);}else{const item=HQ_LIVE.items.find(x=>x.id===id);if(!item)return;item.approvals={...(item.approvals||{}),[actor.id]:new Date().toISOString()};if(item.approvals.siyu&&item.approvals.yixi&&!HQ_LIVE.confirmed.some(x=>x.sourceId===item.id))HQ_LIVE.confirmed.push({...item,sourceId:item.id,confirmed:true,status:'active',confirmedAt:new Date().toISOString()});hfLiveSave();hfLiveRender();toast(item.approvals.siyu&&item.approvals.yixi?'双方已确认，已进入团队知识 ✓':`已记录${actor.name}确认`);}}catch(e){toast('确认失败：'+e.message,3000)}}
@@ -6686,11 +6737,11 @@ function hfLoadState(){
     Object.assign(HF,saved);
   }catch{}
   HF.buildId=window.A3_BUILD_ID||'';
-  HF.customDirection=false;HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
+  HF.customDirection=HQ_CONTENT_MODE==='ao';HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
   const ws=hfLiveWorkspace();ws.raw='';ws.draftItems=[];
 }
 function hfSaveState(){
-  try{const{generationController,customDirection,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:false,pendingUrls:[]}));}catch{}
+  try{const{generationController,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:HQ_CONTENT_MODE==='ao'?true:Boolean(HF.customDirection),pendingUrls:[]}));}catch{}
 }
 function hfHtml(s){return md(String(s||''));}
 function hfVal(id){return document.getElementById(id)?.value?.trim()||'';}
@@ -6710,9 +6761,9 @@ function loadHqFullModule(){
   </style>
 
   <section id="hf-page-kb" class="hf-page on">
-    <div class="hf-hero"><div>品牌知识库</div><h2>${hfModeName()}</h2><p>${HQ_CONTENT_MODE==='ao'?'按消费者状态、内容方向与产品知识生成真实宝妈分享。':'产品事实与合规边界优先；历史舆情素材规律仅在本模式使用。'}</p></div>
-    <div class="hf-metric"><div><b>${HQ_CONTENT_MODE==='ao'?'11':'65'}</b><span>${HQ_CONTENT_MODE==='ao'?'内容策略':'内容样本'}</span></div><div><b>${HQ_CONTENT_MODE==='ao'?'2':'7'}</b><span>${HQ_CONTENT_MODE==='ao'?'当前产品形态':'产品品线'}</span></div><div><b>${Object.keys(hfRules()).length}</b><span>内容方向</span></div><div><b id="hf-human-count">0</b><span>人工标注</span></div><div><b id="hf-loop-count">0</b><span>回流记录</span></div></div>
-    <div class="hf-grid"><div class="hf-card wide"><div class="hf-callout">内容依据：本次人工要求 ＞ 已确认产品事实与合规边界 ＞ ${HQ_CONTENT_MODE==='ao'?'所选内容方向':'舆情内容规律'} ＞ 历史设置。若前两者冲突，按人工要求重写并提示人工复核。</div></div><div class="hf-card wide"><h3>正式知识库</h3><div id="hf-kb" class="hf-kb"></div></div></div>
+    <div class="hf-hero"><div>品牌知识库</div><h2>${hfModeName()}</h2><p>${HQ_CONTENT_MODE==='ao'?'以本次需求为方向，产品知识与合规边界保持稳定。':'产品事实与合规边界优先；舆情素材只在本模式使用。'}</p></div>
+    <div class="hf-metric"><div><b>${HQ_CONTENT_MODE==='ao'?'11':'65'}</b><span>${HQ_CONTENT_MODE==='ao'?'内容模板':'内容样本'}</span></div><div><b>${HQ_PRODUCTS.length}</b><span>产品品线</span></div><div><b>${Object.keys(hfRules()).length}</b><span>内容方向</span></div><div><b id="hf-human-count">0</b><span>人工标注</span></div><div><b id="hf-loop-count">0</b><span>回流记录</span></div></div>
+    <div class="hf-grid"><div class="hf-card wide"><div class="hf-callout">内容依据：已确认产品事实与合规边界 ＞ 本次需求 ＞ 个人写作偏好与参考稿 ＞ 内容模板。</div></div><div class="hf-card wide"><h3>正式知识库</h3><div id="hf-kb" class="hf-kb"></div></div></div>
   </section>
 
   <section id="hf-page-briefs" class="hf-page">
@@ -6732,11 +6783,11 @@ function loadHqFullModule(){
   </section>
 
   <section id="hf-page-generate" class="hf-page">
-    <div class="hf-hero"><div>文案生成</div><h2>内容方向 → 产品 → 内容切角</h2><p>本项目不区分报备/非报备，不设置目标人群或内容形式；每篇仅一个卖点一句话。</p></div>
+    <div class="hf-hero"><div>文案生成</div><h2>本次需求 → 产品 → 核心卖点</h2><p>先确定内容方向与写作要求，再选择产品和核心卖点。</p></div>
     <div class="hf-grid">
-      <div id="hf-live-panel" class="hf-card wide"><h3>本次需求与个人写作偏好</h3><div id="hf-live-role" class="hf-callout"></div><div class="hf-row"><div><label>粘贴需求、反馈或偏好</label><textarea id="hf-live-raw" style="min-height:150px" placeholder="只整理与文案生成有关的内容；写手保存后仅影响本人。"></textarea><label class="hf-upload" style="margin-top:10px"><input type="file" accept=".txt,.md,.csv,.json" onchange="hfLiveImportFile(this.files[0])"><b>上传补充文本</b><br><small>支持 TXT、Markdown、CSV、JSON</small></label><div class="hf-actions"><button class="hf-btn primary" onclick="hfLiveOrganize()">AI整理</button><button class="hf-btn ghost" onclick="openCollabIdentity()">切换身份</button></div><div id="hf-live-status" class="hf-status">等待补充</div></div><div><label>逐条确认</label><div id="hf-live-draft"></div><div class="hf-actions"><button class="hf-btn primary" onclick="hfLivePublish()">保存为我的要求</button></div></div></div><div style="margin-top:16px"><h3>当前生成会执行</h3><div id="hf-live-temporary"></div><div id="hf-live-active"></div></div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveExportWeekly()">一键导出本周确认包</button></div><div id="hf-live-weekly"></div></div>
-      <div class="hf-card"><h3>1｜选择内容方向（可选）</h3><label class="hf-toggle"><input id="hf-custom-direction" type="checkbox" onchange="hfToggleCustomDirection(this.checked)">跳过已有方向，按上方新增需求生成</label><div class="hf-hint">方向变化较大时可勾选；系统仍要求选择产品和唯一卖点，以保留正式产品事实与合规边界。</div>${HQ_CONTENT_MODE==='ao'?'<label>消费者阶段</label><div id="hf-stages" class="hf-chips"></div><label>核心召回任务</label>':''}<div id="hf-directions" class="hf-chips"></div><div id="hf-direction-rule" class="hf-selected">可选择已有方向，也可按新增需求生成</div><label>2｜选择产品</label><select id="hf-product" onchange="hfProductChanged()" disabled><option value="">请先选择内容方向</option></select><label>3｜选择本篇唯一卖点</label><div id="hf-selling-points" class="hf-chips"><span class="hf-hint">选择产品后显示可写卖点</span></div><label>4｜选择内容切角</label><div id="hf-angles" class="hf-chips"><span class="hf-hint">使用已有方向时选择；按新增需求生成时无需选择</span></div><div id="hf-gen-selection" class="hf-selected">当前选择：—</div></div>
-      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜补充内容</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>特殊要求（选填）</label><textarea id="hf-special" style="min-height:90px" placeholder="例如：保留一个真实生活细节；避免使用某个词。"></textarea><label>一次生成篇数</label><select id="hf-generate-count"><option value="1">1篇</option><option value="2">2篇</option><option value="3">3篇</option><option value="4">4篇</option><option value="5">5篇</option></select><div class="hf-hint">同批稿件分别使用不同标题、开头、叙事节奏、产品进入和收尾路线，并做同批相似度检查。</div><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerateBatch()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
+      <div id="hf-live-panel" class="hf-card wide"><h3>本次需求与个人写作偏好</h3><div id="hf-live-role" class="hf-callout"></div><div class="hf-row"><div><label>本次需求</label><textarea id="hf-live-raw" style="min-height:120px" placeholder="填写本次内容的宏观方向或切角，例如：从换季囤货切入，写一次真实补货经历。"></textarea><label>个人写作偏好（选填）</label><textarea id="hf-live-preference" style="min-height:100px" placeholder="填写微观写法，例如：第一段直接进入场景；禁止使用某个词。">${esc(hfLiveWorkspace().preference||'')}</textarea><label class="hf-upload" style="margin-top:10px"><input type="file" accept=".txt,.md,.csv,.json" onchange="hfLiveImportFile(this.files[0])"><b>上传补充文本</b><br><small>支持 TXT、Markdown、CSV、JSON</small></label><div class="hf-actions"><button class="hf-btn primary" onclick="hfLiveOrganize()">AI整理</button><button class="hf-btn ghost" onclick="openCollabIdentity()">切换身份</button></div><div id="hf-live-status" class="hf-status">等待补充</div></div><div><label>逐条确认</label><div id="hf-live-draft"></div><div class="hf-actions"><button class="hf-btn primary" onclick="hfLivePublish()">保存为我的要求</button></div></div></div><div style="margin-top:16px"><h3>当前生成会执行</h3><div id="hf-live-temporary"></div><div id="hf-live-active"></div></div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfLiveExportWeekly()">一键导出本周确认包</button></div><div id="hf-live-weekly"></div></div>
+      <div class="hf-card"><h3>1｜确定内容方向</h3><label class="hf-toggle"><input id="hf-custom-direction" type="checkbox" onchange="hfToggleCustomDirection(this.checked)">使用本次需求</label><div class="hf-hint">取消勾选后可选择内容模板。产品事实与合规边界始终不变。</div>${HQ_CONTENT_MODE==='ao'?'<label>消费者阶段</label><div id="hf-stages" class="hf-chips"></div><label>内容方向</label>':''}<div id="hf-directions" class="hf-chips"></div><div id="hf-direction-rule" class="hf-selected">本次需求</div><label>2｜选择产品</label><select id="hf-product" onchange="hfProductChanged()" disabled><option value="">请选择产品</option></select><label>3｜选择本篇核心卖点</label><div id="hf-selling-points" class="hf-chips"><span class="hf-hint">选择产品后显示可写卖点</span></div><label>4｜选择内容切角</label><div id="hf-angles" class="hf-chips"><span class="hf-hint">使用内容模板时选择；本次需求无需选择</span></div><div id="hf-gen-selection" class="hf-selected">当前选择：—</div></div>
+      <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜参考与生成</h3><label>参考稿（选填）</label><textarea id="hf-reference" style="min-height:110px" placeholder="粘贴参考稿；将仿写结构、节奏和口吻，不复制原句。不填写也可生成。"></textarea><label>一次生成篇数</label><select id="hf-generate-count"><option value="1">1篇</option><option value="2">2篇</option><option value="3">3篇</option><option value="4">4篇</option><option value="5">5篇</option></select><div class="hf-hint">同批稿件分别使用不同标题、开头、叙事节奏、产品进入和收尾路线，并做同批相似度检查。</div><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerateBatch()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
       <div class="hf-card wide"><h3>${HQ_CONTENT_MODE==='ao'?'5':'6'}｜生成结果</h3><div id="hf-gen-output" class="hf-result">生成后显示标题、正文、Tag及三条评论。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-gen-output')">复制稿件</button><button class="hf-btn primary" onclick="hfSendReview()">直接进入AI审核</button></div></div>
     </div>
   </section>
@@ -6744,9 +6795,9 @@ function loadHqFullModule(){
   <section id="hf-page-review" class="hf-page">
     <div class="hf-hero"><div>AI审核与重写</div><h2>无反馈完整审核｜有反馈先定位再修改</h2><p>不区分项目类型、报备类型和内容形式；只使用好奇全系列知识库。</p></div>
     <div class="hf-grid">
-      <div class="hf-card"><h3>待审核稿件</h3><textarea id="hf-review-input" style="min-height:300px"></textarea><label class="hf-toggle"><input id="hf-feedback-enabled" type="checkbox" onchange="hfToggleFeedback()">按客户反馈修改（选填）</label><div id="hf-feedback-panel" class="hf-hidden"><label>客户反馈原文</label><textarea id="hf-feedback" placeholder="粘贴客户原话；系统先定位受影响的标题、段落、事实和卖点。"></textarea></div><div class="hf-actions"><button id="hf-review-btn" class="hf-btn primary" onclick="hfReview()">按知识库核错</button></div><div id="hf-review-status" class="hf-status">等待核错</div></div>
-      <div class="hf-card"><h3>核错报告</h3><div id="hf-review-output" class="hf-result">只列明确错误、依据和修改动作；不打分。</div></div>
-      <div id="hf-rewrite-card" class="hf-card wide hf-hidden"><h3 id="hf-rewrite-heading">写手选择修改路径</h3><div id="hf-feedback-auto-note" class="hf-good hf-hidden">仅修改客户反馈涉及的部分，其他内容保持不变。</div><div id="hf-manual-rewrite-choices" class="hf-row"><div><b>局部重写</b><p class="hf-hint">粘贴原稿中唯一的问题句，并写清实际应当发生什么或应当表达什么。系统只生成新句，再由网页替换原句，其他文字不会交给模型改动。</p><label>要重写的完整原句</label><textarea id="hf-rewrite-target" placeholder="请从原稿逐字复制完整、唯一的问题句"></textarea><label>正确逻辑／现实情况</label><textarea id="hf-rewrite-reason" placeholder="请写具体正确逻辑，例如：整理旧物时摸到同样材质，因此想起以前用过的那款。只写‘逻辑不清晰’无法确定正确改法。"></textarea><button class="hf-btn ghost" onclick="hfRewrite('local')">基于上下文重写新句</button></div><div><b>全文重写</b><p class="hf-hint">自动逐条改掉上方核错报告中的问题，并重建有问题的整体表达。</p><label>补充说明（选填）</label><textarea id="hf-rewrite-extra"></textarea><button class="hf-btn primary" onclick="hfRewrite('full')">按核错报告全文重写</button></div></div><div id="hf-rewrite-status" class="hf-status">等待写手选择</div><div id="hf-rewrite-output" class="hf-result" style="margin-top:12px">重写稿将在这里显示。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-rewrite-output')">复制重写稿</button><button class="hf-btn primary" onclick="hfSendHuman()">进入人工标注</button></div></div>
+      <div class="hf-card"><h3>待审核稿件</h3><textarea id="hf-review-input" style="min-height:300px"></textarea><label class="hf-toggle"><input id="hf-feedback-enabled" type="checkbox" onchange="hfToggleFeedback()">按客户反馈修改（选填）</label><div id="hf-feedback-panel" class="hf-hidden"><label>客户反馈原文</label><textarea id="hf-feedback" placeholder="粘贴客户原话；系统先定位受影响的标题、段落、事实和卖点。"></textarea></div><div class="hf-actions"><button id="hf-review-btn" class="hf-btn primary" onclick="hfReview()">开始审核</button></div><div id="hf-review-status" class="hf-status">等待审核</div></div>
+      <div class="hf-card"><h3>审核报告</h3><div id="hf-review-output" class="hf-result">只列明确错误、依据和修改动作；不打分。</div></div>
+      <div id="hf-rewrite-card" class="hf-card wide hf-hidden"><h3 id="hf-rewrite-heading">写手选择修改路径</h3><div id="hf-feedback-auto-note" class="hf-good hf-hidden">仅修改客户反馈涉及的部分，其他内容保持不变。</div><div id="hf-manual-rewrite-choices" class="hf-row"><div><b>局部重写</b><p class="hf-hint">粘贴原稿中唯一的问题句。系统会结合知识库、审核报告和上下文判断正确写法，只替换这一处。</p><label>要重写的完整原句</label><textarea id="hf-rewrite-target" placeholder="请从原稿逐字复制完整、唯一的问题句"></textarea><button class="hf-btn ghost" onclick="hfRewrite('local')">基于上下文重写新句</button></div><div><b>全文重写</b><p class="hf-hint">自动逐条改掉上方审核报告中的问题，并重建有问题的整体表达。</p><label>补充说明（选填）</label><textarea id="hf-rewrite-extra"></textarea><button class="hf-btn primary" onclick="hfRewrite('full')">按审核报告全文重写</button></div></div><div id="hf-rewrite-status" class="hf-status">等待写手选择</div><div id="hf-rewrite-output" class="hf-result" style="margin-top:12px">重写稿将在这里显示。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-rewrite-output')">复制重写稿</button><button class="hf-btn primary" onclick="hfSendHuman()">进入人工标注</button></div></div>
     </div>
   </section>
 
@@ -6763,7 +6814,7 @@ function loadHqFullModule(){
     <div class="hf-hero"><div>数据回流</div><h2>发布链接＋表现文件，形成下一轮经验</h2><p>区分数据事实、数据推断和待验证经验；人工确认后才进入素材库，不改写产品事实。</p></div>
     <div class="hf-grid"><div class="hf-card"><h3>1｜稿件出街信息</h3><label>小红书发布链接</label><input id="hf-pub-url"><label>最终发布标题</label><input id="hf-pub-title"><label>最终发布正文</label><textarea id="hf-pub-copy"></textarea><div class="hf-actions"><button class="hf-btn ghost" onclick="hfFetchPublished()">读取发布原文</button></div></div><div class="hf-card"><h3>2｜上传表现数据</h3><label class="hf-upload"><input type="file" accept=".xlsx,.xls,.csv" onchange="hfReadPerformance(this.files[0])"><b>选择Excel / CSV</b><br><small>保留真实字段，不把空值当作0</small></label><div id="hf-performance-preview" class="hf-result" style="min-height:110px">尚未读取文件</div><div class="hf-actions"><button class="hf-btn primary" onclick="hfAnalyzeLoop()">AI生成回流结论</button></div></div><div class="hf-card wide"><h3>3｜回流结论</h3><div id="hf-loop-output" class="hf-result">等待数据。</div><div class="hf-actions"><button class="hf-btn primary" onclick="hfSaveLoop()">保存回流记录</button><button class="hf-btn ghost" onclick="hfPromoteLoop()">人工确认并沉淀到素材库</button></div><div id="hf-loop-status" class="hf-status">等待数据</div></div></div>
   </section>`;
-  hfRenderDirections();hfRefreshAll();hfLiveRender();hfUpdateSelection();const liveRaw=document.getElementById('hf-live-raw');if(liveRaw)liveRaw.addEventListener('input',()=>{hfLiveRenderTemporary();if(HF.customDirection)hfUpdateSelection();});hfNavigate(HF.page||'kb');
+  hfRenderDirections();hfRefreshAll();hfLiveRender();hfUpdateSelection();const liveRaw=document.getElementById('hf-live-raw'),livePreference=document.getElementById('hf-live-preference');if(liveRaw)liveRaw.addEventListener('input',()=>{hfLiveRenderTemporary();if(HF.customDirection)hfUpdateSelection();});if(livePreference)livePreference.addEventListener('input',hfLiveRenderTemporary);hfNavigate(HF.page||'kb');
 }
 function hfNavigate(page){
   const host=document.getElementById('hq-full-host');if(!host?.dataset.ready)loadHqFullModule();
@@ -6785,12 +6836,12 @@ function hfRenderDirections(){
   const el=document.getElementById('hf-directions');if(!el)return;
   const toggle=document.getElementById('hf-custom-direction');if(toggle)toggle.checked=!!HF.customDirection;
   if(HF.customDirection){
-    const stages=document.getElementById('hf-stages');if(stages)stages.innerHTML='<span class="hf-hint">已跳过已有消费者阶段</span>';
-    el.innerHTML='<span class="hf-hint">已跳过已有方向；以新增需求中的新方向为准</span>';
+    const stages=document.getElementById('hf-stages');if(stages)stages.innerHTML='<span class="hf-hint">本次需求无需选择阶段</span>';
+    el.innerHTML='<span class="hf-hint">内容方向以上方本次需求为准</span>';
     const product=document.getElementById('hf-product'),customProducts=hfCustomProducts(),products=customProducts.map(x=>x.value);
     product.disabled=false;product.innerHTML='<option value="">请选择产品</option>'+customProducts.map(x=>`<option value="${x.value}">${x.label}</option>`).join('');
     if(products.includes(HF.product))product.value=HF.product;else{HF.product='';HF.sellingPoint='';}
-    document.getElementById('hf-direction-rule').textContent='当前模式：按上方新增需求生成；无需选择已有方向和内容切角。';
+    document.getElementById('hf-direction-rule').textContent='本次需求';
     hfRenderSellingPoints();hfRenderAngles();hfUpdateSelection();return;
   }
   if(HQ_CONTENT_MODE==='ao'){
@@ -6804,7 +6855,7 @@ function hfRenderDirections(){
   }
 }
 function hfToggleCustomDirection(on){
-  if(!on){hfClearTemporaryRequirement();return;}
+  if(!on){HF.customDirection=false;HF.stage='';HF.direction='';HF.product='';HF.sellingPoint='';HF.angle='';hfRenderDirections();hfLiveRenderTemporary();hfSaveState();return;}
   HF.customDirection=true;HF.stage='';HF.direction='';HF.angle='';
   hfRenderDirections();hfLiveRenderTemporary();hfSaveState();
 }
@@ -6831,7 +6882,8 @@ function hfRenderSellingPoints(){
   if(!HF.product){el.innerHTML='<span class="hf-hint">选择产品后显示该品线经知识库确认的可写卖点</span>';return;}
   // 2026-09-01 AO自然融合：只展示至少一个当前故事切角能够自然承接的卖点。
   const allPoints=HQ_SELLING_POINTS[HF.product]||[],allowed=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?hfAoAllowedPointKeys(hfRules()[HF.direction],HF.product):[];
-  const points=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?allPoints.filter(x=>allowed.includes(x.key)):allPoints;
+  const sourcePoints=HQ_CONTENT_MODE==='ao'&&!HF.customDirection?allPoints.filter(x=>allowed.includes(x.key)):allPoints,seen=new Set();
+  const points=sourcePoints.filter(point=>{const signature=`${point.key}|${hqHistoryNormalize(point.label)}`;if(seen.has(signature))return false;seen.add(signature);return true;});
   if(!points.some(x=>x.key===HF.sellingPoint))HF.sellingPoint='';
   el.innerHTML=points.map(x=>`<button class="hf-chip${HF.sellingPoint===x.key?' on':''}" onclick="hfSetSellingPoint('${x.key}')">${x.label}</button>`).join('');
 }
@@ -6842,7 +6894,7 @@ function hfSetSellingPoint(key){
 }
 function hfRenderAngles(){
   const el=document.getElementById('hf-angles');if(!el)return;
-  if(HF.customDirection){HF.angle='按本次新增需求';el.innerHTML='<span class="hf-hint">无需选择；内容切角由新增需求决定</span>';hfUpdateSelection();return;}
+  if(HF.customDirection){HF.angle='按本次需求';el.innerHTML='<span class="hf-hint">无需选择；内容切角由本次需求决定</span>';hfUpdateSelection();return;}
   if(!HF.direction||!HF.product||!HF.sellingPoint){el.innerHTML='<span class="hf-hint">选择方向、产品和唯一卖点后显示</span>';return;}
   // 2026-09-01 AO自然融合：一篇只选一个demo母题，并按已选卖点过滤不自然的组合。
   const rule=hfRules()[HF.direction],angles=HQ_CONTENT_MODE==='ao'?(hfAoNaturalBrief(rule)?.angles||[]).filter(x=>hfAoPointMatches(rule,x,HF.sellingPoint,HF.product)).map(x=>x.label):rule.angles;
@@ -6852,7 +6904,7 @@ function hfRenderAngles(){
 function hfSetAngle(angle){HF.angle=angle;hfRenderAngles();hfUpdateSelection();}
 function hfUpdateSelection(){
   const box=document.getElementById('hf-gen-selection'),btn=document.getElementById('hf-gen-btn');if(!box||!btn)return;
-  const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),live=hfLiveDirectionText(),aoValid=HQ_CONTENT_MODE!=='ao'||HF.customDirection||hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle),ok=HF.customDirection?!!(live&&HF.product&&point):!!(HF.direction&&HF.product&&point&&HF.angle&&aoValid);box.textContent=ok?(HF.customDirection?`当前选择：按新增需求生成 → 好奇${HF.product} → 唯一卖点「${point.label}」`:(HQ_CONTENT_MODE==='ao'?`当前选择：${HF.stage} → ${HF.direction} → 好奇${HF.product} → 「${point.label}」→ ${HF.angle}`:`当前选择：${HF.direction} → 好奇${HF.product} → 唯一卖点「${point.label}」→ ${HF.angle}`)):(HF.customDirection?'当前选择：请在上方输入新增需求，并选择产品与唯一卖点':(HQ_CONTENT_MODE==='ao'?'当前选择：请按执行表完成消费者阶段、召回任务、产品、唯一卖点和内容切角':'当前选择：请依次完成方向、产品、唯一卖点和切角'));btn.disabled=!ok;hfSaveState();
+  const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),live=hfLiveDirectionText(),aoValid=HQ_CONTENT_MODE!=='ao'||HF.customDirection||hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle),ok=HF.customDirection?!!(live&&HF.product&&point):!!(HF.direction&&HF.product&&point&&HF.angle&&aoValid);box.textContent=ok?(HF.customDirection?`当前选择：本次需求 → 好奇${HF.product} → 唯一卖点「${point.label}」`:(HQ_CONTENT_MODE==='ao'?`当前选择：${HF.stage} → ${HF.direction} → 好奇${HF.product} → 「${point.label}」→ ${HF.angle}`:`当前选择：${HF.direction} → 好奇${HF.product} → 唯一卖点「${point.label}」→ ${HF.angle}`)):(HF.customDirection?'当前选择：请在上方填写本次需求，并选择产品与唯一卖点':(HQ_CONTENT_MODE==='ao'?'当前选择：请完成消费者阶段、内容方向、产品、唯一卖点和内容切角':'当前选择：请依次完成方向、产品、唯一卖点和切角'));btn.disabled=!ok;hfSaveState();
 }
 function hfChooseDiversityPlan(){
   if(!HF.blueprintUsage||typeof HF.blueprintUsage!=='object')HF.blueprintUsage={};HF.generationSeq=(Number(HF.generationSeq)||0)+1;
@@ -6867,8 +6919,8 @@ function hfDiversityInstruction(plan){return `【本次写作路线】\n- 标题
 function hfDraftBody(copy){const lines=[];for(const line of String(copy||'').split(/\n/)){const t=line.trim();if(!t)continue;if(/^(?:Tag|标签)[：:]?/i.test(t)||/^#/.test(t)||/^(?:评论|评论文案|留言|留言区)[：:]?/.test(t))break;if(/^标题[：:]/.test(t)||/^\d+[.、]/.test(t))continue;lines.push(t);}return lines.join('\n');}
 function hfSinglePointAudit(copy,product,selectedKey){
   const body=hfDraftBody(copy),all=[];
-  Object.entries(HQ_SELLING_POINTS).forEach(([line,points])=>points.forEach(p=>all.push({...p,line})));
-  const unique=new Map();all.forEach(p=>{if(!unique.has(p.key))unique.set(p.key,{...p,terms:[...p.terms]});else unique.get(p.key).terms.push(...p.terms);});
+  (HQ_SELLING_POINTS[product]||[]).forEach(p=>all.push({...p,terms:[...new Set(p.terms||[])]}));
+  const unique=new Map();all.forEach(p=>{if(!unique.has(p.key))unique.set(p.key,p);});
   const detected=[...unique.values()].filter(p=>p.terms.some(t=>body.includes(t)));
   const selected=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===selectedKey),issues=[];
   if(!selected||!selected.terms.some(t=>body.includes(t)))issues.push('未准确写出所选唯一卖点');
@@ -6963,6 +7015,8 @@ function hfStyleAudit(copy){
   const actionMarkers=(text.match(/(?:先|再|然后|接着|随后|最后|等.{0,6}才|准备好|收回原处)/g)||[]).length;if(actionMarkers>=5)issues.push('动作链过密');
   const metaCount=(text.match(/(?:记录|过程|安排|步骤|结论|范围)/g)||[]).length;if(metaCount>=5)issues.push('解释性词汇过密');
   const formalCount=(text.match(/(?:因此|此外|同时|总体而言|相较于|能够|进行|对于|方面)/g)||[]).length;if(formalCount>=4)issues.push('书面表达过密，需要改成宝妈日常口语');
+  const turnCount=(text.match(/(?:但是|不过|后来|结果|没想到|直到|其实|反而)/g)||[]).length;if(turnCount>=5)issues.push('转折过多，全文只保留一条清晰因果链');
+  if(/[!?;,]/.test(text))issues.push('标题、正文与评论应使用中文全角标点');
   const body=hqHistoryBody(copy),productTokens=['小森林','深睡大师','X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'],productAt=Math.min(...productTokens.map(x=>body.indexOf(x)).filter(x=>x>=0),99999);if(productAt<99999&&productAt>body.length*.48)issues.push('产品进入过晚，开头只保留一个场景和一句触发原因');
   return[...new Set(issues)];
 }
@@ -7032,13 +7086,14 @@ function hfGenerationAudit(copy,cfg,ref=''){
 }
 async function hfSelectedDirectionAudit(copy,cfg){
   if(HQ_CONTENT_MODE!=='ao'||HF.customDirection)return[];
-  const rule=cfg.rule,brief=hfAoNaturalBrief(rule),angle=hfAoAngle(rule,HF.angle);if(!rule||!brief||!angle)return['当前所选内容方向不完整，请重新选择'];
+  const rule=cfg.rule,brief=hfAoNaturalBrief(rule),angle=hfAoAngle(rule,HF.angle),point=cfg.point;if(!rule||!brief||!angle||!point)return['当前所选内容方向不完整，请重新选择'];
   const sys='你是中文品牌内容验收员。只判断成稿是否真正落实当前选择，不评价文采，不新增产品事实。只返回严格JSON。';
-  const usr=`判断下方成稿是否同时落实三层选择。不能因为出现产品名或近义词就判定通过，必须在故事人物状态、事件因果和最终态度中真实成立。\n\n【消费者阶段】${rule.stage}\n阶段在本文应体现为：${brief.psychology}\n【核心召回任务】${rule.task}\n任务在本文应自然落到：${brief.outcome}\n【所选内容切角】${angle.label}\n切角应按以下方式自然化：${angle.naturalCue||'保留该选题的核心事件与选择逻辑'}\n\n【成稿】\n${copy}\n\n返回：{"stage":true或false,"task":true或false,"angle":true或false,"reasons":["简短原因"]}。只有明显落实才为true；不要要求稿件出现上述内部术语。`;
-  const data=await hfCallJson(sys,usr,{maxTokens:420,timeoutMs:90000,reasoningEffort:'minimal',signal:HF.generationController?.signal}),issues=[];
+  const usr=`判断下方成稿是否同时落实四层选择。不能因为出现产品名、卖点词或近义词就判定通过，必须在故事人物状态、事件因果和最终态度中真实成立。\n\n【消费者阶段】${rule.stage}\n阶段在本文应体现为：${brief.psychology}\n【核心召回任务】${rule.task}\n任务在本文应自然落到：${brief.outcome}\n【所选内容切角】${angle.label}\n切角应按以下方式自然化：${angle.naturalCue||'保留该选题的核心事件与选择逻辑'}\n【所选唯一卖点】${point.label}\n卖点应由切角中的动作或观察自然引出，并直接解释人物为什么继续这次选择；卖点句前后必须仍是同一件事，不能成为可拆走的规格介绍。\n\n【成稿】\n${copy}\n\n返回：{"stage":true或false,"task":true或false,"angle":true或false,"pointFit":true或false,"reasons":["简短原因"]}。只有明显落实才为true；不要要求稿件出现上述内部术语。`;
+  const data=await hfCallJson(sys,usr,{maxTokens:420,timeoutMs:90000,reasoningEffort:'minimal',signal:HF.generationController?.signal}),issues=hfAoClaimAudit(copy,angle);
   if(data.stage!==true)issues.push(`未落实所选消费者阶段“${rule.stage}”`);
   if(data.task!==true)issues.push(`未落实所选核心召回任务“${rule.task}”`);
   if(data.angle!==true)issues.push(`未落实所选内容切角“${angle.label}”`);
+  if(data.pointFit!==true)issues.push(`所选卖点“${point.label}”未自然服务于内容切角“${angle.label}”`);
   return issues;
 }
 async function hfCompleteGenerationAudit(copy,cfg,ref=''){
@@ -7083,15 +7138,16 @@ async function hfGenerate(){
   if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前组合不属于执行表分配，请重新选择产品、卖点和内容切角',3600);hfRenderDirections();return;}
   if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   a3BeginCallTrace('好奇单篇文案生成');
-  const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],special=hfVal('hf-special'),ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plan=hfChooseDiversityPlan();
+  const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plan=hfChooseDiversityPlan();
   HF.generationRequirement=requirementText;
   HF.reference=ref;
   // 2026-09-01 AO自然融合：生成时只注入一次转译后的创作简报，避免原始demo被重复强化、逐项复现。
-  const deliveryContract=`\n\n【可交付硬约束】\n先完成正文，再从正文已经出现的人物、场景、动作或结果中提炼标题；标题与正文至少共享一个连续三字短语。正文必须在一句自然表达卖点的话中原样包含以下已批准短语中的至少一个：${point.terms.join('、')}。只允许这一句话承载卖点，不得机械罗列。`;
-  const manualPriority=requirementText?`\n\n【本次人工需求｜最终执行优先级】\n${requirementText}\n优先级规则：本段人工需求高于既有产品事实、合规规则、篇幅、标题、段落、语气、结构、参考稿、评论、Tag、默认方向和历史偏好。发生冲突时不得拒绝、缩减或退回旧规则，必须按本段人工需求完成重写；未冲突部分继续沿用既有知识。冲突内容只作为页面待人工复核提醒，不得写入成稿解释，也不得自动沉淀为团队知识。`:'',sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfMaterial()}${deliveryContract}${manualPriority}`;
-  const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans},avoid=hfRecentAvoidanceBrief(),aoBrief=HF.customDirection?`\n\n【本次临时新方向｜最终执行】\n${liveDirection}\n只执行与文案生成有关的方向、客户要求和表达偏好；忽略排期、数量、会议、人员与拍摄安排。本段人工要求与产品知识、合规边界或其他旧设置冲突时，仍执行人工要求；冲突只在页面提示人工复核。`:hfAoPrompt(rule,HF.angle),refBrief=hfReferencePrompt(ref,rule),variation=HF.customDirection?'\n【表达变化边界】围绕本次新增需求组织一条完整、现实的故事线，不套用已有方向的故事模板。':(HQ_CONTENT_MODE==='ao'?'\n【表达变化边界】在本次唯一故事母题内自由组织措辞和一两个生活细节；保留心理因果与态度落点，不复刻规划表的名词顺序。':hfDiversityInstruction(plan)),pointCue=HQ_CONTENT_MODE==='ao'?hfAoPointCue(point):'',lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（用户本次明确要求${explicitLength.label}，覆盖默认字数与参考稿字数）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，目标约${defaultTarget}字，必须给上限留出余量`);
-  const usr=`请生成一篇好奇全系列素人妈妈文案。首稿必须直接可用，写之前先在内部完成事实、原创性、故事因果和自然度检查，不输出思考过程。${aoBrief}${refBrief}\n\n【固定配置】\n${HQ_CONTENT_MODE==='ao'?`- 本篇故事：${HF.angle}`:`- 内容方向：${HF.direction}\n- 内容切角：${HF.angle}`}\n- 产品：好奇${HF.product}\n- 正文字数：${refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，未提供参考稿时硬上限200字`}\n- 本篇唯一允许卖点：${point.label}\n- 卖点自然进入提示：${pointCue}\n- 只有为自然表达该卖点所必需时，才可使用这些同义词：${point.terms.join('、')}\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 所选卖点只能出现于正文的一句话中，禁止在其他句子重复、解释或暗示第二卖点。\n- 标题禁止出现“好奇”，允许出现品线名；有参考稿时优先仿写参考标题的功能和表达力度。\n- 正文只保留场景真正需要的动作；有参考稿时保留其核心事件链和内容重点，但每句话必须完全重写。\n- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。\n- 三条评论各20—30字，全部是自然刷到笔记的宝妈留言；不加身份标签或自报人设。分别用相似经历、轻微感叹或自己的使用习惯来接话，不分析作者选择，不给建议，不总结正文，不使用“优先、建议、确认清楚、稳定一点、比较踏实”等审核腔。\n\n${variation}${avoid}${special?`\n- 人工要求：${special}`:''}\n\n严格按以下格式输出，不要增加说明：\n标题：……\n\n正文\n\n#Tag\n\n评论：\n1. ……\n2. ……\n3. ……`;
-  const finalUsr=`${manualPriority}\n\n${usr.replace(/- 正文字数：[^\n]+/,`- 正文字数：${lengthRule}`).replace(/(- 本品线禁用：[^\n]+)/,dynamicBans.length?`$1\n- 本次明确禁用词：${dynamicBans.join('、')}。标题、正文、Tag、评论均不得出现。`:'$1')}\n\n${requirementText?`【输出前最终裁决】再次逐条核对本次完整人工需求：\n${requirementText}\n它覆盖上方所有相冲突的固定配置、事实、禁用项、格式和历史规则。不要拒绝，不要解释冲突，不要偷偷退回旧规则；直接输出按人工要求重写后的成稿。`:'上方规则均需执行。'}`;
+  const deliveryContract=`\n\n【本篇单卖点合同｜只在此处定义一次】\n唯一卖点：${point.label}。正文必须在一句自然表达中原样包含以下已批准短语中的至少一个：${point.terms.join('、')}。这句话必须由所选切角中的动作或观察引出，并解释人物为什么继续当下选择；前后仍须是同一件事，不得写成可拆走的规格句。其他句子不得重复、解释或暗示第二卖点。\n\n【其余可交付硬约束】\n先完成正文，再从正文已经出现的人物、场景、动作或结果中提炼标题；标题与正文至少共享一个连续三字短语。`;
+  const manualPriority=requirementText?`\n\n【本次人工需求】\n${requirementText}\n本段可更新内容方向、人物场景、篇幅、标题、段落、语气、结构、评论和Tag；不得覆盖已确认产品事实与合规边界。冲突或缺失事实不写入成稿，也不自动沉淀为团队知识。`:'',sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfMaterial()}${deliveryContract}${manualPriority}`;
+  const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,explicitLength,dynamicBans},avoid=hfRecentAvoidanceBrief(),aoBrief=HF.customDirection?`\n\n【本次任务方向】\n${liveDirection}\n只执行与文案生成有关的方向、人物场景和表达要求；忽略排期、数量、会议、人员与拍摄安排。若任务包含未经确认的产品事实或违反合规边界，不得采用。`:hfAoPrompt(rule,HF.angle,point,HF.product),refBrief=hfReferencePrompt(ref,rule),variation=HF.customDirection?'\n【表达变化边界】围绕本次任务组织一条完整、现实的故事线，不套用历史方向的故事模板。':(HQ_CONTENT_MODE==='ao'?'\n【表达变化边界】在本次唯一故事母题内自由组织措辞和一两个生活细节；保留心理因果与态度落点，不复刻规划表的名词顺序。':hfDiversityInstruction(plan)),lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（用户本次明确要求${explicitLength.label}，覆盖默认字数与参考稿字数）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，目标约${defaultTarget}字，必须给上限留出余量`);
+  const writingAngle=HF.customDirection?liveDirection:hfAoWritingAngleLabel(rule,HF.angle);
+  const usr=`请生成一篇好奇全系列素人妈妈文案。首稿必须直接可用，写之前先在内部完成事实、原创性、故事因果和自然度检查，不输出思考过程。${aoBrief}${refBrief}\n\n【固定配置】\n${HQ_CONTENT_MODE==='ao'?`- 本篇故事语义：${writingAngle}；禁止复制页面上的内容切角标签。`:`- 内容方向：${HF.direction}\n- 内容切角：${HF.angle}`}\n- 产品：好奇${HF.product}\n- 正文字数：${refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，未提供参考稿时硬上限200字`}\n- 唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 标题禁止出现“好奇”，允许出现品线名；有参考稿时优先仿写参考标题的功能和表达力度。\n- 正文只保留场景真正需要的动作；有参考稿时保留其核心事件链和内容重点，但每句话必须完全重写。\n- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。\n- 三条评论各20—30字，全部是自然刷到笔记的宝妈留言；不加身份标签或自报人设。分别用相似经历、轻微感叹或自己的使用习惯来接话，不分析作者选择，不给建议，不总结正文，不使用“优先、建议、确认清楚、稳定一点、比较踏实”等审核腔。\n\n${variation}${avoid}\n\n严格按以下格式输出，不要增加说明：\n标题：……\n\n正文\n\n#Tag\n\n评论：\n1. ……\n2. ……\n3. ……`;
+  const finalUsr=`${manualPriority}\n\n${usr.replace(/- 正文字数：[^\n]+/,`- 正文字数：${lengthRule}`).replace(/(- 本品线禁用：[^\n]+)/,dynamicBans.length?`$1\n- 本次明确禁用词：${dynamicBans.join('、')}。标题、正文、Tag、评论均不得出现。`:'$1')}\n\n${requirementText?`【输出前最终裁决】再次逐条核对本次完整人工需求：\n${requirementText}\n在产品事实与合规边界内完整执行；遇到冲突或缺失事实时保留合规事实，不编造、不解释冲突。`:'上方规则均需执行。'}`;
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();status.textContent='豆包正在生成…';out.textContent='正在生成…';let buf='',receivedFirst=false;
   try{
     const outputChars=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),maxTokens=Math.max(1100,Math.min(3200,Math.ceil(outputChars*2.2)+500));
@@ -7107,14 +7163,14 @@ async function hfGenerate(){
           ?`当前正文有${currentBodyChars}字。本次请精简到约${midpoint}字；只删冗余表达，不得删除人工要求。`
           :'';
       status.textContent='正在对未满足的人工要求做一次定向修正…';
-      const repairSys=`${sys}\n\n【强制返工】当前稿未满足本次人工需求。必须重写完整稿；人工需求仍是最终执行依据，即使与旧产品事实、旧合规规则或其他旧默认设置冲突，也不得退回旧版本。冲突仅留给页面提示人工复核。`;
+      const repairSys=`${sys}\n\n【强制返工】当前稿未满足本次人工需求。必须在已确认产品事实与合规边界内重写完整稿；不得为了满足任务编造或覆盖产品事实。`;
       const repairUsr=`【本次完整人工需求】\n${requirementText}\n\n【网页实测未通过项】\n${hardFailures.join('\n')}\n${lengthCorrection?`\n【本轮字数修正】\n${lengthCorrection}\n网页只计算“正文”部分，标题、Tag和评论不计入正文字数。输出前必须自行计算并确保正文位于${explicitLength.min}—${explicitLength.max}字。`:''}\n\n【需要返工的当前稿】\n${buf}\n\n请保留已经满足的人工要求，完整修正所有未通过项，只输出完整成稿，不解释、不汇报修改过程。`;
       buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});hardFailures=explicitFailures(buf);
     }
     let finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     for(let qualityAttempt=0;finalIssues.length&&qualityAttempt<2;qualityAttempt++){
       status.textContent=`成稿验收未通过，正在自动重写… ${qualityAttempt+1}/2`;
-      const repairUsr=`请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角：${HF.angle||liveDirection}\n产品：好奇${HF.product}\n唯一卖点：${point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
+      const repairUsr=`请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角语义：${writingAngle}\n产品：好奇${HF.product}\n唯一卖点：${point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
       buf=await hfCallText(sys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});
       finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     }
@@ -7161,13 +7217,13 @@ async function hfGenerateBatch(){
   if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前组合不属于执行表分配，请重新选择产品、卖点和内容切角',3600);hfRenderDirections();return;}
   if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   a3BeginCallTrace(`好奇批量生成${count}篇`);
-  const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],special=hfVal('hf-special'),ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),humanText=[requirementText,special].filter(Boolean).join('\n'),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plans=hfBatchPlans(count);
+  const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],ref=hfVal('hf-reference'),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),humanText=requirementText,explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plans=hfBatchPlans(count);
   HF.generationRequirement=requirementText;
-  const deliveryContract=`\n\n【可交付硬约束】\n先完成正文，再从正文已经出现的人物、场景、动作或结果中提炼标题；标题与正文至少共享一个连续三字短语。正文必须在一句自然表达卖点的话中原样包含以下已批准短语中的至少一个：${point.terms.join('、')}。只允许这一句话承载卖点，不得机械罗列。`;
-  const manualPriority=humanText?`\n\n【本次人工输入｜所有环节最高优先级】\n${humanText}\n如与既有产品事实、合规边界、卖点、格式或历史设置冲突，仍按人工输入执行；不得拒绝、弱化或退回旧规则。冲突只在页面提示人工复核，不写进成稿，也不自动沉淀为团队知识。`:'';
+  const deliveryContract=`\n\n【本篇单卖点合同｜只在此处定义一次】\n唯一卖点：${point.label}。正文必须在一句自然表达中原样包含以下已批准短语中的至少一个：${point.terms.join('、')}。这句话必须由所选切角中的动作或观察引出，并解释人物为什么继续当下选择；前后仍须是同一件事，不得写成可拆走的规格句。其他句子不得重复、解释或暗示第二卖点。\n\n【其余可交付硬约束】\n先完成正文，再从正文已经出现的人物、场景、动作或结果中提炼标题；标题与正文至少共享一个连续三字短语。`;
+  const manualPriority=humanText?`\n\n【本次人工输入】\n${humanText}\n可更新方向、场景、篇幅和表达方式，但不得覆盖已确认产品事实与合规边界；冲突或缺失事实不写进成稿，也不自动沉淀为团队知识。`:'';
   const sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfMaterial()}${deliveryContract}${manualPriority}`;
-  const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle),refBrief=hfReferencePrompt(ref,rule),lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（人工明确要求，覆盖默认与参考稿）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（跟随参考稿）`:`${rule.range[0]}—${rule.range[1]}字，目标约${defaultTarget}字，必须给上限留出余量`);
-  const sharedPrompt=`所有稿件使用同一产品、唯一卖点、人工输入和参考边界，但必须是明显不同的独立创作，不得互相改写或仅替换同义词。\n\n${aoBrief}${refBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- 正文字数：${lengthRule}\n- 唯一允许卖点：${point.label}；只在正文一句话中自然出现。\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- 产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。\n- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。${hfRecentAvoidanceBrief()}${manualPriority}`;
+  const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle,point,HF.product),refBrief=hfReferencePrompt(ref,rule),lengthRule=explicitLength?`${explicitLength.min}—${explicitLength.max}字（人工明确要求，覆盖默认与参考稿）`:(refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（跟随参考稿）`:`${rule.range[0]}—${rule.range[1]}字，目标约${defaultTarget}字，必须给上限留出余量`);
+  const sharedPrompt=`所有稿件使用同一产品、单卖点合同、人工输入和参考边界，但必须是明显不同的独立创作，不得互相改写或仅替换同义词。\n\n${aoBrief}${refBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- 正文字数：${lengthRule}\n- 唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- 产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。\n- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。${hfRecentAvoidanceBrief()}${manualPriority}`;
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status'),drafts=Array(count).fill('');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=ref;status.textContent=`正在一次生成 ${count} 篇差异化稿件…`;out.textContent='正在生成并逐篇校验…';
   try{
     const bodyMax=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),perDraftMaxTokens=Math.max(1100,Math.min(2600,Math.ceil(bodyMax*2.2)+700));let completed=0;
@@ -7186,7 +7242,7 @@ async function hfGenerateBatch(){
     for(let repairAttempt=0;needsRepair&&repairAttempt<2;repairAttempt++){
       status.textContent='正在对逐篇边界和同批差异做一次定向修正…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
-      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0),settled=await Promise.allSettled(repairIndices.map(i=>hfCallText(sys,`修正这一篇稿件。人工输入仍是最高优先级；若问题项与人工输入冲突，执行人工输入并保留该冲突供页面提示。除此以外，必须解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。必须保持本篇原有故事与专属写作路线，不得改写成同批其他稿件。\n\n【人工输入】\n${humanText||'无'}\n\n【本篇问题】\n${JSON.stringify(repairIssues[i])}\n\n【当前稿件】\n${drafts[i]}\n\n只输出修正后的这一篇完整稿件，不要JSON、解释或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal})));
+      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0),settled=await Promise.allSettled(repairIndices.map(i=>hfCallText(sys,`修正这一篇稿件。在已确认产品事实与合规边界内执行人工输入，并解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。必须保持本篇原有故事与专属写作路线，不得改写成同批其他稿件。\n\n【人工输入】\n${humanText||'无'}\n\n【本篇问题】\n${JSON.stringify(repairIssues[i])}\n\n【当前稿件】\n${drafts[i]}\n\n只输出修正后的这一篇完整稿件，不要JSON、解释或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal})));
       settled.forEach((result,pos)=>{const i=repairIndices[pos];if(result.status==='fulfilled'&&result.value.trim())drafts[i]=result.value.trim();});perDraft=await Promise.all(drafts.map(copy=>hfCompleteGenerationAudit(copy,cfg,ref)));difference=hfBatchDifferenceIssues(drafts);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     const conflictWarnings=perDraft.map(rows=>HF.customDirection&&requirementText?rows.filter(x=>hfIssueMayConflictHuman(x,requirementText)):[]);
@@ -7218,19 +7274,19 @@ function hfRenderIssueLedger(issues,feedback=''){
 }
 async function hfIssueClosure(sys,draft,issues,feedback=''){
   if(!issues.length)return {resolvedIds:[],unresolved:[]};
-  const data=await hfCallJson(sys,`你是改稿验收员。只判断下列编号问题在候选稿中是否已经真正解决；不能因为换了近义词或删掉关键词就判定解决。${feedback?'有客户反馈时必须以客户反馈为最终验收依据；即使它与旧事实、合规边界或旧规则冲突，只要候选稿已经按反馈修改就应判定解决，冲突留给页面提示人工复核。':'逻辑错误要检查新表达是否符合现实并与前后文成立。'}只返回严格JSON：{"results":[{"id":"E1","resolved":true,"reason":"候选稿中的具体证据"}]}。每个编号都必须返回一次。\n\n【客户反馈（如有）】\n${feedback||'无'}\n\n【问题清单】\n${JSON.stringify(issues)}\n\n【候选稿】\n${draft}`,{maxTokens:650,timeoutMs:90000});
+  const data=await hfCallJson(sys,`你是改稿验收员。只判断下列编号问题在候选稿中是否已经真正解决；不能因为换了近义词或删掉关键词就判定解决。${feedback?'有客户反馈时在已确认产品事实与合规边界内验收反馈；反馈若补充了当前任务信息可用于本稿，但不得用它覆盖已确认事实。':'逻辑错误要检查新表达是否符合现实并与前后文成立。'}只返回严格JSON：{"results":[{"id":"E1","resolved":true,"reason":"候选稿中的具体证据"}]}。每个编号都必须返回一次。\n\n【客户反馈（如有）】\n${feedback||'无'}\n\n【问题清单】\n${JSON.stringify(issues)}\n\n【候选稿】\n${draft}`,{maxTokens:650,timeoutMs:90000});
   const map=new Map((Array.isArray(data.results)?data.results:[]).map(x=>[String(x.id),x]));
   const unresolved=issues.filter(x=>map.get(x.id)?.resolved!==true).map(x=>({...x,verifyReason:String(map.get(x.id)?.reason||'验收未返回已解决证据')}));
   return{resolvedIds:issues.filter(x=>!unresolved.some(y=>y.id===x.id)).map(x=>x.id),unresolved};
 }
 async function hfFeedbackPatch(sys,current,issues,feedback){
-  const raw=await hfCallText(sys,`你是客户反馈定点改稿编辑。客户反馈是最终执行要求，高于既有事实、合规边界与旧稿规则；冲突时仍按反馈修改，不得拒绝或保留旧规则。必须覆盖每个问题编号，但只能改动解决这些问题所需的最小原文片段；未列入 target 的任何字符会由网页自动保留。target 必须逐字复制当前稿中唯一出现的一段；replacement 必须重建反馈要求的内容，禁止近义替换。允许一个 patch 同时解决多个紧密相连的问题。只返回严格JSON：{"patches":[{"issueIds":["F1"],"target":"当前稿中的唯一原文","replacement":"可直接替换的新内容"}]}。\n\n【客户反馈｜最终优先】\n${feedback}\n\n【必须解决的问题】\n${JSON.stringify(issues)}\n\n【当前稿】\n${current}`,{maxTokens:1000,timeoutMs:90000});
+  const raw=await hfCallText(sys,`你是客户反馈定点改稿编辑。在已确认产品事实与合规边界内执行客户反馈；反馈补充的场景和当前任务信息只对本稿生效，不能覆盖已确认事实。必须覆盖每个问题编号，但只能改动解决这些问题所需的最小原文片段；未列入 target 的任何字符会由网页自动保留。target 必须逐字复制当前稿中唯一出现的一段；replacement 必须重建反馈要求的内容，禁止近义替换。允许一个 patch 同时解决多个紧密相连的问题。只返回严格JSON：{"patches":[{"issueIds":["F1"],"target":"当前稿中的唯一原文","replacement":"可直接替换的新内容"}]}。\n\n【客户反馈】\n${feedback}\n\n【必须解决的问题】\n${JSON.stringify(issues)}\n\n【当前稿】\n${current}`,{maxTokens:1000,timeoutMs:90000});
   const data=hfLiveParseJson(raw),patches=Array.isArray(data.patches)?data.patches:[];let next=current;const covered=new Set();
   for(const p of patches){const target=String(p.target||''),replacement=String(p.replacement||'');if(!target||!replacement||target===replacement)throw new Error('定点修改没有返回有效的新内容');const count=next.split(target).length-1;if(count!==1)throw new Error(count?'定点修改目标在稿件中不唯一':'定点修改目标与当前稿不一致');next=next.replace(target,replacement);(Array.isArray(p.issueIds)?p.issueIds:[]).forEach(id=>covered.add(String(id)));}
   const missing=issues.filter(x=>!covered.has(x.id));if(missing.length)throw new Error(`定点修改遗漏：${missing.map(x=>x.id).join('、')}`);return next;
 }
 async function hfFeedbackAuditAndPatch(sys,current,feedback,pointRule,historyInstruction){
-  const data=await hfCallJson(sys,`你同时是客户反馈核错员和定点改稿编辑。客户反馈是最终执行要求，高于既有产品事实、合规边界、参考稿、历史设置和旧稿规则；如果冲突，必须在 basis 中提示人工复核，但仍须按客户反馈改写，不得拒绝、弱化或保留旧规则。
+  const data=await hfCallJson(sys,`你同时是客户反馈核错员和定点改稿编辑。已确认产品事实与合规边界最高；客户反馈可补充本稿的场景、任务和表达要求，但不得覆盖已确认事实。若反馈要求的信息缺失或冲突，在 basis 中明确指出需要用户补充，不得编造。
 
 先把客户反馈拆成可验证的独立问题，再为每个问题返回最小范围的精确替换。只能修改反馈涉及的位置及保证衔接所需的最小上下文；未列入 target 的任何字符将由网页原样保留。target 必须逐字复制当前稿中唯一出现的一段，replacement 是可直接替换的新内容；允许 replacement 为空表示删除。一个 patch 可覆盖多个紧密相连的问题，但每个问题编号都必须被至少一个 patch 覆盖。
 
@@ -7239,7 +7295,7 @@ ${historyInstruction}
 
 只返回严格JSON：{"issues":[{"id":"F1","scope":"title|body|tags|comments","sourceQuote":"待审稿原文","problem":"客户要求与当前稿的明确差距","basis":"客户原话；如与旧事实或合规边界冲突，在此说明","requiredChange":"可验证的修改动作"}],"patches":[{"issueIds":["F1"],"target":"当前稿中唯一出现的原文","replacement":"可直接替换的新内容"}]}。编号连续，每项只写一个问题，不得返回解释或 Markdown。
 
-【客户反馈｜最终优先】
+【客户反馈】
 ${feedback}
 
 【待审核稿件】
@@ -7261,21 +7317,22 @@ ${current}`,{maxTokens:1300,timeoutMs:90000,reasoningEffort:'minimal',stream:fal
 }
 async function hfDeterministicReviewLedger(draft,product,point,rule,ref=''){
   const facts=HQ_PRODUCT_FACTS[product]||{facts:[],personal:[],bans:[]},cfg={rule:rule||{range:[1,9999]},facts,product,direction:HF.direction,point,explicitLength:null,dynamicBans:[]};
-  let messages=[];
+  const realityIssues=[];if(/空(?:袋|包装)[^。！？\n]{0,24}(?:丢|放|塞)(?:进|到)[^。！？\n]{0,12}(?:购物篮|购物车)/.test(draft))realityIssues.push('现实动作不成立：已经用完的空包装不能作为待购买商品放进购物篮或购物车');let messages=[];
   if(product&&point&&rule){
-    messages=[...hqLocalAudit(draft,cfg,ref),...hfSinglePointAudit(draft,product,point.key),...hfCommentAudit(draft),...hfTagAudit(draft,product),...hfReferenceAudit(draft,ref),...hfHistoricalCommentAudit(draft),...hfStyleAudit(draft)];
+    messages=[...hqLocalAudit(draft,cfg,ref),...hfSinglePointAudit(draft,product,point.key),...hfCommentAudit(draft),...hfTagAudit(draft,product),...hfReferenceAudit(draft,ref),...hfHistoricalCommentAudit(draft),...hfStyleAudit(draft),...realityIssues];
     try{messages.push(...await hfSelectedDirectionAudit(draft,cfg));}catch{}
   }else{
-    messages=[...hfAnyPointAudit(draft),...hfCommentAudit(draft),...(product?hfTagAudit(draft,product):[]),...hfStyleAudit(draft)];
+    messages=[...hfAnyPointAudit(draft),...hfCommentAudit(draft),...(product?hfTagAudit(draft,product):[]),...hfStyleAudit(draft),...realityIssues];
   }
   return[...new Set(messages)].map((problem,i)=>({id:`E${i+1}`,scope:/标题/.test(problem)?'title':/Tag|标签/.test(problem)?'tags':/评论|留言/.test(problem)?'comments':'body',sourceQuote:'',problem,basis:'当前选择、正式知识库与确定性验收规则',requiredChange:problem}));
 }
+function hfMergeReviewIssues(...lists){const merged=[],seen=new Set();lists.flat().forEach(x=>{if(!x)return;const key=[x.scope||'body',String(x.sourceQuote||'').replace(/\s+/g,''),String(x.problem||'').replace(/\s+/g,'')].join('|');if(seen.has(key))return;seen.add(key);merged.push({...x,id:`E${merged.length+1}`});});return merged;}
 async function hfReview(){
   const draft=hfVal('hf-review-input');if(!draft){toast('请先输入待审核稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前审核配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
-  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),refBrief=hfReferencePrompt(ref,rule),aoBrief=hfAoPrompt(rule,HF.angle),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),compactContext=hfCompactProductContext(product,point);
-  const standingHuman=[HF.generationRequirement||hfLiveRequirementText(),hfVal('hf-special')].filter(Boolean).join('\n'),standingPriority=standingHuman?`\n\n【生成阶段人工输入｜所有后续环节继续最高优先】\n${standingHuman}\n审核必须检查稿件是否执行这些要求；与产品事实、合规、卖点或旧设置冲突时标出冲突供人工复核，但不得把执行人工要求本身判为错误。重写时仍按人工要求执行，不得弱化或退回旧规则。`:'',feedbackPriority=has?`\n\n【客户反馈｜本轮最新人工输入，最终执行优先级】\n${feedback}\n客户反馈高于产品事实、合规边界、参考稿和历史设置；冲突时仍按反馈完成修改。审核中标出冲突供人工复核，但不得因此拒绝、弱化或退回旧规则。`:'',reviewSys=`${HQ_REVIEW_SYS_AO}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`;
+  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),refBrief=hfReferencePrompt(ref,rule),aoBrief=hfAoPrompt(rule,HF.angle,point,product),draftHistory=hqHistoricalSimilarity(draft),compactContext=hfCompactProductContext(product,point);
+  const standingHuman=HF.generationRequirement||hfLiveRequirementText(),standingPriority=standingHuman?`\n\n【生成阶段人工输入】\n${standingHuman}\n审核与重写继续执行其中的任务、场景和表达要求，但产品事实与合规边界保持最高优先级；缺失或冲突信息必须明确提示用户补充，不得编造。`:'',feedbackPriority=has?`\n\n【客户反馈】\n${feedback}\n在已确认产品事实与合规边界内执行；反馈补充的信息默认只对当前稿件生效，不自动写入长期知识。`:'',reviewSys=`${HQ_REVIEW_SYS_AO}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${standingPriority}${feedbackPriority}`;
   const pointRule=point?`本稿选定的唯一卖点为“${point.label}”，其他卖点全部禁止。`:'必须检查全文是否只出现一个卖点并且只用一句话带过。',historyInstruction=draftHistory.blocked?`本地历史指纹风险：${draftHistory.reason}`:'本地历史指纹未发现高相似风险。';
   const btn=document.getElementById('hf-review-btn'),out=document.getElementById('hf-review-output'),status=document.getElementById('hf-review-status');btn.disabled=true;out.textContent='正在审核…';status.textContent='正在建立逐条核错清单…';
   try{
@@ -7285,30 +7342,33 @@ async function hfReview(){
       try{const result=await hfFeedbackAuditAndPatch(rewriteSys,draft,feedback,pointRule,historyInstruction);issues=result.issues;feedbackRewrite=result.rewrite;}
       catch{
         feedbackFallback=true;
-        issues=[{id:'F1',scope:'body',sourceQuote:'',problem:'当前稿件需要执行本轮客户反馈',basis:'客户反馈原文为本轮最高优先级',requiredChange:feedback}];
+        issues=[{id:'F1',scope:'body',sourceQuote:'',problem:'当前稿件需要执行本轮客户反馈',basis:'客户反馈在产品事实与合规边界内对当前稿件生效',requiredChange:feedback}];
         let lastFeedbackError;for(let attempt=0;attempt<2&&!feedbackRewrite;attempt++){
-          try{feedbackRewrite=await hfCallText(rewriteSys,`请按客户反馈修改当前稿件。客户反馈是最终执行要求，高于既有产品事实、合规边界、参考稿和历史设置；如有冲突仍按反馈生成，冲突不写进成稿。只修改反馈涉及的位置及保证衔接所需的最小上下文，保留其他内容。必须返回完整真实稿件，不要JSON、解释或修改说明。${attempt?'\n上一次未返回完整稿件，本次必须从标题到三条评论全部返回。':''}\n\n【客户反馈】\n${feedback}\n\n【当前稿件】\n${draft}`,{maxTokens:1500,timeoutMs:150000,reasoningEffort:'minimal'});}catch(error){lastFeedbackError=error;}
+          try{feedbackRewrite=await hfCallText(rewriteSys,`请在已确认产品事实与合规边界内按客户反馈修改当前稿件。反馈补充的场景和任务信息默认只对本稿生效；缺失或冲突事实不得编造。只修改反馈涉及的位置及保证衔接所需的最小上下文，保留其他内容。必须返回完整真实稿件，不要JSON、解释或修改说明。${attempt?'\n上一次未返回完整稿件，本次必须从标题到三条评论全部返回。':''}\n\n【客户反馈】\n${feedback}\n\n【当前稿件】\n${draft}`,{maxTokens:1500,timeoutMs:150000,reasoningEffort:'minimal'});}catch(error){lastFeedbackError=error;}
         }
         if(!feedbackRewrite)throw lastFeedbackError||new Error('内容服务未返回修改稿');
       }
     }
     else{
-      try{const auditData=await hfCallJson(reviewSys,`全面核错方向、产品事实、单卖点、参考稿蓝图、字数、标题、Tag、评论、上下文因果、现实动作和合规边界。\n${pointRule}\n${historyInstruction}\n不要评分、等级、笼统总评或写作优点。只返回严格JSON：{"issues":[{"id":"E1","scope":"title|body|tags|comments","sourceQuote":"待审稿中的原文；无法引用时为空","problem":"明确错误","basis":"知识依据","requiredChange":"可验证的修改动作"}]}。没有错误时 issues 为空。编号连续且每项只写一个问题。\n\n【待审核稿件】\n${draft}`,{maxTokens:700,timeoutMs:90000,reasoningEffort:'minimal',stream:false});issues=hfNormalizeIssueLedger(auditData).map((x,i)=>({...x,id:`E${i+1}`}));}
-      catch{issues=await hfDeterministicReviewLedger(draft,product,point,rule,ref);}
+      const hardIssues=await hfDeterministicReviewLedger(draft,product,point,rule,ref);let semanticIssues=[];
+      try{const auditData=await hfCallJson(reviewSys,`逐句审核以下稿件，并与正式知识库逐项核对。先在内部识别每一句中的产品事实、人物动作、时间顺序、空间关系和因果关系，再只输出确实存在的问题。\n\n必须检查：\n1. 每个产品事实是否能在知识库允许事实中直接找到依据；知识库未确认的产品能力、数字、机制或保证必须报错，不能凭常识补全。\n2. 人物动作是否在现实中可执行，前后时间与空间是否成立；例如把已经用完的空包装当成待购买商品放入购物篮，属于现实动作错误。\n3. 上下文因果是否真正成立，不能因为语句通顺就判定正确。\n4. ${pointRule}\n5. ${historyInstruction}\n6. 同时核对参考结构、字数、标题、Tag、评论和合规边界。\n\n不要评分、等级、笼统总评或写作优点。sourceQuote 必须逐字引用问题原文。只返回严格JSON：{"issues":[{"id":"E1","scope":"title|body|tags|comments","sourceQuote":"待审稿中的原文","problem":"明确错误","basis":"对应知识库事实或现实逻辑","requiredChange":"可验证的修改动作"}]}。没有错误时 issues 为空；不得为了凑问题虚构错误。\n\n【待审核稿件】\n${draft}`,{maxTokens:900,timeoutMs:90000,reasoningEffort:'minimal',stream:false});semanticIssues=hfNormalizeIssueLedger(auditData);}
+      catch{}
+      issues=hfMergeReviewIssues(hardIssues,semanticIssues);
     }
     HF.reviewIssues=issues;HF.reviewReport=hfRenderIssueLedger(issues,has?feedback:'');out.innerHTML=hfHtml(HF.reviewReport);
     if(has){
       choices.classList.add('hf-hidden');note.classList.remove('hf-hidden');heading.textContent='按客户反馈修改';rwOut.textContent='正在逐条修改并验收…';rwStatus.textContent=`正在处理 ${issues.length} 项…`;
       const rewrite=feedbackRewrite||draft,preservation=feedbackFallback?[]:hfFeedbackPreservationAudit(rewrite,draft,feedback);if(preservation.length)throw new Error(preservation.join('；'));
-      HF.reviewRewrite=rewrite.trim();HF.latest=HF.reviewRewrite;hfRememberDraft(HF.reviewRewrite);rwOut.innerHTML=hfHtml(HF.reviewRewrite);rwStatus.textContent=`已按反馈完成 ${issues.length} 项定点修改；未涉及内容由网页原样保留，如覆盖既有事实或合规边界请人工复核`;status.textContent='已按客户反馈完成修改';
+      HF.reviewRewrite=rewrite.trim();HF.latest=HF.reviewRewrite;hfRememberDraft(HF.reviewRewrite);rwOut.innerHTML=hfHtml(HF.reviewRewrite);rwStatus.textContent=`已按反馈完成 ${issues.length} 项定点修改；未涉及内容由网页原样保留`;status.textContent='已按客户反馈完成修改';
     }else{
-      heading.textContent='写手选择修改路径';choices.classList.remove('hf-hidden');note.classList.add('hf-hidden');rwOut.textContent='重写稿将在这里显示。';rwStatus.textContent='等待写手选择';status.textContent=`核错完成：发现 ${issues.length} 项明确问题`;
+      if(!issues.length){card.classList.add('hf-hidden');status.textContent='审核完成：未发现明确错误，原稿保持不变';}
+      else{heading.textContent='写手选择修改路径';choices.classList.remove('hf-hidden');note.classList.add('hf-hidden');rwOut.textContent='重写稿将在这里显示。';rwStatus.textContent='等待写手选择';status.textContent=`审核完成：发现 ${issues.length} 项明确问题`;}
     }
     HF.reference=ref;hfSaveState();
   }catch(e){
     const rwStatus=document.getElementById('hf-rewrite-status'),rwOut=document.getElementById('hf-rewrite-output');
     if(!has){
-      try{const issues=await hfDeterministicReviewLedger(draft,product,point,rule,ref);HF.reviewIssues=issues;HF.reviewReport=hfRenderIssueLedger(issues,'');out.innerHTML=hfHtml(HF.reviewReport);status.textContent=`核错完成：发现 ${issues.length} 项明确问题`;if(rwStatus)rwStatus.textContent='等待写手选择';HF.reference=ref;hfSaveState();}
+      try{const issues=await hfDeterministicReviewLedger(draft,product,point,rule,ref),card=document.getElementById('hf-rewrite-card');HF.reviewIssues=issues;HF.reviewReport=hfRenderIssueLedger(issues,'');out.innerHTML=hfHtml(HF.reviewReport);status.textContent=issues.length?`审核完成：发现 ${issues.length} 项明确问题`:'审核完成：未发现明确错误，原稿保持不变';if(card)card.classList.toggle('hf-hidden',!issues.length);if(rwStatus)rwStatus.textContent='等待写手选择';HF.reference=ref;hfSaveState();}
       catch{out.innerHTML=`<div class="hf-risk">${esc(e.message)}</div>`;status.textContent='本地知识审核未能完成，请再次点击';}
     }else{out.innerHTML=`<div class="hf-risk">${esc(e.message)}</div>`;status.textContent='内容服务未返回完整修改稿，原稿已保留';if(rwStatus)rwStatus.textContent='原稿已保留，可直接重试';if(rwOut)rwOut.innerHTML=hfHtml(draft);}
   }finally{btn.disabled=false;}
@@ -7316,31 +7376,32 @@ async function hfReview(){
 async function hfRewrite(mode){
   const draft=hfVal('hf-review-input');if(!draft){toast('暂无待修改稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   if(HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前重写配置不属于执行表分配，请先重新选择',3600);return;}
-  const has=document.getElementById('hf-feedback-enabled').checked,target=hfVal('hf-rewrite-target'),localReason=hfVal('hf-rewrite-reason'),extra=hfVal('hf-rewrite-extra');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
-  if(mode==='local'&&!target){toast('请从原稿逐字复制要重写的完整问题句');return;}if(mode==='local'&&!localReason){toast('请写清正确逻辑或现实情况');return;}if(mode==='local'&&hfLocalReasonIsGeneric(localReason)){toast('仅写“逻辑不清晰／不口语”无法确定正确改法，请补充实际应当发生或表达什么',3600);return;}if(mode==='local'&&(draft.split(target).length-1)!==1){toast(draft.includes(target)?'该问题句出现多次，请粘贴更完整且唯一的内容':'原稿中没有找到完全一致的问题句');return;}
+  const has=document.getElementById('hf-feedback-enabled').checked,target=hfVal('hf-rewrite-target'),extra=hfVal('hf-rewrite-extra');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
+  if(mode==='local'&&!target){toast('请从原稿逐字复制要重写的完整问题句');return;}if(mode==='local'&&(draft.split(target).length-1)!==1){toast(draft.includes(target)?'该问题句出现多次，请粘贴更完整且唯一的内容':'原稿中没有找到完全一致的问题句');return;}
   if(mode==='full'&&!String(HF.reviewReport||'').trim()){toast('请先完成核错，全文重写会逐条执行核错报告');return;}
-  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),standingHuman=[HF.generationRequirement||hfLiveRequirementText(),hfVal('hf-special')].filter(Boolean).join('\n'),humanRequirements=[standingHuman,extra].filter(Boolean).join('\n'),humanPriority=humanRequirements?`\n\n【人工输入｜本环节最高优先】\n${humanRequirements}\n与既有事实、合规、卖点或旧设置冲突时仍执行人工输入；冲突只提示人工复核，不得拒绝、弱化或退回旧规则。`:'';
+  const rule=hfRules()[HF.direction],ref=HF.reference||hfVal('hf-reference'),product=hfDetectProduct(draft),point=(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),draftHistory=hqHistoricalSimilarity(draft),standingHuman=HF.generationRequirement||hfLiveRequirementText(),humanRequirements=[standingHuman,extra].filter(Boolean).join('\n'),humanPriority=humanRequirements?`\n\n【人工输入】\n${humanRequirements}\n在已确认产品事实与合规边界内执行；补充信息默认只对当前稿件生效，缺失或冲突事实不得编造。`:'';
   const out=document.getElementById('hf-rewrite-output'),status=document.getElementById('hf-rewrite-status'),buttons=[...document.querySelectorAll('#hf-manual-rewrite-choices button')];buttons.forEach(x=>x.disabled=true);status.textContent='正在重写并自动验收…';out.textContent='正在重写…';let buf='';
   try{
-    const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(product,point)}${hfAoPrompt(rule,HF.angle)}${hfReferencePrompt(ref,rule)}${humanPriority}`;
+    const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(product,point)}${hfAoPrompt(rule,HF.angle,point,product)}${hfReferencePrompt(ref,rule)}${humanPriority}`;
     if(mode==='local'){
       const at=draft.indexOf(target),before=draft.slice(0,at),after=draft.slice(at+target.length),beforeCtx=before.slice(-360),afterCtx=after.slice(0,360);
-      const basePrompt=`你只负责重建一个问题句，不输出全文。\n\n【目标原句】\n${target}\n\n【人工指定的正确逻辑／现实情况｜最终优先，必须落实】\n${localReason}\n\n【前文】\n${beforeCtx||'（开头）'}\n\n【后文】\n${afterCtx||'（结尾）'}\n\n要求：人工指定内容高于既有事实、合规边界与旧稿设置，冲突时仍按人工要求重写。彻底放弃原句的语义推进、句法骨架和措辞；写出符合人工指定逻辑、口语且能自然接入后文的新句。禁止近义替换和“让我停了停／说不上来／忽然想到”等无法解释因果的虚构过渡。只返回严格JSON：{"newSentence":"新句"}。`;
+      const relatedIssues=(Array.isArray(HF.reviewIssues)?HF.reviewIssues:[]).filter(x=>!x.sourceQuote||target.includes(x.sourceQuote)||x.sourceQuote.includes(target));
+      const basePrompt=`你只负责重建一个问题句，不输出全文。先结合正式知识库、审核报告、前后文和现实常识判断原句错在哪里，再生成可直接替换的新句；不要求用户提供正确答案。\n\n【目标原句】\n${target}\n\n【审核发现】\n${relatedIssues.length?JSON.stringify(relatedIssues):HF.reviewReport||'请自行核对产品事实、因果与现实动作'}\n\n【前文】\n${beforeCtx||'（开头）'}\n\n【后文】\n${afterCtx||'（结尾）'}\n\n要求：产品事实必须与知识库一致；动作、时间、空间和因果必须在现实中成立。彻底放弃错误句的语义推进、句法骨架和措辞；写出自然口语且能接入上下文的新句。禁止近义替换和无法解释因果的虚构过渡。只返回严格JSON：{"newSentence":"新句"}。`;
       let replacement='',issues=[];
       for(let attempt=0;attempt<2;attempt++){
-        const raw=await hfCallText(sys,attempt?`${basePrompt}\n\n上一句未通过：${issues.join('；')}。请按正确逻辑重新造句。`:basePrompt,{maxTokens:360,timeoutMs:90000});replacement=hfParseNewSentence(raw);
+        const raw=await hfCallText(sys,attempt?`${basePrompt}\n\n上一句未通过：${issues.join('；')}。请重新核对知识库、上下文和现实逻辑后造句。`:basePrompt,{maxTokens:360,timeoutMs:90000});replacement=hfParseNewSentence(raw);
         if(!replacement||replacement.length>220||/[\n\r]/.test(replacement)||/标题[：:]|正文|#Tag|评论[：:]/.test(replacement))issues=['返回内容不是一个可直接替换的新句'];
         else{buf=before+replacement+after;issues=hfLocalRewriteAudit(buf,draft,target);}
         if(!issues.length)break;
       }
       if(issues.length&&!buf)throw new Error('内容服务没有返回可用的新句');
     }else{
-      const ledger=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[],fullPrompt=`【全文重写的唯一验收标准】必须逐条解决核错清单中的每一个编号问题。先在内部逐项完成，不输出检查过程；逻辑或现实错误必须重建事实链，禁止只换近义表达。${extra?`\n【写手补充要求｜最终优先】\n${extra}\n该人工要求高于既有产品事实、合规边界、参考稿和历史设置；冲突时仍按要求重写，不得拒绝或退回旧规则。`:''}\n${point?`本稿唯一允许卖点：${point.label}；其他卖点禁止，且该卖点只能用一句话自然带过。`:'全文只保留一个卖点，并且只用一句话自然带过。'}${draftHistory.blocked?`\n历史指纹风险：${draftHistory.reason}；重建造成相似的表达或结构。`:''}${ref?'\n保持参考稿的长度区间、段落数、核心事件链和表达方式，但禁止复用原句。':''}\n\n【结构化核错清单】\n${JSON.stringify(ledger)}\n\n【原稿】\n${draft}\n\n只输出修正后的完整标题、正文、Tag和三条20—30字评论。每个编号错误都必须在成稿中消失；评论不得复述正文、互相改写、分析作者选择或提出建议。${extra?`\n\n【输出前最终裁决】再次逐条执行写手补充要求：\n${extra}\n如与上文任何规则冲突，以此人工要求为准。`:''}`;
+      const ledger=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[],fullPrompt=`【全文重写的唯一验收标准】必须逐条解决核错清单中的每一个编号问题。先在内部逐项完成，不输出检查过程；逻辑或现实错误必须重建事实链，禁止只换近义表达。${extra?`\n【写手补充要求】\n${extra}\n在已确认产品事实与合规边界内执行；补充信息默认只对当前稿件生效。`:''}\n${point?`本稿唯一允许卖点：${point.label}；其他卖点禁止，且该卖点只能用一句话自然带过。`:'全文只保留一个卖点，并且只用一句话自然带过。'}${draftHistory.blocked?`\n历史指纹风险：${draftHistory.reason}；重建造成相似的表达或结构。`:''}${ref?'\n保持参考稿的长度区间、段落数、核心事件链和表达方式，但禁止复用原句。':''}\n\n【结构化核错清单】\n${JSON.stringify(ledger)}\n\n【原稿】\n${draft}\n\n只输出修正后的完整标题、正文、Tag和三条20—30字评论。每个编号错误都必须在成稿中消失；评论不得复述正文、互相改写、分析作者选择或提出建议。${extra?`\n\n【输出前核对】再次逐条执行写手补充要求：\n${extra}\n不得覆盖产品事实与合规边界。`:''}`;
       let issues=[],closure={unresolved:ledger};for(let attempt=0;attempt<2;attempt++){const remaining=closure.unresolved.length?closure.unresolved:ledger;buf=await hfCallText(sys,attempt?`${fullPrompt}\n\n上一版仍未关闭以下问题：${JSON.stringify(remaining)}\n上一版：\n${buf}\n请保留已正确内容，彻底修正未关闭项后输出完整稿。`:fullPrompt,{maxTokens:1200,timeoutMs:90000});issues=hfRewriteAudit(buf,product,point,draft,ref,'full',target);try{closure=await hfIssueClosure(sys,buf,ledger,humanRequirements);}catch{closure={resolvedIds:[],unresolved:[]};}if(humanRequirements||!issues.length&&!closure.unresolved.length)break;}if(!buf.trim())throw new Error('内容服务没有返回完整重写稿');
     }
-    HF.reviewRewrite=buf.trim();HF.latest=HF.reviewRewrite;HF.reference=ref;hfRememberDraft(HF.reviewRewrite);out.innerHTML=hfHtml(HF.reviewRewrite);status.textContent=mode==='local'?'已按人工指定逻辑完成修改':humanRequirements?'已按人工输入和核错清单完成重写；与既有知识冲突时请按页面提示复核':'已按核错清单完成重写';hfSaveState();
+    HF.reviewRewrite=buf.trim();HF.latest=HF.reviewRewrite;HF.reference=ref;hfRememberDraft(HF.reviewRewrite);out.innerHTML=hfHtml(HF.reviewRewrite);status.textContent=mode==='local'?'已结合知识库与上下文完成修改':humanRequirements?'已按人工输入和审核清单完成重写':'已按审核清单完成重写';hfSaveState();
   }
-  catch(e){out.textContent='重写失败：'+e.message;status.textContent='重写未完成，可直接再次点击';}
+  catch(e){HF.reviewRewrite=draft;HF.latest=draft;out.innerHTML=hfHtml(draft);status.textContent='本次重写未完成，已保留完整原稿，可直接再次点击';hfSaveState();}
   finally{buttons.forEach(x=>x.disabled=false);}
 }
 function hfSendHuman(){const text=document.getElementById('hf-rewrite-output')?.innerText.trim()||HF.latest;if(!text||text.startsWith('重写稿')){toast('暂无重写稿');return;}HF.latest=text;hfSaveState();hfNavigate('human');}
@@ -7348,7 +7409,7 @@ function hfNewHumanSession(ai=''){return{id:Date.now(),sourceType:'ai',ai,writer
 function hfPrepareHuman(){if(!HF.humanSession&&HF.latest)HF.humanSession=hfNewHumanSession(HF.latest);hfRenderHumanSession();}
 function hfRenderHumanSession(){const s=HF.humanSession;if(!s){hfSet('hf-human-ai',HF.latest);const t=document.getElementById('hf-human-timeline');if(t)t.textContent='暂无反馈轮次';return;}hfSet('hf-human-ai',s.ai);hfSet('hf-human-writer',s.writerInitial);hfSet('hf-human-current',s.current);hfSet('hf-human-final',s.writerFinal);const t=document.getElementById('hf-human-timeline');if(t)t.textContent=s.rounds.length?s.rounds.map((r,i)=>`第${i+1}轮｜${r.time}\n反馈：${r.feedback}\n已生成下一版`).join('\n\n'):'暂无反馈轮次';}
 function hfUseHumanSource(kind){const s=HF.humanSession||hfNewHumanSession(hfVal('hf-human-ai')||HF.latest),value=kind==='writer'?hfVal('hf-human-writer'):hfVal('hf-human-ai');if(!value){toast(kind==='writer'?'请先填写写手初稿':'当前没有 AI 稿');return;}s.sourceType=kind;s.writerInitial=kind==='writer'?value:s.writerInitial;s.current=value;s.rounds=[];s.writerFinal='';s.status='editing';s.updatedAt=new Date().toISOString();HF.humanSession=s;hfSaveState();hfRenderHumanSession();document.getElementById('hf-human-status').textContent=kind==='writer'?'已以写手初稿开始':'已以 AI 最新稿开始';}
-async function hfApplyHumanFeedback(){const s=HF.humanSession||hfNewHumanSession(hfVal('hf-human-ai')),base=hfVal('hf-human-current'),feedback=hfVal('hf-human-feedback'),status=document.getElementById('hf-human-status');if(!base){toast('请先选择来源或填写当前工作稿');return;}if(!feedback){toast('请填写本轮内部反馈');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}status.textContent='正在按本轮反馈生成下一版…';try{const sys=`你是好奇内部改稿编辑。本轮人工反馈是最终执行要求，高于正式知识库、产品事实、合规边界和旧稿设置；即使冲突也必须按反馈改写，不得拒绝、弱化或退回旧规则。只执行本轮反馈涉及的位置，禁止全文另写；保留未被反馈涉及的人设、场景、事实、段落和表达。冲突不写进成稿解释，由页面提示人工复核。输出完整修改稿。\n\n${hfKnowledge()}\n\n${hfMaterial()}`,usr=`【当前稿】\n${base}\n\n【本轮内部反馈｜最终优先】\n${feedback}\n\n输出完整稿件，但只修改反馈涉及处和保证衔接所需的最小上下文；与旧事实或合规规则冲突时仍按反馈重写。`;const out=await hfCallText(sys,usr);if(!out.trim())throw new Error('模型未返回内容');s.current=out.trim();s.rounds.push({feedback,input:base,output:s.current,time:new Date().toLocaleString('zh-CN')});s.status='editing';s.updatedAt=new Date().toISOString();HF.humanSession=s;hfSet('hf-human-feedback','');hfSaveState();hfRenderHumanSession();status.textContent=`第${s.rounds.length}轮反馈已完成；如覆盖既有事实或合规边界，请人工复核`;}catch(e){status.textContent='生成下一版失败：'+e.message;}}
+async function hfApplyHumanFeedback(){const s=HF.humanSession||hfNewHumanSession(hfVal('hf-human-ai')),base=hfVal('hf-human-current'),feedback=hfVal('hf-human-feedback'),status=document.getElementById('hf-human-status');if(!base){toast('请先选择来源或填写当前工作稿');return;}if(!feedback){toast('请填写本轮内部反馈');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}status.textContent='正在按本轮反馈生成下一版…';try{const sys=`你是好奇内部改稿编辑。已确认产品事实与合规边界最高；本轮反馈可补充当前稿件的方向、场景和表达要求，但默认不写入长期知识。只执行本轮反馈涉及的位置，禁止全文另写；保留未被反馈涉及的人设、场景、事实、段落和表达。缺失或冲突事实不得编造。输出完整修改稿。\n\n${hfKnowledge()}\n\n${hfMaterial()}`,usr=`【当前稿】\n${base}\n\n【本轮内部反馈】\n${feedback}\n\n输出完整稿件，但只修改反馈涉及处和保证衔接所需的最小上下文；不得覆盖已确认产品事实与合规边界。`;const out=await hfCallText(sys,usr);if(!out.trim())throw new Error('模型未返回内容');s.current=out.trim();s.rounds.push({feedback,input:base,output:s.current,time:new Date().toLocaleString('zh-CN')});s.status='editing';s.updatedAt=new Date().toISOString();HF.humanSession=s;hfSet('hf-human-feedback','');hfSaveState();hfRenderHumanSession();status.textContent=`第${s.rounds.length}轮反馈已完成`;}catch(e){status.textContent='生成下一版失败：'+e.message;}}
 function hfSaveHumanFinal(){const s=HF.humanSession||hfNewHumanSession(),finalText=hfVal('hf-human-current');if(!finalText){toast('当前工作稿为空');return;}s.current=finalText;s.writerFinal=finalText;s.status='pending_confirmation';s.updatedAt=new Date().toISOString();HF.humanSession=s;hfSaveState();hfRenderHumanSession();document.getElementById('hf-human-status').textContent='写手终稿已保存，等待内部确认';}
 function hfContinueHumanFeedback(){const s=HF.humanSession;if(!s?.writerFinal){toast('请先保存写手终稿');return;}s.current=hfVal('hf-human-final')||s.writerFinal;s.writerFinal='';s.status='editing';s.updatedAt=new Date().toISOString();hfSaveState();hfRenderHumanSession();document.getElementById('hf-human-status').textContent='已回到反馈阶段，可继续增加反馈轮次';}
 function hfConfirmHuman(){const s=HF.humanSession,finalText=hfVal('hf-human-final')||s?.writerFinal;if(!s||!finalText){toast('请先保存写手终稿');return;}HF.human.unshift({...s,final:finalText,writerFinal:finalText,status:'confirmed',confirmedAt:new Date().toISOString(),time:new Date().toLocaleString('zh-CN'),changed:(s.ai||s.writerInitial)===finalText?'无修改':'有人工修改'});HF.latest=finalText;hfRememberDraft(finalText);HF.humanSession=null;hfSaveState();hfRefreshAll();['hf-human-ai','hf-human-writer','hf-human-current','hf-human-final'].forEach(id=>hfSet(id,''));document.getElementById('hf-human-timeline').textContent='暂无反馈轮次';document.getElementById('hf-human-status').textContent='内部已确认：终稿已进入可召回 few-shot 层';}
@@ -7395,6 +7456,186 @@ function hfDownloadCsv(name,rows){const keys=Object.keys(rows[0]||{}),lines=[key
 // ══════════════════════════════════════════════
 // AI CALL (unified)
 // ══════════════════════════════════════════════
+const SHEYAN_PRODUCTS=[
+  {name:'深藏BLUE卫生巾',short:'深藏BLUE卫生巾',rule:'只写大流量承接、快速下渗、干爽和减少反渗/侧漏担心；严禁薄、轻薄、轻透、透气。'},
+  {name:'深藏BLUE安睡裤',short:'深藏BLUE安睡裤',rule:'写夜间大流量、长芯体/高宽包覆、干爽防漏、安心睡到早晨；严禁15倍吸收。'},
+  {name:'均衡力卫生巾',short:'均衡力卫生巾',rule:'写弱酸亲肤层、温和、抑制有害细菌、低敏与个人舒适感；不得写99%，不得保证不痒、不红、不异味。'},
+  {name:'春眠小裤',short:'春眠小裤',rule:'写高包覆、大吸量、弹力舒适不勒；必须明确它是有吸收功能的安睡裤，不能只像普通内裤。'},
+  {name:'天山棉卫生巾',short:'天山棉卫生巾',rule:'写新疆棉、纯棉、亲肤、透气；不要把柔软丝滑干爽当核心。'},
+  {name:'奶滑小方卫生巾',short:'奶滑小方卫生巾',rule:'写细腻、丝滑、亲肤、减少大腿摩擦；禁用像牛奶、牛奶肌、牛奶般等食品比喻，吸收力不是核心。'}
+];
+const SHEYAN_FLOWER_SCENES=['封面','深藏BLUE卫生巾','深藏BLUE吸收展示','深藏BLUE安睡裤','均衡力卫生巾','均衡力弱酸展示','春眠小裤','天山棉卫生巾','奶滑小方卫生巾'];
+const SHEYAN_KB=`【她研社全家福知识库｜事实优先级】
+1. 对外BF中的产品事实和强制规则；2. 客户明确修改与偏好；3. 定稿/发布稿只作为风格范例；4. 当前参考稿只学习结构、段落重点、节奏和语气，不作为产品事实；5. 用户特殊要求可决定创意，但不得覆盖事实、禁词和六款齐全规则。
+
+【唯一任务范围】只生成六款产品全部出现的“全家福合集”，每次只生成1篇。六款为：深藏BLUE卫生巾、深藏BLUE安睡裤、均衡力卫生巾、春眠小裤、天山棉卫生巾、奶滑小方卫生巾。产品名必须准确：春眠不能写春棉，均衡力不能写菌衡力，深藏BLUE保持大写。
+
+【产品事实边界】
+${SHEYAN_PRODUCTS.map((p,i)=>`${i+1}. ${p.name}：${p.rule}`).join('\n')}
+
+【全局禁限】
+- 全文禁止“99%有害细菌/99%抑菌”等百分比抑菌承诺，禁止“15倍吸收/15x吸收”。
+- 产品称呼禁止“姨妈巾”；叙事中的“姨妈期、来姨妈”可以使用。
+- 不虚构检测、认证、销量、排名、代言、医学疗效或绝对保证。
+- 固定必带标签：#她研社 #卫生巾 #她研社深藏BLUE #她研社均衡力。
+
+【客户表达偏好】
+口语自然、先讲使用场景和体感，再自然落到整体选择逻辑；少堆机理和术语；避免反复使用“闷、本命、闭眼囤、安心感拉满、被承包、全家桶”等套话。品牌表达可围绕“用户舒适，刚刚好”，但不要篇篇复刻同一句。
+
+【正文与花字分工｜完整复核历史定稿后的结论】
+- 正文通常只写经期困扰、整体使用感受、选择逻辑和推荐动机，不默认逐款展开六个产品卖点，也不强制六个产品名在正文逐一出现。
+- 六款产品的差异和核心卖点主要放在9组花字里呈现。正文若参考稿本身逐款展开，才跟随参考结构适度展开；不得因为“六款齐全”把短正文改成六段产品说明书。
+- 9组固定为：封面、深藏BLUE卫生巾、深藏BLUE吸收展示、深藏BLUE安睡裤、均衡力卫生巾、均衡力弱酸展示、春眠小裤、天山棉卫生巾、奶滑小方卫生巾。两组展示只表达知识库已有事实和画面用途，不虚构检测结论。
+- 历史定稿中的花字没有统一短句模板：封面、产品页和展示页的行数与篇幅本来就不同，既有短压字，也有两行、多行和较长说明。不能再用统一的“短主花字＋短辅助花字”限制全部9组。
+- 有参考花字时，参考花字是9组内部结构的第一依据：逐组跟随其段落/换行数量、每段篇幅、内容重点、推进顺序和信息密度，再把表述全部换新；产品事实、禁限和六款齐全仍以本知识库为绝对边界。
+- 没有参考花字时，才使用历史常见的9组场景：封面简洁，产品页讲消费者能直接理解的体感与收益，展示页只配合真实画面结论。花字用大白话，不堆导流设计、机理或晦涩术语。`;
+const SHEYAN_WRITE_SYS=`你是她研社小红书内容编辑。必须以知识库为唯一事实边界，写一篇六款齐全的全家福合集，并同时交付9组跟随正文的花字。
+
+${SHEYAN_KB}
+
+【仿写规则】
+- 有参考原文时，只迁移宏观骨架：段落数量、每段承担的功能、内容重点、信息顺序、产品进入位置和语气。标题、句式、开头动作、连接方式、比喻、经历、口头禅和收尾判断都必须重新表达。
+- “仿写”不是同义词替换。先概括参考稿每段的任务，再为同一任务寻找符合现实的新切入点、新场景或新叙述路径；新切入点必须符合普通用户的真实生活逻辑，不得为了不同而虚构经历、效果或产品事实。
+- 输出前逐句对照参考原文：出现连续相同表达、近似句式复刻，或只是替换少量词语时，必须重写。保持字数、段数和重点接近，不保持原句表层结构。
+- 有参考原文时，正文参考优先决定段数、逐段篇幅、逐段任务、内容重点和推进顺序；知识库只负责替换冲突事实、补足必要产品事实和守住禁限。若参考正文没有逐款介绍，就保持整体叙事，禁止扩写成“开场+6个产品段+收尾”。
+- 有参考花字时，9组花字逐组复制其“结构参数”而不是表述：每组行数必须一致，每行有效字数尽量一致，重点与顺序一致；main承接参考组第一行，support承接其余行并保留原换行。不得把长参考压成统一短句，也不得为了套旧知识库擅自增加实验、机理或新的卖点。
+- 参考花字不是产品事实。参考中与知识库冲突的内容只替换事实表达，不改变该组原有的段落功能和篇幅；每一句必须换成新表述，禁止同义词替换式改写、连续照搬或复刻句子骨架。
+- 若参考花字第一组直接是具体产品而不是封面，第1组输出必须另写简洁的“她研社六款全家福/产品合集”封面，不继承该产品的篇幅、重点或卖点；参考的第1个产品组从输出第2组起按产品场景匹配。
+- 花字仿写必须同时改变至少三类表层表达：开头方式、主语/视角、语序、核心动词、体感词、连接方式、句型或收尾判断。可以保持同一信息任务，但不得沿用“原句骨架＋替换少量词语”；逐组检查连续6字及三字片段相似度，过近就重新组织。
+- 若用户只提供少量花字样例，固定9组仍保留，并将样例的行数、行长和信息密度作为各组写法模板；不得因此退回统一短句模板。
+- 没有参考原文时，按近期定稿写约110-150个有效字、2-4段的自然正文，正文讲整体体验和选择逻辑，不逐款罗列卖点；标签通常9-11个并包含固定标签。
+- 没有参考花字时，按历史定稿节奏完成固定9组；六款产品组承担具体差异，两组展示只使用知识库事实，封面简洁。
+- 特殊要求若与事实或禁限冲突，忽略冲突部分，不得编造。
+
+【输出规则】
+标题不超过20个汉字，必须由正文真实内容提炼；正文自然分段，不强制逐款出现六个产品名；标签单列；花字严格9组，顺序固定为：${SHEYAN_FLOWER_SCENES.join('、')}。每组包含scene、main、support：main只放本组第一行，support放其余全部行并用换行保留段落；参考组只有一行时support可为空。有花字参考时逐组对齐参考的行数、逐行篇幅、重点和节奏；无花字参考时才按历史常见节奏自由决定长短。禁止复制完整参考句，组间不得套同一句式。
+只输出合法JSON，不要Markdown代码围栏：{"title":"","body":"","tags":["#她研社"],"flowers":[{"scene":"封面","main":"","support":""}]}`;
+const SHEYAN_REVIEW_SYS=`你是她研社内容审核编辑。依据知识库、参考原文、参考花字和用户特殊要求，审核标题、正文、标签以及9组花字。
+
+${SHEYAN_KB}
+
+审核正文是否逐段跟随参考原文的段数、逐段篇幅、功能、重点和顺序，但不要因为正文没逐款写六款就判错；同时检查是否只是对参考稿做同义词替换、复刻句式或沿用过多相似表述。有参考花字时，9组必须逐组对齐对应样例的行数、逐行篇幅、重点和顺序，主花字与辅助花字都必须是新表达；没有参考时才按历史默认结构判断。检查六款是否在花字中全部出现且区分清楚；深藏BLUE卫生巾是否出现薄/轻薄/轻透/透气；是否出现禁词、错名、夸大或知识库外的新事实；标题是否与正文对应；固定标签是否齐全。所有判断以知识库为事实边界，以参考为结构边界；参考中的冲突事实不得保留。只报真实、可定位的问题，不泛泛夸奖，不输出JSON或代码块。严格使用以下纯文本格式：
+总结：一句话
+问题1
+级别：高/中/低
+位置：原文中的准确位置
+原因：一句话
+建议替换：可直接替换的文本
+没有问题时只输出“总结：审核通过”。`;
+
+const SY={page:'kb',loaded:false,busy:false,result:null,review:null,history:[],controller:null,latestRewrite:'',performance:null,loopAnalysis:'',loops:[],insights:[]};
+function syStoreKey(k){return'sheyan_fullfamily_'+k;}
+function syLoad(){try{SY.history=JSON.parse(localStorage.getItem(syStoreKey('history'))||'[]');}catch{SY.history=[];}SY.history=Array.isArray(SY.history)?SY.history.slice(0,30):[];try{const x=JSON.parse(localStorage.getItem(syStoreKey('workspace'))||'{}');SY.loops=Array.isArray(x.loops)?x.loops:[];SY.insights=Array.isArray(x.insights)?x.insights:[];SY.performance=x.performance||null;SY.loopAnalysis=String(x.loopAnalysis||'');SY.latestRewrite=String(x.latestRewrite||'');}catch{SY.loops=[];SY.insights=[];SY.performance=null;SY.loopAnalysis='';SY.latestRewrite='';}}
+function sySave(){localStorage.setItem(syStoreKey('history'),JSON.stringify(SY.history.slice(0,30)));localStorage.setItem(syStoreKey('workspace'),JSON.stringify({loops:SY.loops.slice(0,60),insights:SY.insights.slice(0,60),performance:SY.performance,loopAnalysis:SY.loopAnalysis,latestRewrite:SY.latestRewrite}));}
+function syE(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function syVal(id){return document.getElementById(id)?.value?.trim()||'';}
+function sySetStatus(id,text,kind=''){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className='sy-status '+kind;}
+function syParagraphs(s){return String(s||'').replace(/\r/g,'').split(/\n+/).map(x=>x.trim()).filter(Boolean);}
+function syChars(s){return String(s||'').replace(/[\s\p{P}\p{S}]/gu,'').length;}
+function syShared3(a,b){const x=String(a||'').replace(/[\s\p{P}]/gu,'');for(let i=0;i<=x.length-3;i++){const p=x.slice(i,i+3);if(String(b||'').includes(p))return p;}return'';}
+function sySimilarity(a,b){const grams=s=>{const x=String(s||'').replace(/\s|[\p{P}]/gu,'');const set=new Set;for(let i=0;i<x.length-2;i++)set.add(x.slice(i,i+3));return set;},A=grams(a),B=grams(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/Math.min(A.size,B.size);}
+function syReferenceSpec(text){const tags=String(text||'').match(/#[^\s#]+/g)||[],lines=String(text||'').replace(/\r/g,'').split(/\n+/).map(x=>x.trim()).filter(Boolean),bodyLines=lines.map(line=>line.replace(/#[^\s#]+/g,'').trim()).filter(line=>line&&!/^(?:标题|title|参考|链接)\s*[：:]/i.test(line)&&!/^(?:正文|文案|笔记原文|标签|tag)\s*[：:]?$/i.test(line)&&!/^https?:\/\//i.test(line)),body=bodyLines.join('\n'),n=syChars(body),lengths=bodyLines.map(syChars);return{body,bodyLines,lengths,paragraphs:bodyLines.length,chars:n,min:Math.round(n*.92),max:Math.round(n*1.08),tagCount:tags.length,focus:bodyLines.map((p,i)=>`第${i+1}段（目标${syChars(p)}字）：${p.slice(0,90)}`).join('\n')};}
+function syFlowerSceneFromLine(line){const clean=String(line||'').replace(/^\s*(?:第?[一二三四五六七八九\d]+(?:组|页)?[.、：:｜|]?)\s*/,'').replace(/^她研社\s*/,'').trim(),aliases=[['封面','封面'],['深藏BLUE吸收展示','深藏BLUE吸收展示|深藏BLUE吸收实验|吸收展示|吸收实验'],['均衡力弱酸展示','均衡力弱酸展示|均衡力弱酸实验|弱酸展示|弱酸实验'],...SHEYAN_PRODUCTS.map(p=>[p.name,p.name.replace('卫生巾','(?:卫生巾)?')])];for(const [scene,pattern] of aliases){if(new RegExp(`^(?:${pattern})(?:\\s*[｜|：:]|$)`,'i').test(clean))return scene;}return'';}
+function syInferFlowerScene(text){const value=String(text||''),explicit=value.split(/\n+/).map(syFlowerSceneFromLine).find(Boolean);if(explicit)return explicit;if(/六款|合集|全家福|怎么选|选购|攻略|指南/.test(value))return'封面';if(/丝绸|丝滑|磨大腿|腿根|减少摩擦|细腻触感/.test(value))return'奶滑小方卫生巾';if(/新疆|天山棉|纯棉|棉感/.test(value))return'天山棉卫生巾';if(/弱酸|原生环境|有害细菌|低敏/.test(value))return'均衡力卫生巾';if(/春眠|弹力腰围|舒适不勒|高包覆/.test(value))return'春眠小裤';if(/安睡|夜间|整夜|睡到早晨|侧睡|翻身/.test(value))return'深藏BLUE安睡裤';if(/量大|潮涌|快速下渗|反渗|侧漏|干爽/.test(value))return'深藏BLUE卫生巾';return'';}
+function syFlowerCleanGroup(group){const lines=String(group||'').split(/\n+/).map(x=>x.trim()).filter(Boolean),out=[];for(let line of lines){line=line.replace(/^\s*(?:第?[一二三四五六七八九\d]+(?:组|页)?[.、：:｜|]?)\s*/,'').replace(/^(?:主花字|辅助花字|主标题|副标题|大字|小字|标题|副文案)\s*[：:]\s*/,'').trim();if(!line||/^\[[^\]]+\.(?:mp4|mov)\]/i.test(line)||/^图片/.test(line))continue;const scene=syFlowerSceneFromLine(line);if(scene){const parts=line.split(/[｜|]/);if(parts.length>1&&parts.slice(1).join('｜').trim())out.push(parts.slice(1).join('｜').trim());continue;}out.push(line);}return out.join('\n');}
+function syFlowerReferenceSpec(text){const lines=String(text||'').replace(/\r/g,'').split(/\n/),rawGroups=[];let current=[];const marker=line=>/^(?:第?[一二三四五六七八九\d]+(?:组|页)?[.、：:｜|]?)\s*/.test(line)||!!syFlowerSceneFromLine(line),hasMarkers=lines.some(raw=>marker(raw.trim())),push=()=>{const value=current.join('\n').trim();if(value)rawGroups.push(value);current=[];};for(const raw of lines){const line=raw.trim();if(!line){if(!hasMarkers&&current.length)push();continue;}if(marker(line)&&current.length)push();current.push(line);}push();const details=rawGroups.map((raw,i)=>{const text=syFlowerCleanGroup(raw);if(!text)return null;const groupLines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);return{index:i,scene:syInferFlowerScene(raw),text,lines:groupLines,lineCount:groupLines.length,lineChars:groupLines.map(syChars),chars:syChars(text)};}).filter(Boolean),groups=details.map(x=>x.text),total=details.reduce((n,g)=>n+g.chars,0),firstScene=details[0]?.scene||'',startsWithProduct=!!firstScene&&firstScene!=='封面';return{groups,details,rawGroups,groupCount:groups.length,chars:total,min:Math.round(total*.92),max:Math.round(total*1.08),firstScene,startsWithProduct,hasCover:details.some(x=>x.scene==='封面'),focus:details.map(g=>`第${g.index+1}组${g.scene?`（${g.scene}）`:''}：${g.lineCount}行；逐行目标字数${g.lineChars.join('、')}；重点与顺序：${g.text.slice(0,140).replace(/\n/g,'｜')}`).join('\n')};}
+function syFlowerOutputLines(f){return[String(f?.main||'').trim(),...String(f?.support||'').split(/\n+/).map(x=>x.trim())].filter(Boolean);}
+function syFlowerTemplateAt(spec,index){if(!spec?.details?.length)return null;if(spec.startsWithProduct){if(index===0)return null;const scene=SHEYAN_FLOWER_SCENES[index],matched=spec.details.find(x=>x.scene===scene);return matched||spec.details[(index-1)%spec.details.length]||null;}if(spec.details.length===9)return spec.details[index]||null;const scene=SHEYAN_FLOWER_SCENES[index],matched=spec.details.find(x=>x.scene===scene);return matched||spec.details[index%spec.details.length]||null;}
+function syLengthClose(actual,target){return Math.abs(actual-target)<=Math.max(2,Math.round(target*.08));}
+function syNovelText(s){let x=String(s||'');[...SHEYAN_PRODUCTS.flatMap(p=>[p.name,p.name.replace('卫生巾','')]),...SHEYAN_FLOWER_SCENES,'她研社','卫生巾','安睡裤','花字','主花字','辅助花字'].forEach(t=>x=x.split(t).join(''));return x.replace(/[\s\p{P}#\d]/gu,'');}
+function sySharedPhrase(a,b,min=8){const x=syNovelText(a),y=syNovelText(b);for(let n=Math.min(20,x.length);n>=min;n--)for(let i=0;i<=x.length-n;i++){const p=x.slice(i,i+n);if(y.includes(p))return p;}return'';}
+function syGramSimilarity(a,b,size=4){const grams=s=>{const x=syNovelText(s),set=new Set;for(let i=0;i<=x.length-size;i++)set.add(x.slice(i,i+size));return set;},A=grams(a),B=grams(b);if(!A.size||!B.size)return 0;let same=0;A.forEach(x=>{if(B.has(x))same++;});return same/Math.min(A.size,B.size);}
+function syLineSimilarityRisk(output,reference,limit=.5){const a=String(output||'').split(/[。！？!?\n]+/).map(x=>x.trim()).filter(x=>syChars(x)>=8),b=String(reference||'').split(/[。！？!?\n]+/).map(x=>x.trim()).filter(x=>syChars(x)>=8);for(const x of a)for(const y of b){const score=syGramSimilarity(x,y,3);if(score>=limit)return{x,y,score};}return null;}
+function syReferenceCopyIssue(r,ref,flowerRef){
+  if(ref){const phrase=sySharedPhrase(r.body,ref,10),line=syLineSimilarityRisk(r.body,ref),score=syGramSimilarity(r.body,ref,4);if(phrase)return`正文与参考原文沿用了连续表达“${phrase}”`;if(line)return`正文有句式和表达与参考原文过近：“${line.x.slice(0,30)}”`;if(score>.42)return'正文与参考原文整体表达过近，需要保留结构重点但改用新的叙述路径';}
+  if(flowerRef){const spec=syFlowerReferenceSpec(flowerRef),outs=(r.flowers||[]).map(f=>`${f.main}\n${f.support}`);for(let i=0;i<outs.length;i++){const target=syFlowerTemplateAt(spec,i);if(!target)continue;const phrase=sySharedPhrase(outs[i],target.text,6),line=syLineSimilarityRisk(outs[i],target.text,.38),score=syGramSimilarity(outs[i],target.text,3);if(phrase)return`第${i+1}组花字沿用了参考中的连续表达“${phrase}”`;if(line||score>.42)return`第${i+1}组花字与对应参考的句式或表述过近，需要保留篇幅和重点但换一种说法`;}}
+  return'';
+}
+function syParseJson(raw){let s=String(raw||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');try{return JSON.parse(s);}catch{const a=s.indexOf('{'),b=s.lastIndexOf('}');if(a>=0&&b>a)return JSON.parse(s.slice(a,b+1));throw new Error('AI返回格式无法读取，请重试');}}
+function syRepairJsonCandidate(value){const s=String(value||''),a=s.indexOf('{'),b=s.lastIndexOf('}');if(a<0||b<=a)return'';let out='',inString=false,escaped=false;for(const c of s.slice(a,b+1)){if((c==='\n'||c==='\r')&&inString){out+='\\n';escaped=false;continue;}out+=c;if(c==='"'&&!escaped)inString=!inString;if(c==='\\'&&!escaped)escaped=true;else if(c!=='\\')escaped=false;}return out.replace(/,\s*([}\]])/g,'$1');}
+function syReviewField(block,names){const m=String(block||'').match(new RegExp(`(?:^|\\n)\\s*(?:${names.join('|')})\\s*[：:]\\s*([^\\n]+)`,'i'));return m?m[1].trim().replace(/^["“”']|["“”',]$/g,''):'';}
+function syNormalizeReviewReport(report){return{summary:String(report?.summary||report?.总结||'AI语义审核完成').trim(),issues:(Array.isArray(report?.issues)?report.issues:Array.isArray(report?.问题)?report.问题:[]).map(x=>({level:String(x?.level||x?.级别||'中').trim(),location:String(x?.location||x?.位置||'未标注').trim(),reason:String(x?.reason||x?.原因||'').trim(),replacement:String(x?.replacement||x?.建议替换||x?.建议||'').trim()})).filter(x=>x.reason||x.replacement)};}
+function syParseReviewReport(raw){const source=String(raw||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');try{return syNormalizeReviewReport(syParseJson(source));}catch{}const repaired=syRepairJsonCandidate(source);if(repaired)try{return syNormalizeReviewReport(JSON.parse(repaired));}catch{}let summary=syReviewField(source,['summary','总结','审核结论','结论','概述']),issues=[];const tagged=[...source.matchAll(/<issue>([\s\S]*?)<\/issue>/gi)].map(m=>m[1]),numbered=source.split(/(?=^\s*(?:问题\s*\d+|\d+[.、]|[-*]\s+)\s*)/m).filter(x=>/(?:位置|location|原因|reason|建议替换|replacement)\s*[：:]/i.test(x)),blocks=tagged.length?tagged:numbered;for(const block of blocks){const issue={level:syReviewField(block,['level','级别','等级'])||'中',location:syReviewField(block,['location','位置','原文位置'])||'未标注',reason:syReviewField(block,['reason','原因','问题说明']),replacement:syReviewField(block,['replacement','建议替换','替换建议','修改建议','建议'])};if(issue.reason||issue.replacement)issues.push(issue);}if(!summary){const first=source.split(/\n+/).map(x=>x.trim()).find(x=>x&&!/^[{[\]}]|^(?:问题\s*\d+|\d+[.、])/.test(x));summary=(first||'AI语义审核完成').slice(0,160);}if(!issues.length&&!/未发现|无明显问题|无需修改|审核通过/.test(source)&&source){summary='AI审核结果未能按问题卡片读取';issues=[{level:'待确认',location:'审核报告',reason:'本次AI返回未按清晰的分项格式组织，页面未展示原始JSON。',replacement:'请重新点击审核'}];}return{summary,issues};}
+function syNormalizeResult(o){return{title:String(o?.title||'').trim(),body:String(o?.body||'').trim(),tags:Array.isArray(o?.tags)?o.tags.map(String):String(o?.tags||'').split(/\s+/).filter(Boolean),flowers:Array.isArray(o?.flowers)?o.flowers.map((f,i)=>({scene:String(f?.scene||SHEYAN_FLOWER_SCENES[i]||''),main:String(f?.main||'').trim(),support:String(f?.support||'').trim()})):[]};}
+function syValidate(r,ref='',flowerRef='',options={}){
+  const issues=[],all=[r.title,r.body,(r.tags||[]).join(' '),...(r.flowers||[]).flatMap(f=>[f.main,f.support])].join('\n');
+  if(/99\s*%|百分之九十九|15\s*[倍xX]/.test(all))issues.push({code:'forbidden_claim',msg:'出现99%或15倍吸收禁限表述'});
+  if(/姨妈巾/.test(all))issues.push({code:'forbidden_term',msg:'产品称呼出现“姨妈巾”'});
+  if(/春棉|菌衡力|深藏Blue|深藏blue/.test(all))issues.push({code:'wrong_name',msg:'产品名书写错误'});
+  const blueText=(r.flowers||[]).filter(f=>f.scene==='深藏BLUE卫生巾'||f.scene==='深藏BLUE吸收展示').map(f=>`${f.main}\n${f.support}`).join('\n'),blueBody=String(r.body||'').split(/[。！？!?\n]+/).filter(p=>p.includes('深藏BLUE卫生巾')).join('\n');
+  if(/薄|轻透|透气/.test(`${blueBody}\n${blueText}`))issues.push({code:'blue_regular',msg:'深藏BLUE卫生巾相关内容出现薄/轻透/透气'});
+  if(/像牛奶|牛奶般|牛奶肌/.test(all))issues.push({code:'milk_metaphor',msg:'奶滑小方出现食品化牛奶比喻'});
+  ['#她研社','#卫生巾','#她研社深藏BLUE','#她研社均衡力'].forEach(t=>{if(!(r.tags||[]).includes(t))issues.push({code:'tag',msg:`缺少固定标签${t}`});});
+  if(!r.title)issues.push({code:'title',msg:'缺少标题'});else{if(syChars(r.title)>20)issues.push({code:'title',msg:'标题超过20字'});if(!syShared3(r.title,r.body))issues.push({code:'title',msg:'标题没有从正文真实内容提炼'});}
+  if((r.flowers||[]).length!==9)issues.push({code:'flower_count',msg:'花字必须严格为9组'});
+  SHEYAN_FLOWER_SCENES.forEach((s,i)=>{const f=r.flowers?.[i];if(!f||f.scene!==s)issues.push({code:'flower_order',msg:`第${i+1}组花字应为${s}`});else if(!f.main||(!flowerRef&&!f.support))issues.push({code:'flower_empty',msg:`${s}花字不完整`});});
+  if(flowerRef){const coverSpec=syFlowerReferenceSpec(flowerRef),coverText=`${r.flowers?.[0]?.main||''}\n${r.flowers?.[0]?.support||''}`;if(coverSpec.startsWithProduct&&SHEYAN_PRODUCTS.some(p=>coverText.includes(p.name)||coverText.includes(p.name.replace('卫生巾',''))))issues.push({code:'flower_cover',msg:'参考花字直接从产品开始时，封面必须使用通用六款合集花字，不能套用具体产品内容'});}
+  if(ref){const spec=syReferenceSpec(ref),paragraphs=syParagraphs(r.body);if(paragraphs.length!==spec.paragraphs)issues.push({code:'body_structure',msg:`正文应严格跟随参考的${spec.paragraphs}段，当前为${paragraphs.length}段`});else paragraphs.forEach((p,i)=>{if(!syLengthClose(syChars(p),spec.lengths[i]))issues.push({code:'body_length',msg:`正文第${i+1}段应贴近参考的${spec.lengths[i]}字，当前为${syChars(p)}字`});});}
+  if(flowerRef){const spec=syFlowerReferenceSpec(flowerRef);(r.flowers||[]).forEach((f,i)=>{const target=syFlowerTemplateAt(spec,i),actual=syFlowerOutputLines(f);if(!target)return;if(actual.length!==target.lineCount){issues.push({code:'flower_structure',msg:`第${i+1}组花字应按参考写${target.lineCount}行，当前为${actual.length}行`});return;}actual.forEach((line,j)=>{if(!syLengthClose(syChars(line),target.lineChars[j]))issues.push({code:'flower_length',msg:`第${i+1}组第${j+1}行应贴近参考的${target.lineChars[j]}字，当前为${syChars(line)}字`});});});}
+  const flowerLines=(r.flowers||[]).flatMap(f=>[f.main,f.support]).filter(Boolean);for(let i=0;i<flowerLines.length;i++)for(let j=i+1;j<flowerLines.length;j++)if(flowerLines[i]===flowerLines[j])issues.push({code:'flower_repeat',msg:'花字存在完全重复'});
+  const copyIssue=syReferenceCopyIssue(r,ref,flowerRef);if(copyIssue)issues.push({code:copyIssue.startsWith('花字')?'flower_copy':'body_copy',msg:copyIssue});
+  if(!options.ignoreHistory)SY.history.slice(0,30).forEach(h=>{if(h.title===r.title&&h.body===r.body)return;if(sySimilarity(r.title,h.title)>.72)issues.push({code:'history_title',msg:`标题与历史稿“${h.title}”过近`});else if(sySimilarity(r.body,h.body)>.62)issues.push({code:'history_body',msg:`正文与历史稿“${h.title}”重复度过高`});});
+  return issues;
+}
+function syIssueText(issues){return issues.map((x,i)=>`${i+1}. ${x.msg}`).join('\n');}
+const SHEYAN_FALLBACK_FLOWERS=[
+  ['她研社六款全家福','六款经期用品合集分享'],
+  ['量多白天稳稳承接','快速下渗，忙起来也尽量保持干爽'],
+  ['吸收状态直观看见','液体往下走，表层少一些黏腻感'],
+  ['夜间量大也能踏实睡','长芯体与高宽包覆照顾容易漏的位置'],
+  ['弱酸亲肤层更温和','在意敏感体感时可以按需要选择'],
+  ['弱酸状态如实呈现','贴近私处原生环境，不夸大实验结论'],
+  ['高包覆也舒适不勒','有吸收功能的安睡裤，翻身更从容'],
+  ['新疆棉亲肤又透气','偏爱纯棉触感时可以选择这一款'],
+  ['细腻丝滑减少摩擦','通勤走动时间长，贴肤体感更自在']
+];
+function sySafeReplace(s){return String(s||'').replace(/99\s*%|百分之九十九/g,'有助于抑制有害细菌').replace(/15\s*[倍xX]/g,'大吸量').replace(/姨妈巾/g,'卫生巾').replace(/春棉/g,'春眠').replace(/菌衡力/g,'均衡力').replace(/深藏Blue|深藏blue/g,'深藏BLUE').replace(/像牛奶|牛奶般|牛奶肌/g,'细腻丝滑');}
+function syFitReferenceLine(text,target){let value=sySafeReplace(text).trim(),fill=' 按当天状态选择更省心';if(!target)return value;while(syChars(value)<Math.max(1,target-2))value+=fill;if(syChars(value)>target+2){let out='';for(const c of value){if(syChars(out+c)>target)break;out+=c;}value=out.replace(/[，、；：]$/,'');}return value;}
+function syLocalFinalizeResult(input,ref='',flowerRef=''){const r=syNormalizeResult(input||{}),bodySpec=ref?syReferenceSpec(ref):null,flowerSpec=flowerRef?syFlowerReferenceSpec(flowerRef):null,baseBody=['经期用品放在一起后，挑选反而更简单。白天看流量和当天安排，夜里更在意包覆与承接，在意敏感体感时就优先考虑温和贴肤。','六款各有侧重，按当天状态拿对应的一款，不必反复比较，也更容易找到适合自己的使用节奏。'];r.body=sySafeReplace(r.body)||baseBody.join('\n');if(bodySpec){let paras=syParagraphs(r.body);while(paras.length<bodySpec.paragraphs)paras.push(baseBody[paras.length%baseBody.length]);paras=paras.slice(0,bodySpec.paragraphs).map((p,i)=>syFitReferenceLine(p,bodySpec.lengths[i]));r.body=paras.join('\n');}r.title=sySafeReplace(r.title);if(!r.title||syChars(r.title)>20||!syShared3(r.title,r.body))r.title='经期用品更好选';const required=['#她研社','#卫生巾','#她研社深藏BLUE','#她研社均衡力'];r.tags=[...new Set([...(r.tags||[]).map(sySafeReplace),...required])];const incoming=Array.isArray(r.flowers)?r.flowers:[];r.flowers=SHEYAN_FLOWER_SCENES.map((scene,i)=>{const genericCover=flowerSpec?.startsWithProduct&&i===0,source=genericCover?{}:(incoming[i]||{}),fallback=SHEYAN_FALLBACK_FLOWERS[i],target=syFlowerTemplateAt(flowerSpec,i),raw=[source.main,...String(source.support||'').split(/\n+/)].map(sySafeReplace).filter(Boolean);if(!raw.length)raw.push(...fallback);const count=target?.lineCount||Math.max(2,raw.length);while(raw.length<count)raw.push(fallback[raw.length%fallback.length]);const lines=raw.slice(0,count).map((line,j)=>syFitReferenceLine(line,target?.lineChars?.[j]));if(i===1||i===2)lines.forEach((line,j)=>{lines[j]=line.replace(/轻薄|轻透|透气|薄/g,'干爽');});return{scene,main:lines[0]||fallback[0],support:lines.slice(1).join('\n')};});r.body=String(r.body).split('\n').map(line=>line.includes('深藏BLUE卫生巾')?line.replace(/轻薄|轻透|透气|薄/g,'干爽'):line).join('\n');return r;}
+function syFallbackResult(ref='',flowerRef=''){return syLocalFinalizeResult({title:'经期用品更好选',body:'经期用品放在一起后，挑选反而更简单。白天看流量和当天安排，夜里更在意包覆与承接，在意敏感体感时就优先考虑温和贴肤。\n六款各有侧重，按当天状态拿对应的一款，不必反复比较，也更容易找到适合自己的使用节奏。',tags:['#她研社','#卫生巾','#她研社深藏BLUE','#她研社均衡力'],flowers:SHEYAN_FLOWER_SCENES.map((scene,i)=>({scene,main:SHEYAN_FALLBACK_FLOWERS[i][0],support:SHEYAN_FALLBACK_FLOWERS[i][1]}))},ref,flowerRef);}
+function loadSheyanModule(){if(!SY.loaded){syLoad();SY.loaded=true;}syRender();document.querySelectorAll('#sheyan-sidebar-nav [data-sy-page]').forEach(el=>{if(el.dataset.syBound)return;el.dataset.syBound='1';el.addEventListener('click',()=>syNavigate(el.dataset.syPage));});syNavigate(SY.page||'kb');}
+function syRender(){const host=document.getElementById('sheyan-host');if(!host)return;host.innerHTML=`<style>
+#sheyan-host{--sy:#e83e90;--sy2:#ff8a78;color:#493342}.sy-wrap{padding:26px;max-width:1260px;margin:auto}.sy-hero{background:linear-gradient(120deg,#fff0f5,#fff8f1);border:1px solid #f4d5df;border-radius:22px;padding:24px;margin-bottom:18px}.sy-hero h1{margin:0 0 8px;font-size:27px}.sy-hero p{margin:0;color:#795d6f;line-height:1.7}.sy-card{background:#fff;border:1px solid #efd8e1;border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 8px 24px rgba(151,58,101,.05)}.sy-card.wide{grid-column:1/-1}.sy-card h2{font-size:20px;margin:0 0 16px}.sy-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.sy-label{display:block;font-weight:700;margin:13px 0 7px}.sy-input,.sy-textarea{width:100%;box-sizing:border-box;border:1px solid #e8ccd8;border-radius:12px;padding:12px 14px;font:inherit;color:#493342;background:#fff}.sy-textarea{min-height:150px;resize:vertical;line-height:1.65}.sy-btn{border:0;border-radius:12px;padding:11px 18px;background:linear-gradient(100deg,var(--sy2),var(--sy));color:white;font-weight:800;cursor:pointer}.sy-btn.ghost{background:#fff;color:var(--sy);border:1px solid #edbfd1}.sy-btn:disabled{opacity:.55;cursor:not-allowed}.sy-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.sy-status{margin-top:12px;padding:11px 13px;border-radius:10px;background:#fff2f7;color:#80566a;white-space:pre-wrap;line-height:1.55}.sy-status.ok{background:#eefaf2;color:#276d43}.sy-status.err{background:#fff0f0;color:#a13b48}.sy-kb{white-space:pre-wrap;line-height:1.75;color:#644d5b}.sy-output{white-space:pre-wrap;line-height:1.75;background:#fffafd;border:1px solid #f0d9e2;border-radius:14px;padding:18px}.sy-flower{padding:13px 0;border-bottom:1px dashed #ecd6df}.sy-flower div{white-space:pre-wrap}.sy-flower:last-child{border:0}.sy-pill{display:inline-block;border-radius:999px;background:#fff0f6;color:#ba286b;padding:4px 10px;font-size:12px;font-weight:800;margin-right:8px}.sy-muted{font-size:13px;color:#907281}.sy-review-item{border-left:4px solid #e83e90;padding:10px 14px;margin:12px 0;background:#fff8fb}.sy-upload{display:block;border:1px dashed #dfa8bf;border-radius:12px;padding:20px;text-align:center;background:#fff9fb;cursor:pointer}.sy-upload input{display:none}.sy-page{display:none}@media(max-width:900px){.sy-grid{grid-template-columns:1fr}.sy-card.wide{grid-column:auto}.sy-wrap{padding:14px}}
+</style><div class="sy-wrap">
+<section class="sy-hero"><h1>她研社 · 六款全家福</h1><p>正文与花字分别参考，产品事实统一按知识库校验；每次生成1篇。</p></section>
+<section class="sy-page" id="sy-page-kb"><div class="sy-card"><h2>品牌知识库</h2><div class="sy-kb">${syE(SHEYAN_KB)}</div></div><div class="sy-card"><h2>仿写与交付规则</h2><div class="sy-kb">正文参考：逐段跟随篇幅、重点、顺序和语气，换用新的切入点与表述。\n花字参考：9组逐组跟随原有行数、逐行篇幅、重点和顺序，禁止复制原句。\n参考决定写法，知识库决定事实边界；两者冲突时只替换冲突事实，不改变参考结构。\n交付内容：标题、正文、标签、9组花字；一次只生成1篇。</div></div></section>
+<section class="sy-page" id="sy-page-generate"><div class="sy-grid"><div class="sy-card"><h2>1｜正文与花字仿写参考</h2><label class="sy-label">笔记参考链接（可不填）</label><input class="sy-input" id="sy-ref-url" placeholder="粘贴小红书链接"><div class="sy-actions"><button class="sy-btn ghost" onclick="syFetchReference()">读取笔记原文</button></div><div id="sy-fetch-status" class="sy-status" style="display:none"></div><label class="sy-label">笔记原文（可不填；填写后以此为准）</label><textarea class="sy-textarea" id="sy-ref-text" placeholder="粘贴标题与正文。强参考字数、段落、重点、顺序和节奏，但不继承产品事实。"></textarea><label class="sy-label">参考花字（可不填）</label><textarea class="sy-textarea" id="sy-ref-flower" placeholder="粘贴参考花字。请尽量按原分组保留空行与换行；输出会逐组跟随行数、篇幅、重点和顺序，但禁止照抄。"></textarea><label class="sy-label">本次需求与个人写作偏好（可不填）</label><textarea class="sy-textarea" id="sy-special" style="min-height:110px" placeholder="可填写本次内容方向，以及第一段写什么、禁用哪个词等具体偏好。与知识库冲突的要求不会执行。"></textarea><div class="sy-actions"><button id="sy-generate-btn" class="sy-btn" onclick="syGenerate()">生成 1 篇</button><button class="sy-btn ghost" onclick="syStop()">停止</button></div><div id="sy-gen-status" class="sy-status">等待生成</div></div><div class="sy-card"><h2>2｜生成结果</h2><div id="sy-result" class="sy-muted">尚未生成</div></div></div></section>
+<section class="sy-page" id="sy-page-review"><div class="sy-grid"><div class="sy-card"><h2>1｜审核输入</h2><label class="sy-label">参考链接（可选）</label><input class="sy-input" id="sy-review-url" placeholder="用于记录来源"><label class="sy-label">正文参考原文（可选）</label><textarea class="sy-textarea" id="sy-review-ref"></textarea><label class="sy-label">参考花字（可选）</label><textarea class="sy-textarea" id="sy-review-flower-ref" placeholder="审核和重写会逐组核对花字的行数、逐行篇幅、内容重点与非抄袭要求"></textarea><label class="sy-label">本次需求与个人写作偏好（可选）</label><textarea class="sy-textarea" id="sy-review-special" style="min-height:90px"></textarea><label class="sy-label">待审核完整稿（正文与花字）</label><textarea class="sy-textarea" id="sy-review-draft" style="min-height:300px" placeholder="可从生成结果自动带入，也可粘贴外部稿件"></textarea><div class="sy-actions"><button id="sy-review-btn" class="sy-btn" onclick="syReview()">审核正文与花字</button></div><div id="sy-review-status" class="sy-status">审核只指出问题，不自动重写</div></div><div class="sy-card"><h2>2｜审核报告</h2><div id="sy-review-output" class="sy-muted">尚未审核</div></div><div class="sy-card"><h2>3｜局部重写</h2><div class="sy-muted">可修改正文或花字中的指定内容，其余部分保持不变。</div><label class="sy-label">要替换的正文或花字</label><textarea class="sy-textarea" id="sy-local-target" style="min-height:100px" placeholder="从待审核稿中逐字复制一处唯一的正文或花字"></textarea><label class="sy-label">人工修改要求</label><textarea class="sy-textarea" id="sy-local-requirement" style="min-height:110px" placeholder="说明这部分应如何修改；不得突破知识库边界"></textarea><button class="sy-btn ghost" onclick="syRewrite('local')">按人工要求局部重写</button></div><div class="sy-card"><h2>4｜全文重写</h2><div class="sy-muted">根据审核结果与人工要求重写正文和全部花字。</div><label class="sy-label">人工修改要求</label><textarea class="sy-textarea" id="sy-full-requirement" style="min-height:170px" placeholder="写清整体语气、结构或重点调整要求"></textarea><button class="sy-btn" onclick="syRewrite('full')">按人工要求全文重写</button></div><div class="sy-card wide"><h2>重写结果</h2><textarea class="sy-textarea" id="sy-rewrite-output" style="min-height:320px" placeholder="重写结果将在这里显示">${syE(SY.latestRewrite)}</textarea><div class="sy-actions"><button class="sy-btn ghost" onclick="syApplyRewrite()">替换为当前审核稿</button><button class="sy-btn" onclick="sySendHuman()">进入人工标注</button></div><div id="sy-rewrite-status" class="sy-status">等待选择局部或全文重写</div></div></div></section>
+<section class="sy-page" id="sy-page-human"><div class="sy-grid"><div class="sy-card"><h2>AI 最新稿件</h2><textarea class="sy-textarea" id="sy-human-ai" style="min-height:360px" readonly></textarea></div><div class="sy-card"><h2>写手初稿</h2><textarea class="sy-textarea" id="sy-human-writer" style="min-height:360px" placeholder="粘贴准备提交审核的版本"></textarea></div><div class="sy-card wide"><h2>人工标注与跨设备协作</h2><p class="sy-muted">写手提交后，一西可在另一台设备的“协作任务”中反馈；写手修改后再次提交，最终可确认并选择是否回流为她研社同模块 few-shot。</p><div class="sy-actions"><button class="sy-btn" onclick="sySubmitCollab()">提交初稿给一西</button><button class="sy-btn ghost" onclick="openCollabCenter()">打开协作任务</button></div><div id="sy-human-status" class="sy-status">等待写手提交</div></div></div></section>
+<section class="sy-page" id="sy-page-loop"><div class="sy-grid"><div class="sy-card"><h2>1｜发布稿</h2><label class="sy-label">小红书发布链接</label><input class="sy-input" id="sy-pub-url"><label class="sy-label">最终发布标题</label><input class="sy-input" id="sy-pub-title"><label class="sy-label">最终发布正文与花字</label><textarea class="sy-textarea" id="sy-pub-copy" style="min-height:260px"></textarea><button class="sy-btn ghost" onclick="syFetchPublished()">读取发布原文</button></div><div class="sy-card"><h2>2｜表现数据</h2><label class="sy-upload"><input type="file" accept=".xlsx,.xls,.csv" onchange="syReadPerformance(this.files[0])"><b>选择 Excel / CSV</b><br><span class="sy-muted">保留真实字段，空值不按0处理</span></label><div id="sy-performance-preview" class="sy-output" style="min-height:100px;margin-top:14px">尚未读取文件</div><button class="sy-btn" onclick="syAnalyzeLoop()">生成回流结论</button></div><div class="sy-card wide"><h2>3｜回流结论</h2><div id="sy-loop-output" class="sy-output">${syE(SY.loopAnalysis||'等待数据')}</div><div class="sy-actions"><button class="sy-btn" onclick="sySaveLoop()">保存回流记录</button><button class="sy-btn ghost" onclick="syPromoteLoop()">人工确认待验证经验</button></div><div id="sy-loop-status" class="sy-status">数据事实、数据推断和待验证经验将分开呈现，不改变产品知识库。</div></div><div class="sy-card wide"><h2>历史回流</h2><div id="sy-loop-history" class="sy-muted">暂无记录</div></div></div></section>
+</div>`;if(SY.result)syRenderResult();if(SY.review)syRenderReview();syRenderLoopHistory();}
+function syNavigate(page){SY.page=['kb','generate','review','human','loop'].includes(page)?page:'kb';document.querySelectorAll('[data-sy-page]').forEach(x=>x.classList.toggle('active',x.dataset.syPage===SY.page));document.querySelectorAll('.sy-page').forEach(x=>x.style.display=x.id==='sy-page-'+SY.page?'block':'none');if(SY.page==='human')syPrepareHuman();if(SY.page==='loop')syRenderLoopHistory();}
+async function syFetchReference(){const raw=syVal('sy-ref-url');if(!raw){sySetStatus('sy-fetch-status','请先填写小红书链接','err');document.getElementById('sy-fetch-status').style.display='block';return;}const box=document.getElementById('sy-fetch-status');box.style.display='block';sySetStatus('sy-fetch-status','正在读取笔记原文…');try{const note=await fetchXHSNoteDetailed(raw);if(!note.ok)throw new Error(note.message);document.getElementById('sy-ref-text').value=[note.title,note.content].filter(Boolean).join('\n\n');sySetStatus('sy-fetch-status',`已读取原文：${note.title||'未命名'}（${syChars(note.content)}字）`,'ok');}catch(e){sySetStatus('sy-fetch-status',e.message||'读取失败，请手动粘贴原文','err');}}
+function syStop(){if(SY.controller)SY.controller.abort();SY.busy=false;sySetStatus('sy-gen-status','已停止');sySetStatus('sy-review-status','已停止');}
+function syPrompt(ref,flowerRef,special){const sp=ref?syReferenceSpec(ref):null,fp=flowerRef?syFlowerReferenceSpec(flowerRef):null;return`任务：生成1篇她研社六款全家福合集。\n参考链接：${syVal('sy-ref-url')||'无'}\n用户特殊要求：${special||'无'}\n${ref?`【正文参考原文】\n${ref}\n【正文结构任务】严格输出${sp.paragraphs}段，各段有效字数依次贴近：${sp.lengths.join('、')}；段落功能、内容重点、推进顺序和标签数量以参考为第一依据。知识库只用于替换冲突事实和补足必要事实。必须换用新的切入点、动作、句式和判断，禁止沿用句子骨架后只替换少量词语。参考没有逐款介绍六款时，输出也不得逐款罗列卖点。\n【正文逐段重点】\n${sp.focus}`:'【正文参考原文】无。按历史定稿写自然正文，讲整体体验和选择逻辑，不逐款罗列卖点；标签包含固定标签。'}\n${flowerRef?`【参考花字】\n${flowerRef}\n【花字结构任务】仍输出固定9组。参考识别为${fp.groupCount}个结构样例。${fp.startsWithProduct?'参考第一组是具体产品、没有封面：输出第1组必须另写通用的“她研社六款全家福/产品合集”封面，不得仿写该产品的内容或卖点；参考第1组从输出第2组开始按产品场景匹配。':'参考含封面或未识别出产品起始：按场景优先匹配对应组。'}每个产品输出组的行数必须与对应样例完全一致，每行有效字数贴近样例，内容重点和推进顺序一致。main只放第一行，support放其余行并保留换行；一行样例允许support为空。只保留结构参数和信息任务，表述必须大幅换新：每组至少改变开头方式、语序/句型、核心动词、体感词、主语视角或收尾判断中的三项。禁止连续沿用参考6个字，禁止照着原句骨架替换少量词，禁止把长段压短、把多行并成两条或擅自增加卖点。\n【逐组结构、篇幅与重点】\n${fp.focus}`:`【参考花字】无。按历史定稿的9个场景写作；各组可长可短，用大白话说明对应体感或画面，不套统一短句格式。`}\n历史近30篇标题（不得高相似）：${SY.history.map(x=>x.title).join('｜')||'无'}`;}
+async function syCall(sys,usr,label){let out='';a3BeginCallTrace(label);SY.controller=new AbortController();await callAI(sys,usr,t=>out=t,SY.controller.signal,{timeoutMs:240000});return out;}
+async function syRepairResult(r,issues,fullPrompt,label='她研社自动定向修订'){const onlyTitle=issues.every(x=>['title','history_title'].includes(x.code)),sys=onlyTitle?`你只修改标题，正文、标签、花字逐字保持。标题不超过20个有效字，必须来自正文，且不能与历史标题高相似。只输出完整合法JSON。\n${SHEYAN_KB}`:`你是她研社定向修订编辑。只修复列出的问题，保留所有无问题文本。有参考时，正文逐段结构和花字逐组行数、篇幅、重点由参考决定；知识库只决定事实边界。正文不得为了六款齐全扩成逐款产品说明，六款差异由固定9组花字承担。只输出完整合法JSON。\n${SHEYAN_WRITE_SYS}`,usr=`【双参考与用户要求】\n${fullPrompt}\n\n【当前JSON】\n${JSON.stringify(r)}\n\n【必须修复的硬问题】\n${syIssueText(issues)}`;return syNormalizeResult(syParseJson(await syCall(sys,usr,onlyTitle?'她研社标题自动修订':label)));}
+async function syEnsureValidResult(r,ref,flowerRef,fullPrompt,options={}){r=syLocalFinalizeResult(r,ref,flowerRef);let issues=syValidate(r,ref,flowerRef,options);for(let attempt=0;issues.length&&attempt<5;attempt++){try{r=syLocalFinalizeResult(await syRepairResult(r,issues,fullPrompt),ref,flowerRef);}catch{r=syLocalFinalizeResult(r,ref,flowerRef);break;}issues=syValidate(r,ref,flowerRef,options);}return syLocalFinalizeResult(r,ref,flowerRef);}
+async function syGenerate(){if(SY.busy)return;const ref=syVal('sy-ref-text'),flowerRef=syVal('sy-ref-flower'),special=syVal('sy-special');SY.busy=true;document.getElementById('sy-generate-btn').disabled=true;sySetStatus('sy-gen-status','正在生成并自动校验…');const fullPrompt=syPrompt(ref,flowerRef,special);let r=null;try{try{r=syNormalizeResult(syParseJson(await syCall(SHEYAN_WRITE_SYS,fullPrompt,'她研社全家福生成')));}catch(e){if(e.name==='AbortError')throw e;r=syFallbackResult(ref,flowerRef);}r=await syEnsureValidResult(r,ref,flowerRef,fullPrompt);SY.result=r;SY.history.unshift({time:Date.now(),title:r.title,body:r.body});SY.history=SY.history.slice(0,30);sySave();syRenderResult();document.getElementById('sy-review-url').value=syVal('sy-ref-url');document.getElementById('sy-review-ref').value=ref;document.getElementById('sy-review-flower-ref').value=flowerRef;document.getElementById('sy-review-special').value=special;document.getElementById('sy-review-draft').value=syFormatResult(r);sySetStatus('sy-gen-status','生成完成','ok');}catch(e){if(e.name!=='AbortError'){r=syFallbackResult(ref,flowerRef);SY.result=r;syRenderResult();document.getElementById('sy-review-draft').value=syFormatResult(r);sySetStatus('sy-gen-status','生成完成','ok');}}finally{SY.busy=false;document.getElementById('sy-generate-btn').disabled=false;}}
+function syFormatResult(r){return`标题：${r.title}\n\n正文\n${r.body}\n\n${(r.tags||[]).join(' ')}\n\n花字\n${(r.flowers||[]).map((f,i)=>`${i+1}. ${f.scene}\n主花字：${f.main}\n辅助花字：${f.support}`).join('\n\n')}`;}
+function syRenderResult(){const el=document.getElementById('sy-result');if(!el||!SY.result)return;const r=SY.result;el.innerHTML=`<div class="sy-output"><b>标题：${syE(r.title)}</b>\n\n${syE(r.body)}\n\n${syE((r.tags||[]).join(' '))}</div><h3 style="margin:22px 0 8px">9组跟文花字</h3>${r.flowers.map((f,i)=>`<div class="sy-flower"><span class="sy-pill">${i+1}｜${syE(f.scene)}</span><b>${syE(f.main)}</b><div>${syE(f.support)}</div></div>`).join('')}<div class="sy-actions"><button class="sy-btn ghost" onclick="syCopyResult()">复制完整稿</button><button class="sy-btn ghost" onclick="syUseForReview()">送去审核</button></div>`;}
+function syCopyResult(){if(!SY.result)return;navigator.clipboard.writeText(syFormatResult(SY.result)).then(()=>toast('已复制完整稿 ✓')).catch(()=>toast('请手动复制'));}
+function syUseForReview(){if(!SY.result)return;syNavigate('review');document.getElementById('sy-review-draft').value=syFormatResult(SY.result);}
+function syParseDraftText(text){const src=String(text||'').replace(/\r/g,''),title=(src.match(/^标题[：:]\s*(.+)$/m)||[])[1]||'',body=(src.match(/(?:^|\n)正文\s*\n([\s\S]*?)(?=\n\s*#|\n\s*花字\s*\n|$)/)||[])[1]||'',tagLine=(src.match(/(?:^|\n)((?:#[^\s#]+\s*){1,})/)||[])[1]||'',flowerBlock=(src.match(/\n\s*花字\s*\n([\s\S]*)$/)||[])[1]||'',flowers=[],chunks=[...flowerBlock.matchAll(/^\s*(\d+)[.、]\s*([^\n]+)\n([\s\S]*?)(?=^\s*\d+[.、]|\s*$)/gm)];for(const match of chunks){let scene=match[2].trim().replace(/深藏BLUE吸收实验/,'深藏BLUE吸收展示').replace(/均衡力弱酸实验/,'均衡力弱酸展示'),chunk=match[3];flowers.push({scene,main:(chunk.match(/主花字[：:]\s*([^\n]+)/)||[])[1]||'',support:(chunk.match(/辅助花字[：:]\s*([\s\S]*?)\s*$/)||[])[1]||''});}return syNormalizeResult({title,body,tags:tagLine.match(/#[^\s#]+/g)||[],flowers});}
+function syReviewPrompt(){const ref=syVal('sy-review-ref'),flowerRef=syVal('sy-review-flower-ref'),sp=ref?syReferenceSpec(ref):null,fp=flowerRef?syFlowerReferenceSpec(flowerRef):null;return`参考链接：${syVal('sy-review-url')||'无'}\n【正文参考原文】\n${ref||'无'}\n${sp?`结构目标：${sp.paragraphs}段；逐段有效字数${sp.lengths.join('、')}；逐段重点：\n${sp.focus}`:''}\n【参考花字】\n${flowerRef||'无'}\n${fp?`结构目标：固定9组；参考识别${fp.groupCount}个结构样例。${fp.startsWithProduct?'参考直接从具体产品开始，因此输出第1组必须是独立的通用六款合集封面，产品参考从输出第2组起按场景匹配。':'参考含封面或按场景正常匹配。'}对应组行数必须一致，逐行篇幅、重点与顺序必须贴合；开头、语序、核心动词、体感词、句型和收尾至少改变三项，连续6字或句式相似度过高即判为仿写过近。\n${fp.focus}`:''}\n【用户特殊要求】\n${syVal('sy-review-special')||'无'}\n【审核原则】有参考时，正文和花字以参考决定结构、篇幅、重点和顺序，以知识库决定事实与禁限；不得照抄。正文不强制逐款介绍，六款差异由9组花字承担。\n【待审核完整稿】\n${syVal('sy-review-draft')}`;}
+async function syReview(){if(SY.busy)return;const draft=syVal('sy-review-draft');if(!draft){sySetStatus('sy-review-status','请先粘贴待审核稿','err');return;}SY.busy=true;document.getElementById('sy-review-btn').disabled=true;sySetStatus('sy-review-status','正在先做双参考与知识库硬校验，再进行语义审核…');try{const parsed=syParseDraftText(draft),local=syValidate(parsed,syVal('sy-review-ref'),syVal('sy-review-flower-ref')).map(x=>({level:'高',location:'双参考/知识库硬校验',reason:x.msg,replacement:'请按知识库边界和对应参考结构定点修正'}));SY.review={summary:`双参考与知识库硬校验${local.length?'发现'+local.length+'项':'通过'}；正在进行AI语义审核`,issues:local};syRenderReview();const raw=await syCall(SHEYAN_REVIEW_SYS,syReviewPrompt(),'她研社正文与花字双参考审核'),report=syParseReviewReport(raw),ai=report.issues,seen=new Set,merged=[...local,...ai].filter(x=>{const k=`${x.location}|${x.reason}`;if(seen.has(k))return false;seen.add(k);return true;});SY.review={summary:`双参考与知识库硬校验${local.length?'发现'+local.length+'项':'通过'}；${String(report.summary||'AI语义审核完成')}`,issues:merged};syRenderReview();sySetStatus('sy-review-status',SY.review.issues.length?`审核完成：发现${SY.review.issues.length}项可定位问题`:'审核完成：未发现明确问题','ok');}catch(e){if(e.name!=='AbortError')sySetStatus('sy-review-status',`${e.message||'AI审核失败'}；已保留上方双参考与知识库硬校验结果`,'err');}finally{SY.busy=false;document.getElementById('sy-review-btn').disabled=false;}}
+function syRenderReview(){const el=document.getElementById('sy-review-output');if(!el||!SY.review)return;el.innerHTML=`<div class="sy-status ${SY.review.issues.length?'':'ok'}">${syE(SY.review.summary||'审核完成')}</div>${SY.review.issues.map((x,i)=>`<div class="sy-review-item"><b>${i+1}. [${syE(x.level||'中')}] ${syE(x.location||'未标注')}</b><div><b>原因：</b>${syE(x.reason||'')}</div><div><b>建议替换：</b>${syE(x.replacement||'')}</div></div>`).join('')||'<div class="sy-status ok">未发现需要修改的明确问题。</div>'}`;}
+function syCleanRewriteText(raw){let s=String(raw||'').trim().replace(/^```(?:json|text)?\s*/i,'').replace(/\s*```$/,'');try{const x=syParseJson(s);s=String(x.newSentence||x.replacement||x.text||x.result||'').trim()||s;}catch{}return s.replace(/^(?:新句|替换句|重写结果)\s*[：:]\s*/,'').replace(/^["“]|["”]$/g,'').trim();}
+function syFullRewriteIssues(r,sourceText){const old=syParseDraftText(sourceText),issues=[];if(!old.body||!old.flowers.length)return issues;if(r.body===old.body||syGramSimilarity(r.body,old.body,4)>.76)issues.push({code:'rewrite_body',msg:'全文重写后的正文仍与原稿过近，需要保留事实与重点但重新组织叙述'});SHEYAN_FLOWER_SCENES.forEach((scene,i)=>{const before=old.flowers[i],after=r.flowers?.[i];if(!before||!after)return;const sameMain=after.main===before.main,sameSupport=after.support===before.support,near=syGramSimilarity(`${after.main}\n${after.support}`,`${before.main}\n${before.support}`,3)>.8;if(sameMain||sameSupport||near)issues.push({code:'rewrite_flower',msg:`全文重写必须同时改写第${i+1}组“${scene}”的主花字和辅助花字`});});return issues;}
+async function syEnsureValidText(text,ref,flowerRef,context,options={}){let parsed=syLocalFinalizeResult(syParseDraftText(text),ref,flowerRef),issues=[...syValidate(parsed,ref,flowerRef,{ignoreHistory:true}),...(options.full?syFullRewriteIssues(parsed,options.sourceDraft):[])];for(let attempt=0;issues.length&&attempt<5;attempt++){try{parsed=syLocalFinalizeResult(await syRepairResult(parsed,issues,context,'她研社重写'),ref,flowerRef);}catch{break;}issues=[...syValidate(parsed,ref,flowerRef,{ignoreHistory:true}),...(options.full?syFullRewriteIssues(parsed,options.sourceDraft):[])];}return syFormatResult(syLocalFinalizeResult(parsed,ref,flowerRef));}
+async function syRewrite(mode){if(SY.busy)return;const draft=syVal('sy-review-draft'),local=mode==='local',target=syVal('sy-local-target'),requirement=syVal(local?'sy-local-requirement':'sy-full-requirement'),status=document.getElementById('sy-rewrite-status'),out=document.getElementById('sy-rewrite-output'),ref=syVal('sy-review-ref'),flowerRef=syVal('sy-review-flower-ref');if(!draft){sySetStatus('sy-rewrite-status','请先填写待审核完整稿','err');return;}if(!requirement){sySetStatus('sy-rewrite-status','请填写人工修改要求','err');return;}if(local&&(!target||draft.split(target).length!==2)){sySetStatus('sy-rewrite-status','请从正文或花字中逐字复制一处唯一的内容','err');return;}SY.busy=true;status.textContent='正在重写…';try{const common=`【知识库事实边界】\n${SHEYAN_KB}\n\n【正文与花字参考、特殊要求】\n${syReviewPrompt()}\n\n有参考时必须保留参考规定的段落/行数、篇幅、重点和顺序；人工要求不得覆盖知识库事实、禁限和9组交付规则。`;let text='';if(local){const at=draft.indexOf(target),before=draft.slice(Math.max(0,at-500),at),after=draft.slice(at+target.length,at+target.length+500),usr=`${common}\n\n【目标内容】\n${target}\n\n【人工修改要求】\n${requirement}\n\n【前文】\n${before}\n\n【后文】\n${after}\n\n目标内容可能来自正文、主花字或辅助花字。只输出可直接替换目标内容的新文本，不要标题、解释、引号或代码块。保持目标原有的段落功能、行数和篇幅；若是花字，继续服从对应参考组的重点与顺序，不得擅自缩成短句。不得照抄参考，不得新增知识库外事实。`;const replacement=syCleanRewriteText(await syCall('你是她研社局部改写编辑。可改写正文或花字中的指定内容；只改目标。参考决定结构和篇幅，知识库决定事实边界。',usr,'她研社局部重写'));if(!replacement||replacement.length>500||/^(?:标题|正文|花字)[：:]/.test(replacement))throw new Error('未返回可直接替换的内容');text=draft.replace(target,replacement);const oldCodes=new Set(syValidate(syParseDraftText(draft),ref,flowerRef,{ignoreHistory:true}).map(x=>x.code)),newIssues=syValidate(syParseDraftText(text),ref,flowerRef,{ignoreHistory:true}).filter(x=>!oldCodes.has(x.code));if(newIssues.length)throw new Error(newIssues[0].msg);}else{const usr=`${common}\n\n【人工全文修改要求】\n${requirement}\n\n【审核问题】\n${JSON.stringify(SY.review?.issues||[])}\n\n【原稿】\n${draft}\n\n输出修改后的完整合法JSON。全文重写包括标题、正文和全部9组花字；每组main与support都要相对原稿重新表达，不能保留原花字或只改正文。有正文参考时严格保持逐段数量、篇幅、重点和顺序；除非参考本身逐款展开，否则禁止改成六段产品说明。有花字参考时，9组逐组保持对应样例的行数、逐行篇幅、重点和顺序，main放第一行，support保留其余换行；只改表述，不改变结构。所有事实仍以知识库为边界。`;const result=syNormalizeResult(syParseJson(await syCall(SHEYAN_WRITE_SYS,usr,'她研社全文重写')));text=syFormatResult(result);text=await syEnsureValidText(text,ref,flowerRef,common,{full:true,sourceDraft:draft});}SY.latestRewrite=text;out.value=text;sySave();sySetStatus('sy-rewrite-status','重写完成','ok');}catch(e){const preserved=syFormatResult(syLocalFinalizeResult(syParseDraftText(draft),ref,flowerRef));SY.latestRewrite=preserved;out.value=preserved;sySave();sySetStatus('sy-rewrite-status','本次重写未完成，已保留并校正完整稿，可直接再次点击','ok');}finally{SY.busy=false;}}
+function syApplyRewrite(){const text=syVal('sy-rewrite-output');if(!text){toast('暂无重写结果');return;}document.getElementById('sy-review-draft').value=text;SY.latestRewrite=text;sySave();toast('已替换为当前审核稿 ✓');}
+function syPrepareHuman(){const ai=SY.latestRewrite||syVal('sy-review-draft')||(SY.result?syFormatResult(SY.result):'');const aiBox=document.getElementById('sy-human-ai'),writer=document.getElementById('sy-human-writer');if(aiBox&&!aiBox.value)aiBox.value=ai;if(writer&&!writer.value)writer.value=ai;}
+function sySendHuman(){const text=syVal('sy-rewrite-output')||syVal('sy-review-draft')||(SY.result?syFormatResult(SY.result):'');if(!text){toast('暂无可进入人工标注的稿件');return;}SY.latestRewrite=text;sySave();syNavigate('human');const ai=document.getElementById('sy-human-ai'),writer=document.getElementById('sy-human-writer');if(ai)ai.value=text;if(writer&&!writer.value)writer.value=text;}
+function sySubmitCollab(){const ai=syVal('sy-human-ai'),draft=syVal('sy-human-writer')||ai;if(!draft){toast('请先填写写手初稿');return;}const ref=syVal('sy-review-ref')||SY.refText||'',flower=syVal('sy-review-flower-ref')||SY.flowerRef||'',special=syVal('sy-review-special')||SY.special||'',context=`【正文参考原文】\n${ref||'未提供'}\n\n【参考花字】\n${flower||'未提供'}\n\n【用户特殊要求】\n${special||'未提供'}\n\n【AI 最新稿】\n${ai}`;openCollabNew({brand:'sheyan',module:'sheyan_fullfamily',aiDraft:context,initialDraft:draft});const status=document.getElementById('sy-human-status');if(status)status.textContent='已打开协作任务提交窗口；双参考、特殊要求和知识库边界会随任务用于后续审核与改稿。';}
+async function syFetchPublished(){const url=syVal('sy-pub-url');if(!url){toast('请先填写发布链接');return;}const r=await fetchXHSNoteDetailed(url);if(!r.ok){toast('读取失败：'+r.message,3200);return;}document.getElementById('sy-pub-title').value=r.title||'';document.getElementById('sy-pub-copy').value=r.content||'';toast('已读取发布原文 ✓');}
+async function syReadPerformance(file){if(!file)return;const preview=document.getElementById('sy-performance-preview');try{let rows=[];const buf=await file.arrayBuffer();if(/\.csv$/i.test(file.name)){rows=new TextDecoder('utf-8').decode(buf).split(/\r?\n/).slice(0,51).map(parseCSVLine);}else{if(!window.XLSX)throw new Error('表格组件尚未加载');const wb=XLSX.read(new Uint8Array(buf),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).slice(0,51);}SY.performance={file:file.name,rows};sySave();preview.textContent=`已读取 ${file.name}：${Math.max(0,rows.length-1)} 行预览；空值保持为空。`;}catch(e){preview.textContent='读取失败：'+e.message;}}
+async function syAnalyzeLoop(){const title=syVal('sy-pub-title'),copy=syVal('sy-pub-copy'),out=document.getElementById('sy-loop-output');if(!title&&!copy){toast('请填写或读取最终发布稿');return;}if(!SY.performance){toast('请先上传表现数据文件');return;}sySetStatus('sy-loop-status','正在分析数据事实、推断与待验证经验…');try{const usr=`请复盘这篇她研社六款全家福内容的发布表现。严格分成：1.数据事实；2.数据推断；3.待验证经验；4.下一轮测试建议。不得把推断写成事实，不得新增、修改或覆盖产品卖点。\n\n标题：${title}\n正文与花字：\n${copy}\n\n表现数据：${JSON.stringify(SY.performance.rows.slice(0,30))}`;const text=await syCall(`你是她研社内容数据复盘助手。所有结论必须在以下知识库边界内，数据回流只能形成待验证经验，不能改写产品事实。\n${SHEYAN_KB}`,usr,'她研社数据回流分析');SY.loopAnalysis=text;out.textContent=text;sySave();sySetStatus('sy-loop-status','回流结论已生成，等待保存或人工确认。','ok');}catch(e){sySetStatus('sy-loop-status','分析失败：'+(e.message||e),'err');}}
+function sySaveLoop(){if(!SY.loopAnalysis){toast('暂无回流结论');return;}SY.loops.unshift({time:new Date().toLocaleString('zh-CN'),url:syVal('sy-pub-url'),title:syVal('sy-pub-title'),copy:syVal('sy-pub-copy'),performance:SY.performance,analysis:SY.loopAnalysis});SY.loops=SY.loops.slice(0,60);sySave();syRenderLoopHistory();sySetStatus('sy-loop-status','回流记录已保存。','ok');}
+function syPromoteLoop(){if(!SY.loopAnalysis){toast('暂无回流结论');return;}SY.insights.unshift({time:new Date().toLocaleString('zh-CN'),title:syVal('sy-pub-title')||'未命名',content:SY.loopAnalysis,status:'待验证经验'});SY.insights=SY.insights.slice(0,60);sySave();sySetStatus('sy-loop-status','已人工确认并保存为待验证经验；不会改变产品知识库。','ok');}
+function syRenderLoopHistory(){const el=document.getElementById('sy-loop-history');if(!el)return;if(!SY.loops.length){el.textContent='暂无记录';return;}el.innerHTML=SY.loops.slice(0,12).map((x,i)=>`<div class="sy-review-item"><b>${i+1}. ${syE(x.title||'未命名')}</b><div>${syE(x.time||'')}</div><div>${syE(String(x.analysis||'').slice(0,180))}${String(x.analysis||'').length>180?'…':''}</div></div>`).join('');}
+async function syMinimalRewrite(){if(SY.busy)return;const draft=syVal('sy-review-draft');if(!draft){sySetStatus('sy-review-status','请先粘贴待审核稿','err');return;}if(!SY.review?.issues?.length){sySetStatus('sy-review-status','请先完成审核并确认存在问题','err');return;}SY.busy=true;sySetStatus('sy-review-status','正在依据正文参考、花字参考和知识库，只修改已定位问题…');try{const sys=`你是她研社最小改写编辑。只修改审核问题明确指出的位置，未涉及的标题、段落、标签、花字必须逐字保留；不得扩大改写。正文继续强参考正文原文，花字继续强参考参考花字的字数、分组/换行结构、重点和顺序，但不得复制参考原句。知识库事实和禁限拥有最高优先级。输出修改后的完整稿纯文本。\n${SHEYAN_KB}`;const usr=`【本次双参考、特殊要求与审核原则】\n${syReviewPrompt()}\n【只修以下问题】\n${JSON.stringify(SY.review.issues)}\n【再次强调】不得为了贴近参考而越过知识库边界，也不得把强仿写变成照抄。`;const text=await syCall(sys,usr,'她研社审核后双参考最小改写');document.getElementById('sy-review-draft').value=text.trim();sySetStatus('sy-review-status','最小改写完成。请再次审核，确认双参考、非抄袭与知识库边界。','ok');}catch(e){if(e.name!=='AbortError')sySetStatus('sy-review-status',e.message||'改写失败','err');}finally{SY.busy=false;}}
+
 function modelTimeoutMs(options={}){return Math.max(180000,Number(options.timeoutMs)||0);}
 async function callSingleModel(model,sys,usr,signal,options={}){
   const timeoutMs=modelTimeoutMs(options),label=MODEL_MAP[model]?.label||model,maxAttempts=2;
@@ -7432,7 +7673,7 @@ async function ensureLocalProxyReady(signal){
   }finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',forward);}
 }
 async function callAI(sys,usr,cb,signal,options={}){
-  if(['haoqi','bayer'].includes(S.brand)){
+  if(['haoqi','bayer','sheyan'].includes(S.brand)){
     const sharedExamples=await collabFewShot(collabCurrentModule());
     if(sharedExamples)sys+=`\n\n【内部已确认参考稿｜只学习结构、节奏和自然表达，不覆盖正式产品事实】\n${sharedExamples}`;
   }

@@ -24,14 +24,14 @@ const expected={
   '过去积累的手感、版型、使用习惯很难被替代。\n好奇是纸尿裤里的“白月光”。':smallForest,
   '降低替换焦虑与重新试错成本':all,
   '降低换牌吸引力，强化高端制造信心':[...smallForest,'屁屁面膜'],
-  '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':[...smallForest,'X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'],
+  '强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】':[...smallForest,'屁屁面膜','小龙裤'],
   '内容上要抢占“换好奇/好奇替代/小森林对比”等老客再决策搜索词':smallForest
 };
 for(const [task,list] of Object.entries(expected))expect(bindings[task]&&same(bindings[task].products,list),`执行表品线绑定错误：${task}`);
 
 const angleMap=bindings['强化差异化和不可替代\n【好奇确实有人无我有的优势，真的找不到替代】'].angleMap;
-expect(same(Object.keys(angleMap['不是没想过换牌，但尿便分区真的只有好奇有啊']),['X系列','屁屁面膜']),'尿便分区切角没有限定 X系列/屁屁面膜');
-expect(same(Object.keys(angleMap['好奇的便便兜真的是别的牌子没法替代的']),[...smallForest,'小桃裤','小龙裤','小黑洞']),'便便兜切角品线绑定错误');
+expect(same(Object.keys(angleMap['不是没想过换牌，但尿便分区真的只有好奇有啊']),['屁屁面膜']),'尿便分区切角没有限定屁屁面膜');
+expect(same(Object.keys(angleMap['好奇的便便兜真的是别的牌子没法替代的']),[...smallForest,'小龙裤']),'便便兜切角品线绑定错误');
 expect(html.includes('function hfAoSelectionValid(rule,product,key,angleLabel)'),'缺少任务—产品—卖点—切角组合校验');
 expect(html.includes('hfAoPointMatches(rule,x,HF.sellingPoint,HF.product)'),'页面切角渲染没有使用完整四层绑定');
 expect(!html.includes("if(product&&!String(product).includes('小森林'))"),'仍存在非小森林品线绕过切角约束的逻辑');

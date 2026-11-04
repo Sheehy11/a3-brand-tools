@@ -14,8 +14,8 @@ for(const [index,match] of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/s
 expect(html.includes('本次需求与个人写作偏好'),'需求与偏好面板缺失');
 for(const name of ['思雨','阳阳','APRIL','一西'])expect(html.includes(name),`身份缺失：${name}`);
 expect(html.includes("首次进入必须先选择使用人"),'身份选择仍可被跳过');
-expect(html.includes('【本次人工需求｜最终执行优先级】'),'人工需求最高优先级提示缺失');
-expect(html.includes('高于既有产品事实、合规规则、篇幅、标题、段落、语气、结构'),'人工需求覆盖范围不完整');
+expect(html.includes('【本次人工需求】'),'本次人工需求提示缺失');
+expect(html.includes('不得覆盖已确认产品事实与合规边界'),'知识库事实与合规优先边界缺失');
 expect(html.includes("collabApi('/requirements/workspace'"),'跨设备工作区同步缺失');
 expect(html.includes('取消生成'),'取消生成入口缺失');
 expect(html.includes('max_tokens:options.maxTokens||4096'),'前端未传递输出长度');
