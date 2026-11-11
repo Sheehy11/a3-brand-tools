@@ -2,6 +2,17 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+if(!html.includes('id="hf-rewrite-local-feedback"'))throw new Error('局部重写缺少独立意见框');
+if(!html.includes('id="hf-rewrite-full-feedback"'))throw new Error('全文重写缺少独立意见框');
+if(html.includes('id="hf-rewrite-feedback"'))throw new Error('审核页仍保留冗余的共用意见框');
+if(!html.includes("hfVal(mode==='local'?'hf-rewrite-local-feedback':'hf-rewrite-full-feedback')"))throw new Error('两个重写入口没有读取各自意见');
+if(!html.includes("if(mode==='local'&&!writerFeedback){toast('请在局部重写框中填写问题句或位置，并说明希望怎么改')"))throw new Error('局部重写仍要求精确粘贴原句或缺少修改方法提示');
+if(!html.includes('hfLogWriterFeedback(writerFeedback,mode)'))throw new Error('重写意见没有进入一周留痕');
+if(!html.includes('const specialRequirementOnly=hfIsSpecialRequirementDraft(draft)'))throw new Error('审核未识别特殊需求生成稿');
+if(!html.includes('if(specialRequirementOnly)issues=await hfDeterministicReviewLedger(draft,product,standingHuman,true)'))throw new Error('特殊需求稿仍可能执行字数或格式审核');
+if(!html.includes('function hfSellingPointReviewFindings'))throw new Error('特殊需求稿缺少仅审核卖点的规则');
+if(!html.includes('backgroundContext=hfMaterialContext()'))throw new Error('审核或重写没有继承背景资料');
+if(!html.includes('不能把品牌活动缩窄成所选品线活动'))throw new Error('全文重写缺少活动主体保护');
 function source(from,to){const start=html.indexOf(from),end=html.indexOf(to,start);if(start<0||end<0)throw new Error(`未找到函数片段：${from}`);return html.slice(start,end)}
 const code=source('function hfNormalizeIssueLedger','function hfRenderIssueLedger')+source('async function hfFeedbackAuditAndPatch','async function hfReview');
 const modelResult={

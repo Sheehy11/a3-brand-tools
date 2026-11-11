@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "A3 小红书原文读取助手",
+  "version": "1.4.2",
+  "description": "为 A3 品牌内容工具读取笔记原文并按关键词检索近期内容。",
+  "permissions": ["cookies", "tabs", "scripting"],
+  "host_permissions": ["https://*.xiaohongshu.com/*", "https://xhslink.com/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [
+    {
+      "matches": ["file:///*", "http://localhost/*", "http://127.0.0.1/*", "https://sheehy11.github.io/a3-brand-tools/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page-bridge.js"],
+      "matches": ["file:///*", "http://localhost/*", "http://127.0.0.1/*", "https://sheehy11.github.io/*"]
+    }
+  ]
+}

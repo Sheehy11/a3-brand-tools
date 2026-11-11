@@ -8,7 +8,7 @@ const source=(from,to)=>{const start=html.indexOf(from),end=html.indexOf(to,star
 expect(!html.includes('按当天状态选择更省心'),'仍存在固定短语补字');
 expect(!html.includes('function syFitReferenceLine'),'仍存在前端补字/截断函数');
 expect(html.includes('结合对应产品重点、参考行的信息任务以及相邻上下文'),'长度问题没有交给豆包结合产品与上下文整句重写');
-expect(html.includes("status.textContent=finalIssues.length?'已返回完整稿件，仍有未关闭问题"),'好奇仍可能把未通过误报为通过');
+expect(html.includes("status.textContent=conflictIssues.length?'生成完成；本次要求有知识库冲突。':'生成完成。'"),'好奇仍可能展示非知识库冲突的内部分析');
 expect(!html.includes('if(humanRequirements||!issues.length&&!closure.unresolved.length)'),'好奇全文重写仍会因存在人工要求而提前结束验收');
 const hqReview=source('const HQ_KB_FACT_REVIEW_SYS','function hfMergeReviewIssues');
 expect(!hqReview.includes('hfCommentAudit'),'好奇知识库审核仍在审核评论角度');

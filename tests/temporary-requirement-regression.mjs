@@ -8,11 +8,11 @@ function source(from,to){
   return html.slice(start,end);
 }
 
-if(!html.includes("function hfTemporaryRequirementText(){return HF.customDirection?hfVal('hf-live-raw'):'';}"))throw new Error('临时新增需求没有受当前勾选状态硬隔离');
+if(!html.includes("function hfTemporaryRequirementText(){return hfVal('hf-live-raw');}"))throw new Error('选择内容模板时，本次内容需求仍可能被排除');
 if(!html.includes("if(staleWorkspace)await collabApi('/requirements/workspace',{method:'POST',body:{raw:'',draftItems:[]}})"))throw new Error('跨设备旧临时需求没有一次性清理迁移');
 if(!html.includes("HF.customDirection=HQ_CONTENT_MODE==='ao'"))throw new Error('AO 本次需求模式没有按当前任务重置');
 if(!html.includes("if(!on){HF.customDirection=false;HF.stage='';HF.direction='';HF.product='';HF.sellingPoint='';HF.angle=''"))throw new Error('取消本次需求模式没有退出临时选择');
-if(!html.includes('if(HF.customDirection)hfClearTemporaryRequirement({resetMode:false});'))throw new Error('成功生成后没有消费临时需求');
+if((html.match(/hfClearTemporaryRequirement\(\{resetMode:false\}\);/g)||[]).length<2)throw new Error('单篇或批量成功生成后没有消费本次需求');
 if(!html.includes('HF.generationRequirement=requirementText;'))throw new Error('当前稿件没有保存本次实际生成要求供审核继承');
 if(!html.includes('HF.generationRequirement||hfLiveRequirementText()'))throw new Error('审核与重写没有绑定当前稿件的生成要求');
 
@@ -31,9 +31,8 @@ const context={
 };
 vm.createContext(context);vm.runInContext(code,context);
 
-if(context.hfLiveRequirementText())throw new Error('未勾选时仍把旧临时要求送入生成');
+if(context.hfLiveRequirementText()!=='已经过期的临时要求')throw new Error('选择内容模板后，本次内容需求没有继续进入生成');
 context.HF.customDirection=true;
-if(context.hfLiveRequirementText()!=='已经过期的临时要求')throw new Error('勾选后临时要求没有进入本次生成');
 context.hfClearTemporaryRequirement({resetMode:false});
 if(context.workspace.raw||context.workspace.draftItems.length||values['hf-live-raw'])throw new Error('本次生成完成后临时要求没有被消费清空');
 if(!context.HF.customDirection||context.HF.product!=='旧产品')throw new Error('消费临时文本时破坏了当前稿件的审核上下文');
