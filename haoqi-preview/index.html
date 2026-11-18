@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261118-haoqi-1">
+<meta name="a3-build" content="20261118-haoqi-2">
 <script>
 (()=>{
-  const BUILD='20261118-haoqi-1',VERSION_PARAM='__a3v';
+  const BUILD='20261118-haoqi-2',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -506,8 +506,7 @@ window.a3ClearSession=function(){
     <div id="hq-mode-switcher" style="display:none;padding:10px 12px 12px;border-bottom:1px solid rgba(255,255,255,.09);margin-bottom:8px">
       <div class="sb-section" style="margin:0 0 7px">好奇板块</div>
       <div style="display:grid;grid-template-columns:1fr;gap:6px">
-        <button data-hq-mode="ao" onclick="chooseHqContentMode('ao')" style="border:1px solid #dce5f2;border-radius:8px;padding:8px 6px;background:#fff;color:#2e4c73;font-weight:700;cursor:pointer">全品线 · 素人AO文</button>
-        <button data-hq-mode="opinion" onclick="chooseHqContentMode('opinion')" style="border:1px solid #dce5f2;border-radius:8px;padding:8px 6px;background:#fff;color:#2e4c73;font-weight:700;cursor:pointer">全品线 · 舆情文</button>
+        <button data-hq-mode="full" onclick="chooseHqContentMode(HQ_CONTENT_MODE)" style="border:1px solid #dce5f2;border-radius:8px;padding:8px 6px;background:#fff;color:#2e4c73;font-weight:700;cursor:pointer">好奇全品线文案</button>
         <button data-hq-mode="legacy" onclick="switchHqMode('legacy')" style="border:1px solid #dce5f2;border-radius:8px;padding:8px 6px;background:#fff;color:#2e4c73;font-weight:700;cursor:pointer">小森林问一问</button>
       </div>
     </div>
@@ -3146,7 +3145,7 @@ function switchBrand(brandId){
 }
 
 function updateHqModeButtons(){
-  document.querySelectorAll('[data-hq-mode]').forEach(b=>{const key=b.dataset.hqMode,on=key==='legacy'?HQ_MODE==='legacy':HQ_MODE==='full'&&key===HQ_CONTENT_MODE;b.style.background=on?'linear-gradient(100deg,#ff8a78,#e83e90)':'#fff';b.style.color=on?'#fff':'#6f5064';b.style.borderColor=on?'#e83e90':'#f1d8e0';b.setAttribute('aria-pressed',on?'true':'false');});
+  document.querySelectorAll('[data-hq-mode]').forEach(b=>{const key=b.dataset.hqMode,on=HQ_MODE===key;b.style.background=on?'linear-gradient(100deg,#ff8a78,#e83e90)':'#fff';b.style.color=on?'#fff':'#6f5064';b.style.borderColor=on?'#e83e90':'#f1d8e0';b.setAttribute('aria-pressed',on?'true':'false');});
 }
 function switchHqMode(mode){
   if(S.brand!=='haoqi'||!['full','legacy'].includes(mode))return;
@@ -7685,7 +7684,7 @@ async function hfAnalyzeLoop(){
 }
 function hfSaveLoop(){if(!HF.loopAnalysis){toast('暂无回流结论');return;}HF.loops.unshift({time:new Date().toLocaleString('zh-CN'),url:hfVal('hf-pub-url'),title:hfVal('hf-pub-title'),copy:hfVal('hf-pub-copy'),performance:HF.performance,analysis:HF.loopAnalysis});hfSaveState();hfRefreshAll();document.getElementById('hf-loop-status').textContent='回流记录已保存';}
 function hfPromoteLoop(){if(!HF.loopAnalysis){toast('暂无可沉淀结论');return;}HF.assets.unshift({time:new Date().toLocaleString('zh-CN'),title:'人工确认回流｜'+(hfVal('hf-pub-title')||'未命名'),kind:'待验证经验',content:HF.loopAnalysis,url:hfVal('hf-pub-url')});hfSaveState();hfRenderAssets();document.getElementById('hf-loop-status').textContent='已人工确认并沉淀到用户素材；不影响产品事实';}
-function hfCopy(id){const text=document.getElementById(id)?.innerText||'';if(!text){toast('暂无内容');return;}navigator.clipboard.writeText(text).then(()=>toast('已复制 ✓')).catch(()=>toast('请手动选择文字'));}
+function hfCopy(id){const text=id==='hf-gen-output'&&HF.latestBatch?.length?HF.latestBatch.join('\n\n'):document.getElementById(id)?.innerText||'';if(!text){toast('暂无内容');return;}navigator.clipboard.writeText(text).then(()=>toast('已复制 ✓')).catch(()=>toast('请手动选择文字'));}
 function hfDownloadCsv(name,rows){const keys=Object.keys(rows[0]||{}),lines=[keys,...rows.map(r=>keys.map(k=>r[k]??''))].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);}
 
 // ══════════════════════════════════════════════
