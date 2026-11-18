@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261118-haoqi-5">
+<meta name="a3-build" content="20261118-haoqi-6">
 <script>
 (()=>{
-  const BUILD='20261118-haoqi-5',VERSION_PARAM='__a3v';
+  const BUILD='20261118-haoqi-6',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -2928,7 +2928,7 @@ function chooseHqContentMode(mode){
     const host=document.getElementById('hq-full-host');
     const shared=host?.dataset.ready==='1'?{
       raw:hfVal('hf-live-raw'),referenceInput:hfVal('hf-reference'),
-      referenceSamples:HF.referenceSamples,materials:HF.materials,materialNote:HF.materialNote,
+      materials:HF.materials,materialNote:HF.materialNote,
       materialSummary:HF.materialSummary,materialDigest:HF.materialDigest,materialReadAt:HF.materialReadAt
     }:null;
     HF.generationSearchController?.abort();
@@ -6852,6 +6852,41 @@ const HQ_DIVERSITY_AXES={
   bridge:['在实际穿戴时首次出现产品','在妈妈做选择时首次出现产品','在观察到结果后再点出产品','用补货或换码决定带出产品','产品名只出现一次，不另作介绍'],
   ending:['停在宝宝接下来的真实动作','停在妈妈下一次购买或使用决定','用一句口语感受自然结束','停在当时看到的具体结果','以一个未展开的小细节结束']
 };
+function hfReferenceStoreKey(){
+  return hfStoreKey().replace(/_(ao|opinion)$/, '_references');
+}
+function hfLoadSavedReferences(){
+  const key=hfReferenceStoreKey();
+  try{
+    const text=localStorage.getItem(key);
+    if(text!==null){
+      const rows=JSON.parse(text);
+      if(Array.isArray(rows))return rows.filter(value=>typeof value==='string'&&value.trim());
+    }
+    const modeKey=hfStoreKey();
+    const otherModeKey=modeKey.replace(/_(ao|opinion)$/, HQ_CONTENT_MODE==='ao'?'_opinion':'_ao');
+    const rows=[modeKey,otherModeKey].flatMap(storeKey=>{
+      try{
+        const saved=JSON.parse(localStorage.getItem(storeKey)||'{}').referenceSamples;
+        return Array.isArray(saved)?saved.filter(value=>typeof value==='string'&&value.trim()):[];
+      }catch{return [];}
+    });
+    const migrated=[...new Set(rows)];
+    try{localStorage.setItem(key,JSON.stringify(migrated));}catch{}
+    return migrated;
+  }catch{return Array.isArray(HF.referenceSamples)?HF.referenceSamples:[];}
+}
+function hfSaveReferences(rows){
+  try{
+    localStorage.setItem(hfReferenceStoreKey(),JSON.stringify(rows));
+  }catch{
+    toast('浏览器无法保存参考稿，请检查存储空间后重试');
+    return false;
+  }
+  HF.referenceSamples=rows;
+  hfRenderReferenceSamples();
+  return true;
+}
 function hfLoadState(){
   try{
     const saved=JSON.parse(localStorage.getItem(hfStoreKey())||'{}');
@@ -6861,11 +6896,11 @@ function hfLoadState(){
     Object.assign(HF,{generationVersions:null,generationSearchEvidence:null},saved);
   }catch{}
   HF.buildId=window.A3_BUILD_ID||'';
-  HF.customDirection=HQ_CONTENT_MODE==='ao';HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.referenceSamples=Array.isArray(HF.referenceSamples)?HF.referenceSamples.map(String).filter(Boolean).slice(0,10):[];HF.materials=Array.isArray(HF.materials)?HF.materials:[];HF.materialNote=String(HF.materialNote||'');HF.materialSummary=String(HF.materialSummary||'');HF.materialDigest=HF.materialDigest&&typeof HF.materialDigest==='object'?HF.materialDigest:null;HF.materialReadAt=String(HF.materialReadAt||'');HF.xhsResultCount=Number(HF.xhsResultCount)||0;HF.xhsSearchKeyword=String(HF.xhsSearchKeyword||'');HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
+  HF.customDirection=HQ_CONTENT_MODE==='ao';HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.referenceSamples=hfLoadSavedReferences();HF.materials=Array.isArray(HF.materials)?HF.materials:[];HF.materialNote=String(HF.materialNote||'');HF.materialSummary=String(HF.materialSummary||'');HF.materialDigest=HF.materialDigest&&typeof HF.materialDigest==='object'?HF.materialDigest:null;HF.materialReadAt=String(HF.materialReadAt||'');HF.xhsResultCount=Number(HF.xhsResultCount)||0;HF.xhsSearchKeyword=String(HF.xhsSearchKeyword||'');HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
   const ws=hfLiveWorkspace();ws.raw=[ws.raw,ws.preference].filter(Boolean).join('\n');ws.preference='';ws.draftItems=[];
 }
 function hfSaveState(){
-  try{const{generationController,generationSearchController,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:HQ_CONTENT_MODE==='ao'?true:Boolean(HF.customDirection),pendingUrls:[]}));}catch{}
+  try{const{generationController,generationSearchController,referenceSamples,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:HQ_CONTENT_MODE==='ao'?true:Boolean(HF.customDirection),pendingUrls:[]}));}catch{}
 }
 function hfHtml(s){return md(String(s||''));}
 function hfVal(id){return document.getElementById(id)?.value?.trim()||'';}
@@ -6948,6 +6983,7 @@ function hfNavigate(page){
   document.querySelectorAll('#hq-full-host .hf-page').forEach(x=>x.classList.toggle('on',x.id===`hf-page-${page}`));
   document.querySelectorAll('#hq-full-sidebar-nav [data-hf-page]').forEach(x=>x.classList.toggle('active',x.dataset.hfPage===page));
   if(page==='generate'&&HF.latestBatch?.length&&!document.querySelector('#hf-gen-output article')&&!HF.generationController)hfRenderBatch(HF.latestBatch,HF.batchWarnings);
+  if(page==='generate'){HF.referenceSamples=hfLoadSavedReferences();hfRenderReferenceSamples();}
   if(page==='review')hfRenderReviewBatch();
   if(page==='human')hfPrepareHuman();if(page==='briefs')hfLiveRender();if(page==='kb'||page==='trends'||page==='human')hfRefreshAll();
 }
@@ -7178,11 +7214,21 @@ function hfRenderReferenceSamples(){
   box.innerHTML=rows.length?rows.map((text,i)=>{const spec=hfParseReference(text),preview=(spec.title||spec.body||text).replace(/\s+/g,' ').slice(0,54);return`<div class="hf-selected" style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span><b>参考稿 ${i+1}</b>　${esc(preview)}${String(text).length>54?'…':''}</span><button class="hf-btn ghost" style="padding:5px 9px" onclick="hfRemoveReference(${i})">删除</button></div>`}).join(''):'<div class="hf-hint">尚未加入参考稿；不填也可生成。</div>';
 }
 function hfAddReference(){
-  const text=hfVal('hf-reference');if(!text)return toast('请先粘贴一篇完整参考稿');HF.referenceSamples=Array.isArray(HF.referenceSamples)?HF.referenceSamples:[];
-  if(HF.referenceSamples.length>=10)return toast('最多加入10篇参考稿');if(HF.referenceSamples.some(x=>String(x).trim()===text))return toast('这篇参考稿已经加入');
-  HF.referenceSamples.push(text);hfSet('hf-reference','');hfSaveState();hfRenderReferenceSamples();toast(`已加入第 ${HF.referenceSamples.length} 篇参考稿`);
+  const text=hfVal('hf-reference');
+  if(!text)return toast('请先粘贴一篇完整参考稿');
+  const saved=hfLoadSavedReferences();
+  if(saved.length>=10)return toast('最多加入10篇参考稿');
+  if(saved.some(value=>value.trim()===text))return toast('这篇参考稿已经加入');
+  if(!hfSaveReferences([...saved,text]))return;
+  hfSet('hf-reference','');
+  toast(`已加入第 ${HF.referenceSamples.length} 篇参考稿`);
 }
-function hfRemoveReference(index){HF.referenceSamples.splice(index,1);hfSaveState();hfRenderReferenceSamples();}
+function hfRemoveReference(index){
+  const displayed=HF.referenceSamples[index];
+  if(displayed===undefined)return;
+  const saved=hfLoadSavedReferences();
+  hfSaveReferences(saved.filter(value=>value!==displayed));
+}
 function hfReferenceForDraft(samples,index){return samples.length?samples[index%samples.length]:'';}
 function hfParseReference(ref){
   const raw=String(ref||'').replace(/\r\n?/g,'\n').trim();
