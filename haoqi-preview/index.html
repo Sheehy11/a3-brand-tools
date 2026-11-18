@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261118-haoqi-2">
+<meta name="a3-build" content="20261118-haoqi-3">
 <script>
 (()=>{
-  const BUILD='20261118-haoqi-2',VERSION_PARAM='__a3v';
+  const BUILD='20261118-haoqi-3',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7311,6 +7311,14 @@ async function hfGenerate(){
   const writingAngle=HF.customDirection?liveDirection:hfAoWritingAngleLabel(rule,HF.angle);
   const usr=`请生成一篇好奇全系列素人妈妈文案。首稿必须直接可用，写之前先在内部完成事实、原创性、故事因果和自然度检查，不输出思考过程。${aoBrief}${refBrief}\n\n【固定配置】\n${HQ_CONTENT_MODE==='ao'?`- 本篇故事语义：${writingAngle}；禁止复制页面上的内容切角标签。`:`- 内容方向：${HF.direction}\n- 内容切角：${HF.angle}`}\n- 产品：好奇${HF.product}\n- 正文字数：${refSpec.bodyChars?`${refSpec.minChars}—${refSpec.maxChars}字（严格跟随参考正文约${refSpec.bodyChars}字，允许超过200字）`:`${rule.range[0]}—${rule.range[1]}字，未提供参考稿时硬上限200字`}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实即使正确，本篇也禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无额外项'}\n- 标题禁止出现“好奇”，允许出现品线名；有参考稿时优先仿写参考标题的功能和表达力度。\n- 正文只保留场景真正需要的动作；有参考稿时保留其核心事件链和内容重点，但每句话必须完全重写。\n- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。\n- 三条评论各20—30字，全部是自然刷到笔记的宝妈留言；不加身份标签或自报人设。分别用相似经历、轻微感叹或自己的使用习惯来接话，不分析作者选择，不给建议，不总结正文，不使用“优先、建议、确认清楚、稳定一点、比较踏实”等审核腔。\n\n${variation}${avoid}\n\n严格按以下格式输出，不要增加说明：\n标题：……\n\n正文\n\n#Tag\n\n评论：\n1. ……\n2. ……\n3. ……`;
   const finalUsr=`${manualPriority}\n\n${usr.replace('故事因果和自然度','现实逻辑和自然度').replace('本篇故事语义','本篇内容语义').replace('- 用宝妈随手分享的口语讲完整一件事，多用短句和自然反应，不写总结报告或书面论述。','- 用宝妈随手说话的口语直接表达一个重点。AO文只写一个使用片段；舆情/机制文先说资料中的事件或机制，再落一句个人判断。禁止写成有开场、转折、升华的日记小作文。').replace(/- 正文字数：[^\n]+/,`- 正文字数：${lengthRule}`).replace(/(- 本品线禁用：[^\n]+)/,dynamicBans.length?`$1\n- 本次明确禁用词：${dynamicBans.join('、')}。标题、正文、Tag、评论均不得出现。`:'$1')}\n\n${requirementText?`【输出前最终裁决】再次逐条核对本次完整人工需求：\n${requirementText}\n在产品事实与合规边界内完整执行；遇到冲突或缺失事实时保留合规事实，不编造、不解释冲突。`:'上方规则均需执行。'}`;
+  const context={reference:ref,rule,config:cfg,system:sys,requirement:requirementText,background:hfMaterialContext()};
+  const presentDraft=(copy,warnings=[])=>{
+    HF.latest=copy.trim();
+    HF.latestBatch=[HF.latest];
+    HF.batchDraftContexts=[context];
+    hfRememberDraft(HF.latest);
+    hfRenderBatch(HF.latestBatch,[warnings]);
+  };
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();status.textContent='豆包正在生成…';out.textContent='正在生成…';let buf='',receivedFirst=false;
   try{
     const outputChars=explicitLength?.max??(refSpec.bodyChars?refSpec.maxChars:rule.range[1]),maxTokens=Math.max(1100,Math.min(3200,Math.ceil(outputChars*2.2)+500));
@@ -7338,9 +7346,9 @@ async function hfGenerate(){
       finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     }
     const conflictIssues=requirementText?[...hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint),...hfHardKnowledgeConflictIssues(finalIssues,requirementText)]:[];
-    if(!buf.trim())throw new Error('内容服务没有返回完整稿件');HF.latest=buf.trim();hfRememberDraft(HF.latest);out.innerHTML=`${conflictIssues.length?`<div class="hf-risk">${esc(hfCompactIssueNotice(conflictIssues))}</div>`:''}${hfHtml(HF.latest)}`;status.textContent=conflictIssues.length?'生成完成；本次要求有知识库冲突。':'生成完成。';hfCommitDiversityPlan(plan);hfSaveState();
+    if(!buf.trim())throw new Error('内容服务没有返回完整稿件');presentDraft(buf,conflictIssues);status.textContent=conflictIssues.length?'生成完成；本次要求有知识库冲突。':'生成完成。';hfCommitDiversityPlan(plan);hfSaveState();
     hfClearTemporaryRequirement({resetMode:false});
-  }catch(e){const message=e.message||'生成请求失败';if(buf.trim()&&e?.name!=='AbortError'){HF.latest=buf.trim();hfRememberDraft(HF.latest);out.innerHTML=hfHtml(HF.latest);status.textContent='生成完成';hfCommitDiversityPlan(plan);hfSaveState();}else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成请求未完成：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
+  }catch(e){const message=e.message||'生成请求失败';if(buf.trim()&&e?.name!=='AbortError'){presentDraft(buf);status.textContent='生成完成';hfCommitDiversityPlan(plan);hfSaveState();}else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成请求未完成：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
 }
 function hfBatchDifferenceIssues(drafts,references=[]){
   const issues=drafts.map(()=>[]);
@@ -7422,7 +7430,7 @@ function hfBatchPlans(count){
 }
 async function hfGenerateBatch(){
   const count=Math.max(1,Math.min(5,Number(document.getElementById('hf-generate-count')?.value)||1));
-  if(count===1){await hfGenerate();if(HF.latest){HF.latestBatch=[HF.latest];hfSaveState();}return;}
+  if(count===1)return hfGenerate();
   const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),liveDirection=hfLiveDirectionText();
   const noPoint=HQ_CONTENT_MODE==='opinion'&&HF.sellingPoint==='__none__';
   if(HF.customDirection){if(!liveDirection){toast('请先在上方输入本次新增需求或保存一条新内容方向');return;}if(!HF.product||(!point&&!noPoint)){toast('请再选择产品和卖点设置');return;}}
