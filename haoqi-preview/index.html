@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261118-haoqi-4">
+<meta name="a3-build" content="20261118-haoqi-5">
 <script>
 (()=>{
-  const BUILD='20261118-haoqi-4',VERSION_PARAM='__a3v';
+  const BUILD='20261118-haoqi-5',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -2931,11 +2931,11 @@ function chooseHqContentMode(mode){
       referenceSamples:HF.referenceSamples,materials:HF.materials,materialNote:HF.materialNote,
       materialSummary:HF.materialSummary,materialDigest:HF.materialDigest,materialReadAt:HF.materialReadAt
     }:null;
-    HF.reviewSearchController?.abort();
-    HF.reviewSearchController=null;
+    HF.generationSearchController?.abort();
+    HF.generationSearchController=null;
     hfSaveState();
     HQ_CONTENT_MODE=mode;
-    Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:mode==='ao',product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],batchDraftContexts:[],batchWarnings:[],reviewDraftContext:null,generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});
+    Object.assign(HF,{page:'kb',stage:'',direction:'',customDirection:mode==='ao',product:'',sellingPoint:'',angle:'',reference:'',latest:'',latestBatch:[],generationVersions:null,generationSearchEvidence:null,batchDraftContexts:[],batchWarnings:[],reviewDraftContext:null,generationRequirement:'',reviewReport:'',reviewIssues:[],reviewRewrite:'',assets:[],human:[],loops:[],pendingUrls:[],performance:null,loopAnalysis:'',generationSeq:0,blueprintUsage:{},generatedDrafts:[]});
     _hfArchiveReady=false;
     if(host){host.dataset.ready='';host.innerHTML='';}
     if(HQ_MODE!=='full')switchHqMode('full');
@@ -6856,16 +6856,16 @@ function hfLoadState(){
   try{
     const saved=JSON.parse(localStorage.getItem(hfStoreKey())||'{}');
     if(saved.buildId!==(window.A3_BUILD_ID||'')){
-      ['latest','latestBatch','generationRequirement','reviewReport','reviewIssues','reviewRewrite','performance','loopAnalysis'].forEach(key=>delete saved[key]);
+      ['latest','latestBatch','batchDraftContexts','batchWarnings','reviewDraftContext','generationVersions','generationSearchEvidence','generationRequirement','reviewReport','reviewIssues','reviewRewrite','performance','loopAnalysis'].forEach(key=>delete saved[key]);
     }
-    Object.assign(HF,saved);
+    Object.assign(HF,{generationVersions:null,generationSearchEvidence:null},saved);
   }catch{}
   HF.buildId=window.A3_BUILD_ID||'';
   HF.customDirection=HQ_CONTENT_MODE==='ao';HF.assets=Array.isArray(HF.assets)?HF.assets:[];HF.referenceSamples=Array.isArray(HF.referenceSamples)?HF.referenceSamples.map(String).filter(Boolean).slice(0,10):[];HF.materials=Array.isArray(HF.materials)?HF.materials:[];HF.materialNote=String(HF.materialNote||'');HF.materialSummary=String(HF.materialSummary||'');HF.materialDigest=HF.materialDigest&&typeof HF.materialDigest==='object'?HF.materialDigest:null;HF.materialReadAt=String(HF.materialReadAt||'');HF.xhsResultCount=Number(HF.xhsResultCount)||0;HF.xhsSearchKeyword=String(HF.xhsSearchKeyword||'');HF.human=Array.isArray(HF.human)?HF.human:[];HF.loops=Array.isArray(HF.loops)?HF.loops:[];HF.reviewIssues=Array.isArray(HF.reviewIssues)?HF.reviewIssues:[];HF.latestBatch=Array.isArray(HF.latestBatch)?HF.latestBatch.slice(0,5):[];HF.generatedDrafts=Array.isArray(HF.generatedDrafts)?HF.generatedDrafts.slice(0,120):[];HF.pendingUrls=[];HF.generationController=null;
   const ws=hfLiveWorkspace();ws.raw=[ws.raw,ws.preference].filter(Boolean).join('\n');ws.preference='';ws.draftItems=[];
 }
 function hfSaveState(){
-  try{const{generationController,reviewSearchController,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:HQ_CONTENT_MODE==='ao'?true:Boolean(HF.customDirection),pendingUrls:[]}));}catch{}
+  try{const{generationController,generationSearchController,...persisted}=HF;localStorage.setItem(hfStoreKey(),JSON.stringify({...persisted,buildId:window.A3_BUILD_ID||'',customDirection:HQ_CONTENT_MODE==='ao'?true:Boolean(HF.customDirection),pendingUrls:[]}));}catch{}
 }
 function hfHtml(s){return md(String(s||''));}
 function hfVal(id){return document.getElementById(id)?.value?.trim()||'';}
@@ -6912,14 +6912,14 @@ function loadHqFullModule(){
       <div id="hf-live-panel" class="hf-card wide"><h3>本次需求</h3><label for="hf-live-raw">内容要求与写作偏好</label><textarea id="hf-live-raw" style="min-height:120px" placeholder="在这里填写内容方向、背景说明、字数、段落、语气、必写或禁用项。"></textarea><div class="hf-actions"><button class="hf-btn primary" onclick="hfSaveCurrentRequirement()">保存为我的需求</button><button class="hf-btn ghost" onclick="hfLiveExportWeekly()">导出最近一周需求痕迹</button></div><div class="hf-hint" style="margin-top:8px">保存后作为固定要求持续执行；不保存则只用于本次生成，但仍会进入一周导出记录。</div><div id="hf-live-role" class="hf-hidden"></div><div id="hf-live-draft" class="hf-hidden"></div><div id="hf-live-status" class="hf-hidden"></div><div id="hf-live-active"></div><div style="margin-top:16px"><h3>当前生成会执行</h3><div id="hf-live-temporary"></div></div><div id="hf-live-weekly" class="hf-hidden"></div></div>
       <div class="hf-card"><h3>1｜确定内容方向</h3><label for="hf-copy-type">文案类型</label><select id="hf-copy-type" onchange="chooseHqContentMode(this.value)"><option value="ao" ${HQ_CONTENT_MODE==='ao'?'selected':''}>素人 AO 文</option><option value="opinion" ${HQ_CONTENT_MODE==='opinion'?'selected':''}>舆情文</option></select><label class="hf-toggle"><input id="hf-custom-direction" type="checkbox" onchange="hfToggleCustomDirection(this.checked)">使用本次需求</label><div class="hf-hint">取消勾选后可选择内容模板。产品事实与合规边界始终不变。</div>${HQ_CONTENT_MODE==='ao'?'<label>消费者阶段</label><div id="hf-stages" class="hf-chips"></div><label>内容方向</label>':''}<div id="hf-directions" class="hf-chips"></div><div id="hf-direction-rule" class="hf-selected">本次需求</div><label>2｜选择产品</label><select id="hf-product" onchange="hfProductChanged()" disabled><option value="">请选择产品</option></select><label>3｜${HQ_CONTENT_MODE==='opinion'?'设置本篇卖点':'选择本篇核心卖点'}</label><div id="hf-selling-points" class="hf-chips"><span class="hf-hint">选择产品后显示可写卖点</span></div><label>4｜选择内容切角</label><div id="hf-angles" class="hf-chips"><span class="hf-hint">使用内容模板时选择；本次需求无需选择</span></div><div id="hf-gen-selection" class="hf-selected">当前选择：—</div></div>
       <div class="hf-card"><h3>${HQ_CONTENT_MODE==='ao'?'4':'5'}｜参考与生成</h3><label>参考稿（选填，可加入多篇）</label><textarea id="hf-reference" style="min-height:110px" placeholder="每次粘贴一篇完整参考稿，再点击“加入参考稿”。系统只学习结构、节奏和口吻，禁止复制原句。"></textarea><div class="hf-actions"><button class="hf-btn ghost" onclick="hfAddReference()">加入参考稿</button></div><div id="hf-reference-list" style="margin-top:8px"></div><label>一次生成篇数</label><select id="hf-generate-count"><option value="1">1篇</option><option value="2">2篇</option><option value="3">3篇</option><option value="4">4篇</option><option value="5">5篇</option></select><div class="hf-hint">多篇参考会分配给同批稿件分别学习，不会拼接成长文；同批稿件仍会检查标题、开头、叙事节奏和正文相似度。</div><div class="hf-actions"><button id="hf-gen-btn" class="hf-btn primary" onclick="hfGenerateBatch()" disabled>生成稿件 ▶</button><button id="hf-cancel-btn" class="hf-btn ghost hf-hidden" onclick="hfCancelGeneration()">取消生成</button></div><div id="hf-gen-status" class="hf-status">等待完成选择</div></div>
-      <div class="hf-card wide"><h3>${HQ_CONTENT_MODE==='ao'?'5':'6'}｜生成结果</h3><div id="hf-gen-output" class="hf-result">生成后显示标题、正文、Tag及三条评论。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-gen-output')">复制稿件</button><button class="hf-btn primary" onclick="hfSendReview()">直接进入AI审核</button></div></div>
+      <div class="hf-card wide"><h3>${HQ_CONTENT_MODE==='ao'?'5':'6'}｜生成结果</h3><div id="hf-batch-versions" class="hf-actions hf-hidden"><button id="hf-first-version" class="hf-btn ghost" onclick="hfChooseBatchVersion('initial')">查看并使用初稿</button><button id="hf-search-version" class="hf-btn ghost" onclick="hfChooseBatchVersion('search')">查看并使用二次稿</button><span id="hf-selected-version"></span></div><div id="hf-gen-output" class="hf-result">生成后显示标题、正文、Tag及三条评论。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-gen-output')">复制稿件</button><button class="hf-btn primary" onclick="hfSendReview()">直接进入AI审核</button></div><div id="hf-generation-search" class="hf-hidden"><label for="hf-search-keyword">小红书搜索关键词（选填）</label><input type="search" id="hf-search-keyword" placeholder="输入与本批稿件相关的关键词" oninput="hfRefreshGenerationSearch()"><div class="hf-actions"><button id="hf-search-btn" class="hf-btn ghost" onclick="hfSearchRewriteBatch()" disabled>搜索近期小红书并重新生成整批</button></div><div id="hf-search-status" role="status" aria-live="polite"></div><details id="hf-search-learning" class="hf-hidden" open><summary>查看搜索与学习结果</summary><div id="hf-search-evidence"></div></details></div></div>
     </div>
   </section>
 
   <section id="hf-page-review" class="hf-page">
     <div class="hf-hero"><div>AI审核与重写</div><h2>无反馈完整审核｜有反馈先定位再修改</h2><p>不区分项目类型、报备类型和内容形式；只使用好奇全系列知识库。</p></div>
     <div class="hf-grid">
-      <div class="hf-card"><h3>待审核稿件</h3><div id="hf-review-batch" class="hf-hidden"><label for="hf-review-draft-select">选择本批稿件</label><select id="hf-review-draft-select" onchange="hfSelectReviewDraft(Number(this.value))"></select></div><textarea id="hf-review-input" style="min-height:300px"></textarea><label class="hf-toggle"><input id="hf-feedback-enabled" type="checkbox" onchange="hfToggleFeedback()">按客户反馈修改（选填）</label><div id="hf-feedback-panel" class="hf-hidden"><label>客户反馈原文</label><textarea id="hf-feedback" placeholder="粘贴客户原话；系统先定位受影响的标题、段落、事实和卖点。"></textarea></div><div id="hf-review-search" class="hf-hidden"><label for="hf-review-search-keyword">小红书搜索关键词（选填）</label><input type="search" id="hf-review-search-keyword" placeholder="输入与本批稿件相关的关键词" oninput="hfRefreshReviewSearch()"><div class="hf-actions"><button id="hf-review-search-btn" class="hf-btn ghost" onclick="hfSearchRewriteBatch()" disabled>搜索近期小红书并改写整批</button></div><div id="hf-review-search-status" role="status" aria-live="polite"></div></div><div class="hf-actions"><button id="hf-review-btn" class="hf-btn primary" onclick="hfReview()">开始审核</button></div><div id="hf-review-status" class="hf-status">等待审核</div></div>
+      <div class="hf-card"><h3>待审核稿件</h3><div id="hf-review-batch" class="hf-hidden"><label for="hf-review-draft-select">选择本批稿件</label><select id="hf-review-draft-select" onchange="hfSelectReviewDraft(Number(this.value))"></select></div><textarea id="hf-review-input" style="min-height:300px"></textarea><label class="hf-toggle"><input id="hf-feedback-enabled" type="checkbox" onchange="hfToggleFeedback()">按客户反馈修改（选填）</label><div id="hf-feedback-panel" class="hf-hidden"><label>客户反馈原文</label><textarea id="hf-feedback" placeholder="粘贴客户原话；系统先定位受影响的标题、段落、事实和卖点。"></textarea></div><div class="hf-actions"><button id="hf-review-btn" class="hf-btn primary" onclick="hfReview()">开始审核</button></div><div id="hf-review-status" class="hf-status">等待审核</div></div>
       <div class="hf-card"><h3>审核报告</h3><div id="hf-review-output" class="hf-result">只列明确错误、依据和修改动作；不打分。</div></div>
       <div id="hf-rewrite-card" class="hf-card wide hf-hidden"><h3 id="hf-rewrite-heading">写手选择修改路径</h3><div id="hf-feedback-auto-note" class="hf-good hf-hidden">仅修改客户反馈涉及的部分，其他内容保持不变。</div><div id="hf-manual-rewrite-choices" class="hf-row"><div><b>局部重写</b><p class="hf-hint">在同一个框里填写问题原句和希望怎么改，系统会自行定位并只修改必要位置。</p><textarea id="hf-rewrite-local-feedback" style="min-height:150px" placeholder="例如：原句“……”读起来太生硬；希望改得更口语，但保留活动机制。"></textarea><button class="hf-btn ghost" onclick="hfRewrite('local')">按意见局部修改</button></div><div><b>全文重写</b><p class="hf-hint">填写整篇修改方向，系统会结合背景资料、本次需求、参考稿和审核报告重写。</p><textarea id="hf-rewrite-full-feedback" style="min-height:150px" placeholder="填写整篇需要调整的重点；不填则只按审核报告重写。"></textarea><button class="hf-btn primary" onclick="hfRewrite('full')">按意见全文重写</button></div></div><div id="hf-rewrite-status" class="hf-status">等待写手选择</div><div id="hf-rewrite-output" class="hf-result" style="margin-top:12px">重写稿将在这里显示。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-rewrite-output')">复制重写稿</button><button class="hf-btn primary" onclick="hfSendHuman()">进入人工标注</button></div></div>
     </div>
@@ -7301,7 +7301,7 @@ async function hfGenerate(){
   hfLogRequirementTrace('生成1篇');
   a3BeginCallTrace('好奇单篇文案生成');
   const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],references=hfReferenceSamples(),ref=hfReferenceForDraft(references,Number(HF.generationSeq)||0),refSpec=hfParseReference(ref),requirementText=hfLiveRequirementText(),explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=noPoint?facts.facts:facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plan=hfChooseDiversityPlan();
-
+  
   HF.generationRequirement=requirementText;
   HF.latestSpecialRequirement=Boolean(HF.customDirection&&requirementText);
   HF.reference=ref;
@@ -7316,7 +7316,7 @@ async function hfGenerate(){
   const presentDraft=(copy,warnings=[])=>{
     HF.latest=copy.trim();
     HF.latestBatch=[HF.latest];
-    hfResetBatchReview();
+    hfResetGenerationVersions();
     HF.batchDraftContexts=[context];
     hfRememberDraft(HF.latest);
     hfRenderBatch(HF.latestBatch,[warnings]);
@@ -7350,7 +7350,7 @@ async function hfGenerate(){
     const conflictIssues=requirementText?[...hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint),...hfHardKnowledgeConflictIssues(finalIssues,requirementText)]:[];
     if(!buf.trim())throw new Error('内容服务没有返回完整稿件');presentDraft(buf,conflictIssues);status.textContent=conflictIssues.length?'生成完成；本次要求有知识库冲突。':'生成完成。';hfCommitDiversityPlan(plan);hfSaveState();
     hfClearTemporaryRequirement({resetMode:false});
-  }catch(e){const message=e.message||'生成请求失败';if(buf.trim()&&e?.name!=='AbortError'){presentDraft(buf);status.textContent='生成完成';hfCommitDiversityPlan(plan);hfSaveState();}else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成请求未完成：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
+  }catch(e){const message=e.message||'生成请求失败';if(buf.trim()&&e?.name!=='AbortError'){presentDraft(buf);status.textContent='生成完成';hfCommitDiversityPlan(plan);hfSaveState();}else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){if(!buf)out.innerHTML='<div class="hf-hint">本次生成已停止。</div>';status.textContent='本次生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`生成请求未完成：${message}`;}}finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');hfRefreshGenerationSearch();}
 }
 function hfBatchDifferenceIssues(drafts,references=[]){
   const issues=drafts.map(()=>[]);
@@ -7383,18 +7383,55 @@ function hfDraftContext(draft){
 function hfDraftBackground(context){
   return (context?.background??hfMaterialContext())+(context?.search||'');
 }
-function hfRefreshReviewSearch(){
-  const drafts=HF.latestBatch||[],contexts=HF.batchDraftContexts||[],busy=HF.reviewSearchController?.signal.aborted===false;
-  const search=document.getElementById('hf-review-search'),button=document.getElementById('hf-review-search-btn');
-  const canSearch=drafts.length>0&&drafts.every((_,index)=>Boolean(contexts[index]?.config));
-  search?.classList.toggle('hf-hidden',!canSearch);
-  if(button)button.disabled=busy||!canSearch||!hfVal('hf-review-search-keyword')||Boolean(HF.generationController);
+function hfRefreshGenerationSearch(){
+  const drafts=HF.latestBatch||[],contexts=HF.batchDraftContexts||[];
+  const available=drafts.length>0&&drafts.every((_,index)=>Boolean(contexts[index]?.config));
+  document.getElementById('hf-generation-search')?.classList.toggle('hf-hidden',!available);
+  const button=document.getElementById('hf-search-btn');
+  if(button)button.disabled=!available||!hfVal('hf-search-keyword')||Boolean(HF.generationSearchController||HF.generationController);
+  const versions=HF.generationVersions;
+  document.getElementById('hf-batch-versions')?.classList.toggle('hf-hidden',!versions?.search);
+  for(const [name,id] of [['initial','hf-first-version'],['search','hf-search-version']]){
+    const versionButton=document.getElementById(id);
+    if(versionButton){
+      versionButton.disabled=Boolean(HF.generationSearchController||HF.generationController);
+      versionButton.setAttribute('aria-pressed',String(versions?.active===name));
+    }
+  }
+  const label=document.getElementById('hf-selected-version');
+  if(label)label.textContent=versions?.active==='search'?'当前使用二次稿':'当前使用初稿';
+  const evidence=HF.generationSearchEvidence;
+  document.getElementById('hf-search-learning')?.classList.toggle('hf-hidden',!evidence);
+  const display=document.getElementById('hf-search-evidence');
+  if(display)display.innerHTML=evidence?`<h4>写作学习结果</h4><div><div style="white-space:pre-wrap">${esc(evidence.learning||'正在整理学习结果…')}</div></div><h4>小红书原文来源</h4>${evidence.rows.map(row=>{
+    let href='';
+    try{const url=new URL(row.url);if(url.protocol==='https:'&&/(^|\.)(xiaohongshu\.com|xhslink\.com)$/.test(url.hostname))href=url.href;}catch{}
+    const title=esc(row.title||'小红书笔记');
+    return `<details><summary>${title}</summary><p>${esc(row.content)}</p>${href?`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">查看原笔记</a>`:''}</details>`;
+  }).join('')}`:'';
 }
 function hfResetBatchReview(){
   HF.reviewDraftContext=null;
   hfSet('hf-review-input','');
-  hfSet('hf-review-search-keyword','');
-  document.getElementById('hf-review-search-status').textContent='';
+}
+function hfResetGenerationVersions(){
+  HF.generationVersions=null;
+  HF.generationSearchEvidence=null;
+  hfSet('hf-search-keyword','');
+  document.getElementById('hf-search-status').textContent='';
+  hfResetBatchReview();
+}
+function hfChooseBatchVersion(name){
+  const versions=HF.generationVersions,version=versions?.[name];
+  if(!version||HF.generationSearchController||HF.generationController)return;
+  if(versions.active===name)return;
+  versions.active=name;
+  HF.latestBatch=version.drafts;
+  HF.batchDraftContexts=version.contexts;
+  HF.latest=version.drafts[0];
+  hfResetBatchReview();
+  hfRenderBatch(version.drafts,version.warnings);
+  hfSaveState();
 }
 function hfRenderReviewBatch(){
   const drafts=HF.latestBatch||[],wrap=document.getElementById('hf-review-batch'),selector=document.getElementById('hf-review-draft-select');
@@ -7403,12 +7440,12 @@ function hfRenderReviewBatch(){
   selector.innerHTML=drafts.map((_,index)=>`<option value="${index}">第${index+1}篇</option>`).join('');
   selector.value=String(HF.reviewDraftContext?.index??0);
   if(!hfVal('hf-review-input')&&drafts.length)hfSelectReviewDraft(Number(selector.value));
-  hfRefreshReviewSearch();
+
 }
 function hfSelectReviewDraft(index){
   const draft=HF.latestBatch?.[index];
   if(!draft)return;
-  if(!HF.reviewSearchController&&document.getElementById('hf-review-btn')?.disabled){hfSet('hf-review-draft-select',String(HF.reviewDraftContext?.index??0));return;}
+  if(document.getElementById('hf-review-btn')?.disabled){hfSet('hf-review-draft-select',String(HF.reviewDraftContext?.index??0));return;}
   HF.latest=draft;
   HF.reviewDraftContext={index,draft,context:HF.batchDraftContexts?.[index]};
   HF.reviewReport='';HF.reviewIssues=[];HF.reviewRewrite='';
@@ -7420,64 +7457,91 @@ function hfSelectReviewDraft(index){
   hfSaveState();
 }
 async function hfSearchRewriteBatch(){
-  const keyword=hfVal('hf-review-search-keyword'),batch=HF.latestBatch,contexts=HF.batchDraftContexts;
-  if(!keyword||!batch?.length||!batch.every((_,index)=>contexts?.[index]?.config)||HF.reviewSearchController||HF.generationController)return;
+  const keyword=hfVal('hf-search-keyword'),current=HF.latestBatch;
+  const initial=HF.generationVersions?.initial||{drafts:current,contexts:HF.batchDraftContexts,warnings:HF.batchWarnings};
+  const {drafts,contexts}=initial;
+  if(!keyword||!drafts?.length||!drafts.every((_,index)=>contexts?.[index]?.config)||HF.generationSearchController||HF.generationController)return;
   if(!S.key&&!PROXY_URL){openModal();return;}
-  const status=document.getElementById('hf-review-search-status'),review=document.getElementById('hf-review-btn');
-  const selector=document.getElementById('hf-review-draft-select'),input=document.getElementById('hf-review-input'),host=status.closest('#hq-full-host');
-  const selected=HF.reviewDraftContext?.index??0;
-  if(review.disabled||host.querySelector('#hf-manual-rewrite-choices button:disabled'))return;
-  const drafts=batch.map((draft,index)=>index===selected?(hfVal('hf-review-input')||draft):draft);
-  const controller=new AbortController();
-  HF.reviewSearchController=controller;
-  const locked=[review,selector,input,...host.querySelectorAll('#hf-manual-rewrite-choices button')];
-  const disabled=locked.map(element=>element.disabled);
-  locked.forEach(element=>element.disabled=true);
-  hfRefreshReviewSearch();
+  const status=document.getElementById('hf-search-status'),controller=new AbortController();
+  HF.generationSearchController=controller;
+  hfRefreshGenerationSearch();
   status.textContent='正在搜索小红书…';
+  let searched=false;
   try{
     const items=await hfSearchXhsRecent(keyword);
-    if(controller.signal.aborted||HF.latestBatch!==batch)return;
-    const rows=items.filter(x=>String(x.content||x.desc||x.noteCard?.desc||'').trim()).slice(0,8);
-    if(!rows.length){status.textContent='未读取到可用正文，已保留本批原稿。';return;}
-    const evidence=rows.map(x=>[x.title||x.displayTitle,x.content||x.desc||x.noteCard?.desc,x.url].filter(Boolean).join('\n')).join('\n\n').slice(0,8000);
-    const search='\n\n【小红书近期参考】仅参考相关讨论角度与表达，不复制原句，不采纳未经确认的产品或活动事实。\n'+evidence;
-    status.textContent=`已读取 ${rows.length} 条笔记，正在改写本批 ${drafts.length} 篇…`;
+    if(controller.signal.aborted||HF.latestBatch!==current)return;
+    const rows=items.map(item=>({
+      title:String(item.title||item.displayTitle||'').slice(0,200),
+      content:String(item.content||item.desc||item.noteCard?.desc||'').trim().slice(0,850),
+      url:String(item.url||'').slice(0,1000)
+    })).filter(row=>row.content).slice(0,8);
+    if(!rows.length){status.textContent='未读取到可用正文，当前稿件可继续审核。';return;}
+    searched=true;
+    const evidence=rows.map(({title,content},index)=>`笔记 ${index+1} ${title}\n${content}`).join('\n\n');
+    HF.generationSearchEvidence={rows,learning:''};
+    hfRefreshGenerationSearch();
+    status.textContent='正在整理搜索学习结果…';
+    const learning=(await hfCallText('你是小红书写作研究员。总结笔记的表达角度、结构和措辞特点，标明对应笔记编号。区分笔记提到的活动机制和待核实信息。不要复制文案、猜测或把用户笔记当作官方事实。用简短纯文本呈现。',evidence,{maxTokens:600,timeoutMs:90000,signal:controller.signal})).trim();
+    if(controller.signal.aborted||HF.latestBatch!==current)return;
+    if(!learning)throw new Error('未返回学习结果');
+    HF.generationSearchEvidence={rows,learning};
+    hfRefreshGenerationSearch();
+    hfSaveState();
+    const search='\n\n【小红书近期写作学习】搜索结果只辅助理解讨论角度与表达，不能覆盖人工要求、背景事实或对应参考稿。\n'+learning+'\n\n'+evidence;
+    status.textContent=`正在重新生成 ${drafts.length} 篇…`;
     const results=await Promise.allSettled(drafts.map(async(draft,index)=>{
-      const context=contexts[index];
-      const instruction='\n\n在产品事实与合规边界内，以人工明确需求为最高优先级。有本篇参考稿时，沿用其未被人工需求覆盖的段落结构、叙述节奏和语气。结合相关背景和搜索结果改写，保留原稿的已确认事实，输出完整稿件。';
-      const sys=context.system+(context.writingBrief||'')+hfReferencePrompt(context.reference,context.rule)+(context.search||'')+search+instruction;
-      const result=(await hfCallText(sys,'【原稿】\n'+draft,{maxTokens:1600,timeoutMs:90000,signal:controller.signal})).trim();
-      if(!hqHistoryBody(result))throw new Error('未返回完整改写稿');
-      const issues=await hfCompleteGenerationAudit(result,context.config,context.reference);
-      const {product,point,noPoint}=context.config;
-      const hardIssues=[...(noPoint?hfNoSellingPointAudit(result,product):hfSinglePointAudit(result,product,point.key)),...hfHardKnowledgeConflictIssues(issues,context.requirement)];
-      if(hardIssues.length)throw new Error(hardIssues.join('；'));
-      return {draft:result,issues};
+      const context=contexts[index],cfg=context.config,ref=context.reference;
+      const limits=cfg.explicitLength;
+      const instruction='\n\n在产品事实与合规边界内，人工明确需求优先。保留所选品线、卖点、内容方向、背景事实和对应参考稿未被人工需求覆盖的写法。根据学习结果独立生成新的完整初稿，保留标题、正文、标签和三条评论。';
+      const sys=context.system+(context.writingBrief||'')+hfReferencePrompt(ref,context.rule)+search+instruction;
+      let correction='';
+      for(let attempt=0;attempt<2;attempt++){
+        const result=(await hfCallText(sys,`生成本批第 ${index+1} 篇。\n【初稿】\n${draft}${correction}`,{maxTokens:2600,timeoutMs:180000,signal:controller.signal})).trim();
+        const issues=await hfCompleteGenerationAudit(result,cfg,ref);
+        const length=Array.from(hqExtractBody(result)).length;
+        const hardIssues=[
+          ...(!hqHistoryBody(result)?['正文缺失']:[]),
+          ...(limits&&(length<limits.min||length>limits.max)?[`正文需为 ${limits.min} 至 ${limits.max} 字`]:[]),
+          ...(cfg.dynamicBans||[]).filter(word=>result.includes(word)).map(word=>`出现禁用词 ${word}`),
+          ...(cfg.noPoint?hfNoSellingPointAudit(result,cfg.product):hfSinglePointAudit(result,cfg.product,cfg.point.key)),
+          ...hfReferenceAudit(result,ref,Boolean(limits)),
+          ...hfHardKnowledgeConflictIssues(issues,context.requirement)
+        ];
+        if(!hardIssues.length)return {draft:result,issues};
+        correction='\n\n【需修正】'+hardIssues.join('；');
+      }
+      throw new Error(correction);
     }));
-    if(controller.signal.aborted||HF.latestBatch!==batch)return;
+    if(controller.signal.aborted||HF.latestBatch!==current)return;
     const failed=results.flatMap((result,index)=>result.status==='rejected'?[index+1]:[]);
-    HF.latestBatch=results.map((result,index)=>{
-      if(result.status==='rejected')return drafts[index];
-      hfRememberDraft(result.value.draft);
-      return result.value.draft;
-    });
-    HF.batchDraftContexts=contexts.map(context=>({...context,search:((context.search||'')+search).slice(-16500)}));
-    hfRenderBatch(HF.latestBatch,results.map((result,index)=>result.status==='fulfilled'?result.value.issues:HF.batchWarnings?.[index]||[]));
-    hfSelectReviewDraft(selected);
-    hfRenderReviewBatch();
-    status.textContent=failed.length?`已改写 ${drafts.length-failed.length} 篇。第 ${failed.join('、')} 篇未通过检查，保留原稿，可继续审核。`:`已用 ${rows.length} 条笔记改写全部 ${drafts.length} 篇，可切换查看后开始审核。`;
+    if(failed.length){
+      status.textContent=`第 ${failed.join('、')} 篇未通过检查，本轮未生成完整二次稿。可调整关键词重试，也可审核当前版本。`;
+      return;
+    }
+    const searchVersion={drafts:results.map(result=>result.value.draft),contexts:contexts.map(context=>({...context,search})),warnings:results.map(result=>result.value.issues)};
+    searchVersion.drafts.forEach(hfRememberDraft);
+    HF.generationVersions={initial,search:searchVersion,active:'initial'};
+    HF.latestBatch=initial.drafts;
+    HF.batchDraftContexts=initial.contexts;
+    HF.latest=initial.drafts[0];
+    hfResetBatchReview();
+    hfRenderBatch(initial.drafts,initial.warnings);
+    status.textContent=`已生成 ${searchVersion.drafts.length} 篇二次稿。请选择要查看并送审的版本。`;
   }catch(error){
-    if(!controller.signal.aborted)status.textContent='搜索未完成，已保留本批原稿。'+hfXhsErrorLabel(error);
+    if(!controller.signal.aborted&&searched&&!HF.generationSearchEvidence?.learning)HF.generationSearchEvidence.learning='本次未生成学习摘要，可查看原文来源后重试。';
+    if(!controller.signal.aborted)status.textContent=searched?'本轮学习或生成未完成，可重试，当前稿件已保留。':hfXhsErrorLabel(error);
   }finally{
-    if(HF.reviewSearchController===controller)HF.reviewSearchController=null;
-    locked.forEach((element,index)=>element.disabled=disabled[index]);
-    hfRefreshReviewSearch();
+    if(HF.generationSearchController===controller){
+      HF.generationSearchController=null;
+      hfRefreshGenerationSearch();
+      hfSaveState();
+    }
   }
 }
 function hfRenderBatch(drafts,warnings=[]){
   warnings=Array.isArray(warnings)?warnings:[];
   HF.batchWarnings=warnings;
+  hfRefreshGenerationSearch();
   const out=document.getElementById('hf-gen-output');
   out.innerHTML=drafts.map((copy,i)=>`<article style="padding:${i?'18px 0 0':'0'};margin-top:${i?'18px':'0'};border-top:${i?'1px solid var(--hfborder)':'0'}"><h3 style="margin:0 0 10px">第${i+1}篇</h3>${warnings[i]?.length?`<div class="hf-risk">${esc(hfCompactIssueNotice(warnings[i]))}</div>`:''}<div>${hfHtml(copy)}</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfSendReview(${i})">审核第${i+1}篇</button></div></article>`).join('');
 }
@@ -7488,7 +7552,7 @@ function hfBatchPlans(count){
   return plans;
 }
 async function hfGenerateBatch(){
-  if(HF.reviewSearchController){toast('请等待搜索改写完成');return;}
+  if(HF.generationSearchController){toast('请等待搜索改写完成');return;}
   const count=Math.max(1,Math.min(5,Number(document.getElementById('hf-generate-count')?.value)||1));
   if(count===1)return hfGenerate();
   const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint),liveDirection=hfLiveDirectionText();
@@ -7500,7 +7564,7 @@ async function hfGenerateBatch(){
   hfLogRequirementTrace(`生成${count}篇`);
   a3BeginCallTrace(`好奇批量生成${count}篇`);
   const rule=hfCurrentRule(),facts=HQ_PRODUCT_FACTS[HF.product],references=hfReferenceSamples(),assignedReferences=Array.from({length:count},(_,i)=>hfReferenceForDraft(references,i)),referenceSpecs=assignedReferences.map(hfParseReference),requirementText=hfLiveRequirementText(),humanText=requirementText,explicitLength=hfExplicitLength(requirementText),dynamicBans=hfExplicitBans(requirementText),otherFacts=noPoint?facts.facts:facts.facts.filter(f=>!point.label.includes(f)&&!point.terms.some(t=>f.includes(t)||t.includes(f))),plans=hfBatchPlans(count);
-
+  
   HF.generationRequirement=requirementText;
   HF.latestSpecialRequirement=Boolean(HF.customDirection&&requirementText);
   const deliveryContract=noPoint?`\n\n【本篇无卖点合同】\n本篇为舆情/机制内容，不带产品卖点。不得出现产品功能、参数、利益点、体验功效或购买号召；产品名只能作为讨论对象自然出现。重点解释本次背景、机制和人物态度。`:`\n\n【本篇单卖点合同｜只在此处定义一次】\n唯一卖点：${point.label}。正文必须在一句自然表达中原样包含以下已批准短语中的至少一个：${point.terms.join('、')}。这句话必须由所选切角中的动作或观察引出，并解释人物为什么继续当下选择；前后仍须是同一件事，不得写成可拆走的规格句。其他句子不得重复、解释或暗示第二卖点。`;
@@ -7533,11 +7597,11 @@ async function hfGenerateBatch(){
     const inputConflicts=requirementText?hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint):[],conflictWarnings=perDraft.map(rows=>requirementText?[...inputConflicts,...hfHardKnowledgeConflictIssues(rows,requirementText)]:[]);
     const reviewWarnings=conflictWarnings,hasHumanConflict=conflictWarnings.some(x=>x.length);
     HF.batchDraftContexts=assignedReferences.map(reference=>({reference,rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));
-    drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfResetBatchReview();hfRenderBatch(drafts,reviewWarnings);hfSaveState();
+    drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfResetGenerationVersions();hfRenderBatch(drafts,reviewWarnings);hfSaveState();
     status.textContent=hasHumanConflict?`已生成 ${count} 篇；本次要求有知识库冲突。`:`已生成 ${count} 篇。`;
     hfClearTemporaryRequirement({resetMode:false});
-  }catch(e){const message=e?.message||'批量生成失败',completedDrafts=drafts.filter(Boolean);if(completedDrafts.length&&e?.name!=='AbortError'){HF.batchDraftContexts=completedDrafts.map(copy=>({reference:assignedReferences[drafts.indexOf(copy)],rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));HF.latestBatch=completedDrafts;HF.latest=completedDrafts[0];hfResetBatchReview();completedDrafts.forEach(hfRememberDraft);hfRenderBatch(completedDrafts,completedDrafts.map(()=>[]));hfSaveState();status.textContent=`已返回 ${completedDrafts.length} 篇完整稿件`; }else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成请求未完成：${message}`;}}
-  finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');}
+  }catch(e){const message=e?.message||'批量生成失败',completedDrafts=drafts.filter(Boolean);if(completedDrafts.length&&e?.name!=='AbortError'){HF.batchDraftContexts=completedDrafts.map(copy=>({reference:assignedReferences[drafts.indexOf(copy)],rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));HF.latestBatch=completedDrafts;HF.latest=completedDrafts[0];hfResetGenerationVersions();completedDrafts.forEach(hfRememberDraft);hfRenderBatch(completedDrafts,completedDrafts.map(()=>[]));hfSaveState();status.textContent=`已返回 ${completedDrafts.length} 篇完整稿件`; }else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成请求未完成：${message}`;}}
+  finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');hfRefreshGenerationSearch();}
 }
 function hfSendReview(index=0){
   if(!HF.latestBatch?.[index]){toast('暂无生成稿件');return;}
@@ -7638,7 +7702,6 @@ async function hfDeterministicReviewLedger(draft,product,requirement='',sellingP
 function hfReviewQuoteMatches(draft,quote){const q=String(quote||'').trim();if(!q)return false;const norm=x=>String(x||'').replace(/\s+/g,'');return norm(draft).includes(norm(q));}
 function hfMergeReviewIssues(...lists){const merged=[],seen=new Set();lists.flat().forEach(x=>{if(!x)return;const key=[x.scope||'body',String(x.sourceQuote||'').replace(/\s+/g,''),String(x.problem||'').replace(/\s+/g,'')].join('|');if(seen.has(key))return;seen.add(key);merged.push({...x,id:`E${merged.length+1}`});});return merged;}
 async function hfReview(){
-  if(HF.reviewSearchController)return;
   const draft=hfVal('hf-review-input');if(!draft){toast('请先输入待审核稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   if(!hfDraftContext(draft)&&HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前审核配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
@@ -7688,7 +7751,6 @@ async function hfReview(){
   }finally{btn.disabled=false;}
 }
 async function hfRewrite(mode){
-  if(HF.reviewSearchController)return;
   const draft=hfVal('hf-review-input');if(!draft){toast('暂无待修改稿件');return;}if(!S.key&&!PROXY_URL){openModal();toast('请先配置 API Key',3000);return;}
   if(!hfDraftContext(draft)&&HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前重写配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,writerFeedback=hfVal(mode==='local'?'hf-rewrite-local-feedback':'hf-rewrite-full-feedback');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
