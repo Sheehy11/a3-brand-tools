@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-13">
+<meta name="a3-build" content="20261119-haoqi-14">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-13',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-14',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7458,7 +7458,7 @@ async function hfGenerate(){
     let finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     for(let qualityAttempt=0;finalIssues.length&&qualityAttempt<2;qualityAttempt++){
       status.textContent=`正在完成稿件…`;
-      const repairUsr=`请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角语义：${writingAngle}\n产品：好奇${HF.product}\n卖点设置：${noPoint?'不带产品卖点':point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
+      const repairUsr=`${refBrief}\n\n【本次人工要求】\n${requirementText}\n\n请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角语义：${writingAngle}\n产品：好奇${HF.product}\n卖点设置：${noPoint?'不带产品卖点':point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
       buf=await hfCallText(sys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});
       finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     }
