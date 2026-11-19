@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-12">
+<meta name="a3-build" content="20261119-haoqi-13">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-12',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-13',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7225,7 +7225,7 @@ function hfStyleAudit(copy){
   const productTokens=['小森林','深睡大师','X系列','屁屁面膜','小桃裤','小龙裤','小黑洞'],productAt=Math.min(...productTokens.map(x=>body.indexOf(x)).filter(x=>x>=0),99999);if(productAt<99999&&productAt>body.length*.38)issues.push('产品或机制重点进入过晚；开头应直接说事，不写小作文式铺垫');
   return[...new Set(issues)];
 }
-function hfNoSellingPointAudit(copy,product){const body=hfDraftBody(copy),hits=[];(HQ_SELLING_POINTS[product]||[]).forEach(p=>{if((p.terms||[]).some(t=>body.includes(t)))hits.push(p.label);});return hits.length?[`本篇选择不带产品卖点，但仍出现：${[...new Set(hits)].join('、')}`]:[];}
+function hfNoSellingPointAudit(copy,product){const body=hfDraftBody(copy),hits=[];(HQ_SELLING_POINTS[product]||[]).forEach(p=>{if((p.terms||[]).some(t=>body.includes(t)))hits.push(p.label);});if(/OEKO[\s-]*TEX|幼儿级成分安全|安全验证|安全认证/i.test(body))hits.push('安全认证');return hits.length?[`本篇选择不带产品卖点，但仍出现：${[...new Set(hits)].join('、')}`]:[];}
 function hfHistoricalEmotionCopyAudit(copy){const normalized=hqHistoryNormalize(copy);for(const [,sentence] of HQ_HISTORY_EMOTION_FEWSHOTS){const sample=hqHistoryNormalize(sentence);if(sample.length>=7&&(hfHasSharedRun(normalized,sample,7)||hfGramScore(normalized,sample,4)>=.62))return['与历史定稿情绪表达过近；只能学习表达机制，必须按本篇情境重新表达'];}return[];}
 function hfHistoricalCommentAudit(copy){
   const cache=hqHistoryCache();if(!cache)return[];for(const comment of hfCommentLines(copy)){const text=hqHistoryNormalize(comment);for(let i=0;i<=text.length-14;i++)if(hqHasHash(cache.hard,hqHash32(text.slice(i,i+14))))return['评论与既有内容出现连续相同表达'];}return[];
@@ -7361,7 +7361,7 @@ async function hfTaskReview(copy,context={}){
     const quote=String(row.sourceQuote||''),requirementQuote=String(row.requirementQuote||'');
     if(!code||(quote&&!hfReviewQuoteMatches(copy,quote)))return false;
     if(code.startsWith('R'))return Boolean(requirementQuote&&sources[code].includes(requirementQuote));
-    return Boolean(quote&&(code==='K7'||requirementQuote&&hfReviewKnowledgeContext(context.config?.product||'').includes(requirementQuote)));
+    return Boolean(quote&&(code==='K7'||requirementQuote&&(hfReviewKnowledgeContext(context.config?.product||'')+selectedPoint).includes(requirementQuote)));
   }).map((row,index)=>({...row,id:'T'+(index+1),basis:[row.basis,row.requirementQuote].filter(Boolean).join(' · ')}));
   return hfMergeReviewIssues(hfTaskFormatFindings(copy,requirements,reference),issues);
 }
