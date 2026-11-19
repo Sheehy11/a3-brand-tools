@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-21">
+<meta name="a3-build" content="20261119-haoqi-22">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-21',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-22',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7749,7 +7749,7 @@ function hfBatchEntries(data,indices){
 async function hfBatchGenerationAudit(drafts,cfg,references,writingBrief=''){
   const local=drafts.map((copy,index)=>hfGenerationAudit(copy,cfg,references[index]));
   try{
-    const data=await hfCallJson(`${HQ_KB_FACT_REVIEW_SYS}\n${hfCompactProductContext(cfg.product,cfg.point,cfg.noPoint)}`,`逐篇核对本批成稿与人工要求、背景事实、对应参考稿的内容组织和所选方向。人工要求优先。只报内容矛盾、明确遗漏、产品事实和卖点错误。不要报告字数、段数、标签或历史相似度。事实核对只对照下面来源，不得自行补规则。每项 sourceQuote 必须逐字引用对应稿件，requirementQuote 必须逐字引用对应来源。缺失必写内容时 sourceQuote 可为空。来源编号 R1 人工要求，R2 背景，R3 对应参考稿，K1至K8 产品事实与现实逻辑。没有明确问题时 issues 为空。返回严格JSON {"drafts":[{"index":1,"issues":[{"scope":"body","sourceQuote":"原文","requirementQuote":"依据原文","basis":"R1","problem":"具体错误","requiredChange":"具体改法"}]}]}。每篇都返回。\n【R1人工要求】\n${cfg.requirementText}\n【R2背景】\n${cfg.background}\n【所选方向】\n${writingBrief}\n${drafts.map((copy,index)=>`【第${index+1}篇对应参考稿R3】\n${references[index]||'无'}\n【第${index+1}篇待审稿】\n${copy}`).join('\n\n')}`,{maxTokens:1200,timeoutMs:190000,signal:cfg.signal,skipSharedExamples:true,stream:true,isComplete:raw=>{try{return Array.isArray(hfLiveParseJson(raw)?.drafts);}catch{return false;}}});
+    const data=await hfCallJson(`${HQ_KB_FACT_REVIEW_SYS}\n${hfCompactProductContext(cfg.product,cfg.point,cfg.noPoint)}`,`逐篇核对本批成稿与人工要求、背景事实、对应参考稿的内容组织和所选方向。人工要求优先。只报内容矛盾、明确遗漏、产品事实和卖点错误。不要报告字数、段数、标签或历史相似度。事实核对只对照下面来源，不得自行补规则。每项 sourceQuote 必须逐字引用对应稿件，requirementQuote 必须逐字引用对应来源。缺失必写内容时 sourceQuote 可为空。来源编号 R1 人工要求，R2 背景，R3 对应参考稿，K1至K8 产品事实与现实逻辑。没有明确问题时 issues 为空。返回严格JSON {"drafts":[{"index":1,"issues":[{"scope":"body","sourceQuote":"原文","requirementQuote":"依据原文","basis":"R1","problem":"具体错误","requiredChange":"具体改法"}]}]}。每篇都返回。\n【R1人工要求】\n${cfg.requirementText}\n【R2背景】\n${cfg.background}\n【所选方向】\n${writingBrief}\n${drafts.map((copy,index)=>`【第${index+1}篇对应参考稿R3】\n${references[index]||'无'}\n【第${index+1}篇待审稿】\n${copy}`).join('\n\n')}`,{maxTokens:1200,timeoutMs:190000,reasoningEffort:'none',signal:cfg.signal,skipSharedExamples:true,stream:true,isComplete:raw=>{try{return Array.isArray(hfLiveParseJson(raw)?.drafts);}catch{return false;}}});
     const rows=Array.isArray(data?.drafts)?data.drafts:[];
     return drafts.map((copy,index)=>[...new Set([...local[index],...hfTaskReviewResults({issues:rows.find(row=>Number(row.index)===index+1)?.issues||[]},copy,{requirement:cfg.requirementText,reference:references[index],background:cfg.background,config:cfg}).map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`)])]);
   }catch(error){if(cfg.signal?.aborted)throw error;return local;}
