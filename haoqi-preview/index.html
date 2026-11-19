@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-11">
+<meta name="a3-build" content="20261119-haoqi-12">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-11',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-12',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7340,26 +7340,28 @@ async function hfRealityNaturalnessAudit(copy,cfg){
 async function hfMechanismUseAudit(copy){const mechanisms=hfDigestMechanisms();if(!mechanisms.length)return[];const data=await hfCallJson('你是活动机制落地验收员。只判断正文是否使用了资料中已有的具体机制，不新增或推测任何规则。只返回严格JSON。',`【资料中可用的具体机制】\n${mechanisms.map((x,i)=>`${i+1}. ${x.text}`).join('\n')}\n\n【待验收稿件】\n${copy}\n\n只有正文自然说明了至少一条机制中的具体参与动作、入口、资格、领取步骤、使用规则、数量或频次，used 才能为 true。“有活动、领了券、先存着、之后研究、等规则出来”等空话不算使用机制。返回：{"used":true或false,"reason":"未使用时指出缺少哪类具体信息"}`,{maxTokens:260,timeoutMs:90000,reasoningEffort:'minimal',signal:HF.generationController?.signal});return data.used===true?[]:[`未使用搜索提取出的具体机制${data.reason?`：${data.reason}`:''}`];}
 function hfTaskFormatFindings(copy,requirements,reference=''){
   const spec=hfParseReference(copy),limits=hfExplicitLength(requirements),findings=[];
-  const add=problem=>findings.push({scope:'body',sourceQuote:'',problem,basis:'本次人工明确要求',requiredChange:problem});
+  const add=(problem,basis='本次人工明确要求')=>findings.push({scope:'body',sourceQuote:'',problem,basis,requiredChange:problem});
   if(limits&&(spec.bodyChars<limits.min||spec.bodyChars>limits.max))add(`正文共${spec.bodyChars}字，需为${limits.min}—${limits.max}字`);
   const countMatch=String(requirements).match(/正文(?:分为|分成|分|为|写成|写|共|保持)?\s*([一二三四五六七八九十\d]+)\s*(?:个)?(?:自然)?段/);
   const count=countMatch?(Number(countMatch[1])||({一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10})[countMatch[1]]):0;
   if(count&&spec.paragraphs.length!==count)add(`正文共${spec.paragraphs.length}段，需为${count}段`);
-  if(reference)hfReferenceAudit(copy,reference,Boolean(limits)).filter(problem=>!count||!problem.startsWith('参考稿为')).forEach(add);
+  if(reference)hfReferenceAudit(copy,reference,Boolean(limits)).filter(problem=>!count||!problem.startsWith('参考稿为')).forEach(problem=>add(problem,'本篇对应参考稿的格式要求'));
   return findings;
 }
 async function hfTaskReview(copy,context={}){
   const requirements=hfReviewHumanRequirements(context),reference=context.reference||'',background=hfDraftBackground(context);
   const sources={R1:requirements,R2:context.background??hfMaterialContext(),R3:reference,R4:context.search||''};
-  const system=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(context.config?.product||'')}\n\n人工明确要求优先于参考稿、背景、搜索和默认写法，产品事实与合规边界必须遵守。\n\n【人工要求】\n${requirements||'无'}\n\n【背景和搜索资料】\n${background||'无'}\n\n【对应参考稿】\n${reference||'无'}`;
+  const selectedPoint=context.config?.noPoint?'本稿不带任何产品卖点。':context.config?.point?.label?'本稿唯一卖点为'+context.config.point.label+'。':'';
+  const system=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(context.config?.product||'')}\n${selectedPoint}\n\n人工明确要求优先于参考稿、背景、搜索和默认写法，产品事实与合规边界必须遵守。\n\n【人工要求】\n${requirements||'无'}\n\n【背景和搜索资料】\n${background||'无'}\n\n【对应参考稿】\n${reference||'无'}`;
   const data=await hfCallJson(system,`审核稿件是否满足已提供的全部写作约束。先逐条识别人工明确要求，再对照成稿，指出遗漏、相反表达、指定角度未落实、虚构经历、背景事实冲突、搜索来源未证实的说法，以及未遵循参考稿的段落功能、叙述顺序和语气。无需把所有资料塞进正文，搜索只作表达参考，搜索说法不能升级为官方事实。人工未要求时，不因背景或搜索信息未写入而报遗漏。\n\n同时检查K1产品与合规、K2未授权人物经历、K3因果、K4卖点、K5标题依据、K6评论相关性、K7现实逻辑、K8背景机制依据。\n\n每条问题只在证据明确时提出。来源为人工要求用R1，背景用R2，参考用R3，搜索用R4。sourceQuote逐字引用稿件，缺失内容时允许为空，requirementQuote必须逐字引用对应来源。不得根据默认字数、段落、Tag或评论规则推翻人工明确要求。字数与段落数量由网页计算，不要自行估计。只返回严格JSON {"issues":[{"scope":"title|body|tags|comments","sourceQuote":"问题原文或空","requirementQuote":"来源中的明确要求或事实原文","problem":"差距","basis":"R1|R2|R3|R4|K1至K8","requiredChange":"具体修改动作"}]}。没有问题时issues为空。\n\n【待审核稿件】\n${copy}`,{maxTokens:1300,timeoutMs:90000,signal:HF.generationController?.signal});
   const issues=(Array.isArray(data?.issues)?data.issues:[]).filter(row=>{
     if(!row||!row.problem||!row.requiredChange)return false;
+    if(row.scope==='tags'&&String(row.requiredChange).includes('＃'))return false;
     const code=String(row.basis||'').match(/^(R[1-4]|K[1-8])\b/)?.[1];
     const quote=String(row.sourceQuote||''),requirementQuote=String(row.requirementQuote||'');
     if(!code||(quote&&!hfReviewQuoteMatches(copy,quote)))return false;
     if(code.startsWith('R'))return Boolean(requirementQuote&&sources[code].includes(requirementQuote));
-    return Boolean(quote);
+    return Boolean(quote&&(code==='K7'||requirementQuote&&hfReviewKnowledgeContext(context.config?.product||'').includes(requirementQuote)));
   }).map((row,index)=>({...row,id:'T'+(index+1),basis:[row.basis,row.requirementQuote].filter(Boolean).join(' · ')}));
   return hfMergeReviewIssues(hfTaskFormatFindings(copy,requirements,reference),issues);
 }
@@ -7806,7 +7808,7 @@ ${current}`,{maxTokens:1300,timeoutMs:90000,reasoningEffort:'minimal',stream:fal
 }
 const HQ_KB_FACT_REVIEW_SYS=`你是好奇品牌知识库核错员。只依据正式知识库和本次任务，核对产品事实、品线边界、禁限表达、合规边界、默认人设、单一因果链、单卖点、标题真实性、三条评论规则、全角标点，以及明确不可能成立的现实动作或前后事实矛盾。
 
-按本次人工要求与对应参考稿核对内容和写法，不以历史相似度或默认模板推翻人工明确要求。不得把普通生活细节强行解释成错误。果泥、泡芙、纸巾、购物等真实生活动作，只要现实可成立、没有冒充产品事实且没有另起一条故事线，就不是错误。不得因为生活细节没有直接服务卖点而报错。
+按本次人工要求与对应参考稿核对内容和写法，不以历史相似度或默认模板推翻人工明确要求。Tag使用标准半角#，前导#不属于半角标点错误。不得把普通生活细节强行解释成错误。果泥、泡芙、纸巾、购物等真实生活动作，只要现实可成立、没有冒充产品事实且没有另起一条故事线，就不是错误。不得因为生活细节没有直接服务卖点而报错。
 
 标题字数、评论条数和评论字数由网页精确计算，语义审核不得自行估算或重复报错。只有能逐字引用待审原文，并能指出对应知识库规则、产品事实、禁限条款或明确现实矛盾时才可报错。无法确认时不报错；不得为了显得严格而推断问题。最多输出5项。`;
 function hfReviewKnowledgeContext(product){const facts=HQ_PRODUCT_FACTS[product]||HQ_PRODUCT_FACTS[String(product||'').replace(/^好奇/,'').replace(/纸尿裤|拉拉裤$/,'')]||{facts:[],personal:[],bans:[]};return`【待审产品知识】\n产品：${product||'未识别'}\n已确认事实：${(facts.facts||[]).join('、')||'无'}\n仅限个人体验：${(facts.personal||[]).join('、')||'无'}\n禁用表达：${(facts.bans||[]).join('、')||'无'}\n\n【全系列知识库】\n${HQ_KB}`;}
