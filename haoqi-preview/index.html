@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-14">
+<meta name="a3-build" content="20261119-haoqi-15">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-14',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-15',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7314,7 +7314,7 @@ function hfReferenceAudit(copy,ref,lengthOverridden=false){
 // === 2026-09-02 参考稿强仿写链路 END ===
 function hfRememberDraft(copy){hfEnsureArchiveLoaded();HF.generatedDrafts.unshift({time:Date.now(),copy:String(copy||'').trim()});HF.generatedDrafts=HF.generatedDrafts.slice(0,120);}
 function hfGenerationAudit(copy,cfg,ref=''){
-  const noPoint=Boolean(cfg.noPoint),pointIssues=noPoint?hfNoSellingPointAudit(copy,cfg.product):hfSinglePointAudit(copy,cfg.product,cfg.point.key),issues=[...hqLocalAudit(copy,cfg,ref),...pointIssues,...hfCommentAudit(copy),...hfTagAudit(copy,cfg.product,noPoint),...hfReferenceAudit(copy,ref,Boolean(cfg.explicitLength)),...hfHistoricalCommentAudit(copy),...hfHistoricalEmotionCopyAudit(copy),...hfRecentSimilarity(copy),...hfStyleAudit(copy)];return[...new Set(issues)];
+  const noPoint=Boolean(cfg.noPoint),pointIssues=noPoint?hfNoSellingPointAudit(copy,cfg.product):hfSinglePointAudit(copy,cfg.product,cfg.point.key),issues=[...hqLocalAudit(copy,cfg,ref),...pointIssues,...hfCommentAudit(copy),...(ref?[]:hfTagAudit(copy,cfg.product,noPoint)),...hfReferenceAudit(copy,ref,Boolean(cfg.explicitLength)),...hfHistoricalCommentAudit(copy),...hfHistoricalEmotionCopyAudit(copy),...hfRecentSimilarity(copy),...hfStyleAudit(copy)];return[...new Set(issues)];
 }
 async function hfSelectedDirectionAudit(copy,cfg){
   if(HQ_CONTENT_MODE!=='ao'||HF.customDirection)return[];
@@ -7372,7 +7372,7 @@ async function hfCompleteGenerationAudit(copy,cfg,ref=''){
     const issues=await hfTaskReview(copy,{requirement:cfg.requirementText,reference:ref,background:cfg.background??hfMaterialContext(),search:cfg.search||'',config:cfg});
     taskIssues=issues.map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`);
   }catch{taskIssues=hfTaskFormatFindings(copy,cfg.requirementText,ref).map(row=>row.problem);}
-  const baseIssues=hfGenerationAudit(copy,cfg,ref).filter(problem=>!((ref||cfg.explicitLength)&&/^正文.*(?:字|区间)/.test(problem))).filter(problem=>!(/正文(?:分为|分成|分|为|写成|写|共|保持)?\s*[一二三四五六七八九十\d]+\s*(?:个)?(?:自然)?段/.test(cfg.requirementText||'')&&problem.startsWith('参考稿为')));
+  const baseIssues=hfGenerationAudit(copy,cfg,ref).filter(problem=>!ref||!problem.startsWith('产品或机制重点进入过晚')).filter(problem=>!((ref||cfg.explicitLength)&&/^正文.*(?:字|区间)/.test(problem))).filter(problem=>!(/正文(?:分为|分成|分|为|写成|写|共|保持)?\s*[一二三四五六七八九十\d]+\s*(?:个)?(?:自然)?段/.test(cfg.requirementText||'')&&problem.startsWith('参考稿为')));
   return[...new Set([...baseIssues,...directionIssues,...taskIssues])];
 }
 function hfRewriteChangeAudit(copy,sourceDraft,mode='',target=''){
@@ -7456,9 +7456,10 @@ async function hfGenerate(){
       buf=await hfCallText(repairSys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});hardFailures=explicitFailures(buf);
     }
     let finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
-    for(let qualityAttempt=0;finalIssues.length&&qualityAttempt<2;qualityAttempt++){
+    for(let qualityAttempt=0;finalIssues.length&&qualityAttempt<3;qualityAttempt++){
       status.textContent=`正在完成稿件…`;
-      const repairUsr=`${refBrief}\n\n【本次人工要求】\n${requirementText}\n\n请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角语义：${writingAngle}\n产品：好奇${HF.product}\n卖点设置：${noPoint?'不带产品卖点':point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
+      const measuredChars=hfParseReference(buf).bodyChars,targetChars=cfg.explicitLength?Math.round((cfg.explicitLength.min+cfg.explicitLength.max)/2):refSpec.bodyChars;
+      const repairUsr=`${refBrief}\n\n当前正文实测${measuredChars}字，本轮正文目标约${targetChars||measuredChars}字。在原场景中补足动作或感受，保留事实和段落，不靠标签评论凑数。\n\n【本次人工要求】\n${requirementText}\n\n请重写当前完整稿件并解决全部验收问题。普通生成中的验收问题必须在交付前解决，不能把错误留给人工审核；不得在成稿中解释规则或复述问题。只有标题有问题时才只改标题；涉及内容方向、正文、卖点、评论或Tag时，修改解决问题所需的最小完整范围。\n\n【本次选择】\n消费者阶段：${rule.stage||'按新增需求'}\n核心召回任务：${rule.task||HF.direction||'按新增需求'}\n内容切角语义：${writingAngle}\n产品：好奇${HF.product}\n卖点设置：${noPoint?'不带产品卖点':point.label}\n\n【必须解决的验收问题】\n${finalIssues.map(x=>`- ${x}`).join('\n')}\n\n【当前稿件】\n${buf}\n\n只输出修正后的完整稿件，严格保留标题、正文、Tag、三条20—30字评论的交付格式，不要解释。`;
       buf=await hfCallText(sys,repairUsr,{maxTokens,timeoutMs:generationTimeoutMs,reasoningEffort:'minimal',signal:HF.generationController.signal,onChunk:(chunk,current)=>{out.innerHTML=hfHtml(current);}});
       finalIssues=await hfCompleteGenerationAudit(buf,cfg,ref);
     }
