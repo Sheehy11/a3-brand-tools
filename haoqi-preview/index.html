@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-15">
+<meta name="a3-build" content="20261119-haoqi-16">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-15',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-16',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7582,6 +7582,7 @@ function hfSelectReviewDraft(index){
 }
 async function hfSearchRewriteBatch(refresh=false){
   const keyword=hfVal('hf-search-keyword'),current=HF.latestBatch;
+  const fallbackContexts=HF.batchDraftContexts,fallbackWarnings=HF.batchWarnings;
   const initial=HF.generationVersions?.initial||{drafts:current,contexts:HF.batchDraftContexts,warnings:HF.batchWarnings};
   const {drafts,contexts}=initial;
   if(!keyword||!drafts?.length||!drafts.every((_,index)=>contexts?.[index]?.config)||HF.generationSearchController||HF.generationController)return;
@@ -7651,9 +7652,9 @@ async function hfSearchRewriteBatch(refresh=false){
     if(controller.signal.aborted||HF.latestBatch!==current)return;
     const retained=results.map(result=>result.status==='rejected');
     const searchVersion={
-      drafts:results.map((result,index)=>retained[index]?drafts[index]:result.value.draft),
-      contexts:contexts.map((context,index)=>!retained[index]&&search?{...context,search}:context),
-      warnings:results.map((result,index)=>retained[index]?(initial.warnings?.[index]||[]):result.value.issues),
+      drafts:results.map((result,index)=>retained[index]?current[index]:result.value.draft),
+      contexts:contexts.map((context,index)=>!retained[index]&&search?{...context,search}:fallbackContexts[index]),
+      warnings:results.map((result,index)=>retained[index]?(fallbackWarnings?.[index]||[]):result.value.issues),
       retained
     };
     searchVersion.drafts.forEach((draft,index)=>{if(!retained[index])hfRememberDraft(draft);});
@@ -7665,7 +7666,7 @@ async function hfSearchRewriteBatch(refresh=false){
     hfRenderBatch(searchVersion.drafts,searchVersion.warnings);
     const updated=retained.filter(value=>!value).length;
     HF.generationSearchNotice=searchNotice;
-    status.textContent=`${searchNotice}本批共 ${drafts.length} 篇，可直接送审。已重新生成 ${drafts.length-updated} 篇${updated?`，其余 ${updated} 篇沿用初稿`:''}。`;
+    status.textContent=`${searchNotice}本批共 ${drafts.length} 篇，可直接送审。已重新生成 ${drafts.length-updated} 篇${updated?`，其余 ${updated} 篇沿用上次稿件`:''}。`;
   }catch(error){
     if(!controller.signal.aborted)status.textContent='当前批次已保留，可查看稿件并继续送审。';
   }finally{
@@ -7682,7 +7683,7 @@ function hfRenderBatch(drafts,warnings=[]){
   const retained=HF.generationVersions?.active==='search'?HF.generationVersions.search.retained:[];
   hfRefreshGenerationSearch();
   const out=document.getElementById('hf-gen-output');
-  out.innerHTML=drafts.map((copy,i)=>`<article style="padding:${i?'18px 0 0':'0'};margin-top:${i?'18px':'0'};border-top:${i?'1px solid var(--hfborder)':'0'}"><h3 style="margin:0 0 10px">第${i+1}篇</h3>${retained?.[i]?'<div class="hf-hint">本篇沿用初稿</div>':''}${warnings[i]?.length?`<div class="hf-risk">${esc(hfCompactIssueNotice(warnings[i]))}</div>`:''}<div>${hfHtml(copy)}</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfSendReview(${i})">审核第${i+1}篇</button></div></article>`).join('');
+  out.innerHTML=drafts.map((copy,i)=>`<article style="padding:${i?'18px 0 0':'0'};margin-top:${i?'18px':'0'};border-top:${i?'1px solid var(--hfborder)':'0'}"><h3 style="margin:0 0 10px">第${i+1}篇</h3>${retained?.[i]?'<div class="hf-hint">本篇沿用上次稿件</div>':''}${warnings[i]?.length?`<div class="hf-risk">${esc(hfCompactIssueNotice(warnings[i]))}</div>`:''}<div>${hfHtml(copy)}</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfSendReview(${i})">审核第${i+1}篇</button></div></article>`).join('');
 }
 function hfBatchPlans(count){
   const plans=[],keys=new Set();let guard=0;
