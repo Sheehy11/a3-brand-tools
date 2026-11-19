@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-20">
+<meta name="a3-build" content="20261119-haoqi-21">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-20',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-21',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7715,12 +7715,33 @@ function hfBatchPlans(count){
   if(plans.length!==count)throw new Error('未能分配足够的差异化写作路线');
   return plans;
 }
+function hfPartialBatchRows(raw){
+  const rows=[],starts=[];let quoted=false,escape=false;
+  for(let i=0;i<raw.length;i++){
+    const char=raw[i];
+    if(quoted){if(escape)escape=false;else if(char==='\\')escape=true;else if(char==='"')quoted=false;continue;}
+    if(char==='"'){quoted=true;continue;}
+    if(char==='{')starts.push(i);
+    else if(char==='}'&&starts.length){const start=starts.pop();try{const row=JSON.parse(raw.slice(start,i+1));if(row&&row.index!==undefined&&(row.copy||row.paragraphs||row.body))rows.push(row);}catch{}}
+  }
+  return rows;
+}
+function hfBatchCopy(row){
+  if(typeof row==='string')return row;
+  if(typeof row?.copy==='string')return row.copy;
+  if(row?.copy&&typeof row.copy==='object')row={...row,...row.copy};
+  const body=Array.isArray(row?.paragraphs)?row.paragraphs.join('\n\n'):Array.isArray(row?.body)?row.body.join('\n\n'):String(row?.body||'');
+  if(!row?.title||!body)return '';
+  const tags=Array.isArray(row.tags)?row.tags.map(tag=>'#'+String(tag).replace(/^#+/,'')).join(' '):String(row.tags||'');
+  const comments=Array.isArray(row.comments)?row.comments.map((line,index)=>`${index+1}. ${line}`).join('\n'):String(row.comments||'');
+  return `标题：${row.title}\n\n正文：${body}\n\n${tags}\n\n评论：\n${comments}`;
+}
 function hfBatchEntries(data,indices){
   const rows=Array.isArray(data)?data:Array.isArray(data?.drafts)?data.drafts:[],result=new Map();
   rows.forEach((row,position)=>{
     const index=row&&typeof row==='object'&&row.index!==undefined?Number(row.index)-1:indices[position];
     if(!indices.includes(index)||result.has(index))return;
-    const copy=typeof row==='string'?row:String(row?.copy||'');
+    const copy=hfBatchCopy(row);
     if(copy.trim()&&hfParseReference(copy).bodyChars>0)result.set(index,copy.trim());
   });
   return result;
@@ -7728,7 +7749,7 @@ function hfBatchEntries(data,indices){
 async function hfBatchGenerationAudit(drafts,cfg,references,writingBrief=''){
   const local=drafts.map((copy,index)=>hfGenerationAudit(copy,cfg,references[index]));
   try{
-    const data=await hfCallJson(`${HQ_KB_FACT_REVIEW_SYS}\n${hfCompactProductContext(cfg.product,cfg.point,cfg.noPoint)}`,`逐篇核对本批成稿与人工要求、背景事实、对应参考稿的内容组织和所选方向。人工要求优先。只报内容矛盾、明确遗漏、产品事实和卖点错误。不要报告字数、段数、标签或历史相似度。事实核对只对照下面来源，不得自行补规则。每项 sourceQuote 必须逐字引用对应稿件，requirementQuote 必须逐字引用对应来源。缺失必写内容时 sourceQuote 可为空。来源编号 R1 人工要求，R2 背景，R3 对应参考稿，K1至K8 产品事实与现实逻辑。没有明确问题时 issues 为空。返回严格JSON {"drafts":[{"index":1,"issues":[{"scope":"body","sourceQuote":"原文","requirementQuote":"依据原文","basis":"R1","problem":"具体错误","requiredChange":"具体改法"}]}]}。每篇都返回。\n【R1人工要求】\n${cfg.requirementText}\n【R2背景】\n${cfg.background}\n【所选方向】\n${writingBrief}\n${drafts.map((copy,index)=>`【第${index+1}篇对应参考稿R3】\n${references[index]||'无'}\n【第${index+1}篇待审稿】\n${copy}`).join('\n\n')}`,{maxTokens:1200,timeoutMs:190000,signal:cfg.signal,skipSharedExamples:true});
+    const data=await hfCallJson(`${HQ_KB_FACT_REVIEW_SYS}\n${hfCompactProductContext(cfg.product,cfg.point,cfg.noPoint)}`,`逐篇核对本批成稿与人工要求、背景事实、对应参考稿的内容组织和所选方向。人工要求优先。只报内容矛盾、明确遗漏、产品事实和卖点错误。不要报告字数、段数、标签或历史相似度。事实核对只对照下面来源，不得自行补规则。每项 sourceQuote 必须逐字引用对应稿件，requirementQuote 必须逐字引用对应来源。缺失必写内容时 sourceQuote 可为空。来源编号 R1 人工要求，R2 背景，R3 对应参考稿，K1至K8 产品事实与现实逻辑。没有明确问题时 issues 为空。返回严格JSON {"drafts":[{"index":1,"issues":[{"scope":"body","sourceQuote":"原文","requirementQuote":"依据原文","basis":"R1","problem":"具体错误","requiredChange":"具体改法"}]}]}。每篇都返回。\n【R1人工要求】\n${cfg.requirementText}\n【R2背景】\n${cfg.background}\n【所选方向】\n${writingBrief}\n${drafts.map((copy,index)=>`【第${index+1}篇对应参考稿R3】\n${references[index]||'无'}\n【第${index+1}篇待审稿】\n${copy}`).join('\n\n')}`,{maxTokens:1200,timeoutMs:190000,signal:cfg.signal,skipSharedExamples:true,stream:true,isComplete:raw=>{try{return Array.isArray(hfLiveParseJson(raw)?.drafts);}catch{return false;}}});
     const rows=Array.isArray(data?.drafts)?data.drafts:[];
     return drafts.map((copy,index)=>[...new Set([...local[index],...hfTaskReviewResults({issues:rows.find(row=>Number(row.index)===index+1)?.issues||[]},copy,{requirement:cfg.requirementText,reference:references[index],background:cfg.background,config:cfg}).map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`)])]);
   }catch(error){if(cfg.signal?.aborted)throw error;return local;}
@@ -7765,7 +7786,7 @@ async function hfGenerateBatch(){
   const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(HF.product,point,noPoint)}\n\n${background}${hfGenerationSourcePriority(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`;
   const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle,point,HF.product);
   const sharedPrompt=`所有稿件使用同一产品、卖点设置和人工输入，但必须是独立创作，不得互相改写或仅替换同义词。多篇参考稿只分别提供结构和语气范例，不得把多篇内容拼接进同一篇成稿。\n\n${aoBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- ${noPoint?'产品名只作为讨论对象自然出现，不介绍功能或体验。':'产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。'}\n${references.length?'- 每篇首先贴合自己对应参考稿的内容组织、信息顺序和语气强度；同批差异只体现在原创措辞与可替换细节，不得为了差异化改成另一种文案。':'- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。'}${hfRecentAvoidanceBrief()}${manualPriority}`;
-  const fingerprint=JSON.stringify({count,mode:HQ_CONTENT_MODE,product:HF.product,point:HF.sellingPoint,angle:HF.angle,direction:HF.direction,custom:HF.customDirection,requirements:requirementText,background,references});
+  const fingerprint=JSON.stringify({format:"structured-batch-v2",count,mode:HQ_CONTENT_MODE,product:HF.product,point:HF.sellingPoint,angle:HF.angle,direction:HF.direction,custom:HF.customDirection,requirements:requirementText,background,references});
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status'),drafts=HF.pendingBatch?.fingerprint===fingerprint&&HF.pendingBatch.drafts?.length===count?HF.pendingBatch.drafts.slice():Array(count).fill('');HF.pendingBatch={fingerprint,drafts};hfSaveState();btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=assignedReferences[0]||'';status.textContent=`正在生成 ${count} 篇…`;out.insertAdjacentHTML('afterbegin','<div class="hf-hint" data-generation-progress>正在生成新稿，返回后逐篇显示。</div>');
   const generationController=HF.generationController;const auditCfg={...cfg,signal:generationController.signal,auditTimeoutMs:25000};hfRefreshGenerationSearch();
   const showProgress=()=>{out.innerHTML=drafts.map((copy,i)=>`<article><h3>第${i+1}篇</h3>${copy?hfHtml(copy):'<div class="hf-hint">正在生成…</div>'}</article>`).join('');};
@@ -7774,10 +7795,11 @@ async function hfGenerateBatch(){
     const requestDrafts=async(indices,repairIssues=null)=>{
       const specs=indices.map(i=>{
         const spec=referenceSpecs[i],length=explicitLength?`${explicitLength.min}—${explicitLength.max}`:spec.bodyChars?`${spec.minChars}—${spec.maxChars}`:'按当前任务';
-        return `【第${i+1}篇独立任务】\n${hfReferencePrompt(assignedReferences[i],rule)}\n正文篇幅：${length}字。${assignedReferences[i]?'先按对应参考稿展开，人工要求覆盖冲突部分。':hfDiversityInstruction(plans[i])}${repairIssues?`\n【本篇需修改项】\n${JSON.stringify(repairIssues[i])}\n【当前稿件】\n${drafts[i]}\n保留已经正确的内容，修正所列问题。`:''}`;
+        return `【第${i+1}篇独立任务】\n${assignedReferences[i]?`对应参考原文：\n${assignedReferences[i]}\n原文正文${spec.bodyChars}字、${spec.paragraphs.length||1}段；保持同位段落的内容重点、信息顺序、情绪力度和口吻，原创重述所有句子。正文必须${spec.paragraphs.length||1}段、${length}字，人工明确要求覆盖冲突部分。`:''}\n正文篇幅：${length}字。${assignedReferences[i]?'先按对应参考稿展开，人工要求覆盖冲突部分。':hfDiversityInstruction(plans[i])}${repairIssues?`\n【本篇需修改项】\n${JSON.stringify(repairIssues[i])}\n【当前稿件】\n${drafts[i]}\n保留已经正确的内容，修正所列问题。`:''}`;
       }).join('\n\n');
       const maxTokens=Math.min(4096,Math.max(1200,indices.reduce((sum,i)=>sum+Math.ceil((explicitLength?.max||referenceSpecs[i].maxChars||250)*2)+500,0)));
-      const data=await hfCallJson(sys,`${sharedPrompt}\n\n${specs}\n\n一次完整返回指定的${indices.length}篇稿件，各篇分别使用自己的参考稿。禁止缺篇、合篇或用“同上”代替。只返回严格JSON {"drafts":[{"index":${indices[0]+1},"copy":"标题：…\\n\\n正文：…\\n\\n#Tag\\n\\n评论：\\n1. …\\n2. …\\n3. …"}]}。index 必须对应本批原编号：${indices.map(i=>i+1).join('、')}。copy 为该篇完整文案字符串，换行使用合法JSON转义。`,{maxTokens,timeoutMs:190000,reasoningEffort:'minimal',signal:generationController.signal,skipSharedExamples:true});
+      const schema=JSON.stringify({drafts:indices.map(i=>({index:i+1,title:'原创标题',paragraphs:Array(Math.max(1,referenceSpecs[i].paragraphs?.length||1)).fill('原创正文段落'),tags:Array(referenceSpecs[i].tags?.length||1).fill('相关话题'),comments:['相似经历','具体感叹','个人习惯']}))});
+      const data=await hfCallJson(sys,`${sharedPrompt}\n\n${specs}\n\n一次完整返回指定的${indices.length}篇稿件，各篇分别使用自己的参考稿。禁止缺篇、合篇或用“同上”代替。按下面完整结构填满每一篇，不得遗漏字段和条目，返回严格JSON ${schema}。index 必须对应本批原编号：${indices.map(i=>i+1).join('、')}。paragraphs 数组每项为一段有效正文，tags 不含正文，comments 恰好三条。`,{maxTokens,timeoutMs:190000,reasoningEffort:'minimal',signal:generationController.signal,skipSharedExamples:true,stream:true,isComplete:raw=>{try{return hfBatchEntries(hfLiveParseJson(raw),indices).size===indices.length;}catch{return false;}},onProgress:raw=>{const entries=hfBatchEntries({drafts:hfPartialBatchRows(raw)},indices);if(entries.size){for(const [index,copy] of entries)drafts[index]=copy;hfSaveState();showProgress();status.textContent=`已返回 ${drafts.filter(Boolean).length}/${count} 篇，正在完成稿件…`;}}});
       if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
       return hfBatchEntries(data,indices);
     };
@@ -7787,11 +7809,11 @@ async function hfGenerateBatch(){
       try{entries=await requestDrafts(indices);}
       catch(error){
         if(generationController.signal.aborted||/登录|无权限|欠费|余额不足|额度不足|无效.*Key|已过期/.test(String(error?.message||'')))throw error;
-        HF.pendingBatch.lastError=String(error?.message||'生成连接未完成');hfSaveState();return indices;
+        HF.pendingBatch.lastError=String(error?.message||'生成连接未完成');completed=drafts.filter(Boolean).length;hfSaveState();return indices.filter(index=>!drafts[index]);
       }
-      for(const [index,copy] of entries){if(!drafts[index])completed++;drafts[index]=copy;}
+      for(const [index,copy] of entries)drafts[index]=copy;completed=drafts.filter(Boolean).length;
       hfSaveState();showProgress();status.textContent=`已返回 ${completed}/${count} 篇，正在完成稿件…`;
-      return indices.filter(index=>!entries.has(index));
+      return indices.filter(index=>!drafts[index]);
     };
     if(completed)showProgress();
     let pending=await runIndices(drafts.map((copy,index)=>copy?-1:index).filter(index=>index>=0));
@@ -8286,7 +8308,7 @@ function modelTimeoutMs(options={}){const requested=Number(options.timeoutMs);re
 async function callSingleModel(model,sys,usr,signal,options={}){
   const timeoutMs=modelTimeoutMs(options),label=MODEL_MAP[model]?.label||model,maxAttempts=Math.max(1,Math.min(2,Number(options.maxAttempts)||2));
   for(let attempt=1;attempt<=maxAttempts;attempt++){
-    let text='',timedOut=false;const requestId=makeRequestId(),collect=chunk=>{text+=chunk;},controller=new AbortController(),forwardAbort=()=>controller.abort(signal?.reason);
+    let text='',timedOut=false;const requestId=makeRequestId(),collect=chunk=>{text+=chunk;options.onProgress?.(text);},controller=new AbortController(),forwardAbort=()=>controller.abort(signal?.reason);
     if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
     const timer=setTimeout(()=>{timedOut=true;controller.abort('model-timeout');},timeoutMs);
     try{
@@ -8369,7 +8391,7 @@ function openAIPacketText(packet){
   const choice=packet?.choices?.[0];
   return aiTextValue(choice?.delta?.content??choice?.message?.content??choice?.text??packet?.output_text??packet?.response?.output_text??'');
 }
-async function readAIResponse(response,cb,extract=openAIPacketText){
+async function readAIResponse(response,cb,extract=openAIPacketText,isComplete){
   const contentType=String(response.headers?.get?.('content-type')||'').toLowerCase();
   if(contentType.includes('application/json')){
     let packet;
@@ -8385,14 +8407,14 @@ async function readAIResponse(response,cb,extract=openAIPacketText){
     return text.length;
   }
   const dec=new TextDecoder();
-  let buf='',emitted=0,finished=false;
-  const emit=text=>{text=aiTextValue(text);if(text){emitted+=text.length;cb(text);}};
+  let buf='',emitted=0,finished=false,fullText='';
+  const emit=text=>{text=aiTextValue(text);if(text){emitted+=text.length;fullText+=text;cb(text);if(isComplete?.(fullText))finished=true;}};
   const processLine=line=>{
     const clean=String(line||'').trim();
     if(!clean||clean.startsWith(':'))return;
     const payload=clean.startsWith('data:')?clean.slice(5).trim():clean;
     if(!payload||payload==='[DONE]'){if(payload==='[DONE]')finished=true;return;}
-    try{emit(extract(JSON.parse(payload)));}catch{}
+    try{const packet=JSON.parse(payload);emit(extract(packet));if(packet?.choices?.some(choice=>choice.finish_reason))finished=true;}catch{}
   };
   while(!finished){
     const{done,value}=await reader.read();
@@ -8402,7 +8424,8 @@ async function readAIResponse(response,cb,extract=openAIPacketText){
     lines.forEach(processLine);
   }
   buf+=dec.decode();
-  if(buf.trim())processLine(buf);
+  if(buf.trim()&&!finished)processLine(buf);
+  if(finished)await reader.cancel().catch(()=>{});
   return emitted;
 }
 async function openAIOnce(url,headers,body,cb,signal,label='内容服务',allowRetry=false){
@@ -8461,7 +8484,7 @@ async function streamProxy(sys,usr,cb,signal,requestId,options={}){
     const r=await fetch(PROXY_URL,{method:'POST',headers,body:JSON.stringify(body),signal:activeSignal});
     if(r.status===401){window.a3ClearSession?.();document.getElementById('pw-gate').style.display='flex';throw new Error('登录已过期，请重新输入访问密码');}
     if(!r.ok)throw await responseError(r,'共享内容服务');
-    const emitted=await readAIResponse(r,cb);
+    const emitted=await readAIResponse(r,cb,openAIPacketText,options.isComplete);
     if(!emitted)throw new Error(`内容服务没有返回正文内容，请稍后重试。本次请求不会自动重复发送。（请求编号：${r.headers.get('X-Request-ID')||requestId}）`);
   }catch(e){
     if(e?.name==='AbortError')throw new Error(`共享内容服务响应超时；本次请求已停止，不会继续占用页面。（请求编号：${requestId}）`);
