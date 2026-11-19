@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-8">
+<meta name="a3-build" content="20261119-haoqi-9">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-8',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-9',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -19,9 +19,7 @@
   fetch(versionUrl,{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
     const latest=String(data?.build||'');
     if(!latest||latest===BUILD||requestedBuild===latest)return;
-    const target=new URL(location.href);
-    target.searchParams.set(VERSION_PARAM,latest);
-    location.replace(target.href);
+    if(typeof toast==='function')toast('有可用更新，完成当前工作后刷新页面即可。',5000);
   }).catch(()=>{});
 })();
 </script>
@@ -1472,7 +1470,7 @@ const collabEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 function collabActor(){return COLLAB_ACTORS[localStorage.getItem('a3_collab_actor')||'']||null}
 function collabRoleText(a=collabActor()){return a?`${a.name} · ${a.role==='reviewer'?'审核人':a.role==='admin'?'管理员':'写手'}`:'尚未选择身份'}
 function collabUpdateIdentity(){const a=collabActor(),chip=document.getElementById('collab-identity-chip'),btn=document.getElementById('collab-task-btn'),live=document.getElementById('live-requirements-btn');if(!chip||!btn)return;chip.style.display='';chip.textContent=a?collabRoleText(a):'选择身份';btn.style.display='flex';if(live)live.style.display='';document.getElementById('collab-new-btn')?.style.setProperty('display',a?.role==='writer'?'':'none');if(typeof hfLiveRender==='function')hfLiveRender();}
-async function ensureCollabIdentity(){collabUpdateIdentity();const actor=collabActor();if(!actor)return openCollabIdentity();try{if(await a3CloudStateBootstrap(actor.id)){location.reload();return;}}catch(e){toast('跨设备历史读取失败：'+e.message,3200)}collabStartPolling();if(typeof hfLiveRemoteLoad==='function')hfLiveRemoteLoad().catch(e=>toast('跨设备要求读取失败：'+e.message,3200))}
+async function ensureCollabIdentity(){collabUpdateIdentity();const actor=collabActor();if(!actor)return openCollabIdentity();try{if(!ACTIVE_WORKFLOW)await a3CloudStateBootstrap(actor.id);}catch(e){toast('跨设备历史读取失败：'+e.message,3200)}collabStartPolling();if(typeof hfLiveRemoteLoad==='function')hfLiveRemoteLoad().catch(e=>toast('跨设备要求读取失败：'+e.message,3200))}
 function openCollabIdentity(){document.getElementById('collab-identity-modal').style.display='flex'}
 function closeCollabIdentity(){if(!collabActor())return toast('首次进入必须先选择使用人');document.getElementById('collab-identity-modal').style.display='none'}
 async function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;const previous=collabActor();try{if(typeof hfLiveSyncDraft==='function')await hfLiveSyncDraft();await a3CloudStateFlush();}catch{}if(previous&&previous.id!==id)a3CloudStateClearLocal();A3_NATIVE_STORAGE_SET.call(localStorage,'a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';try{const changed=await a3CloudStateBootstrap(id);if(changed||previous&&previous.id!==id){location.reload();return;}if(typeof hfLiveRemoteLoad==='function')await hfLiveRemoteLoad();}catch(e){toast('身份已切换，但跨设备历史读取失败：'+e.message,3200)}collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
@@ -1489,7 +1487,11 @@ Storage.prototype.removeItem=function(key){A3_NATIVE_STORAGE_REMOVE.call(this,ke
 async function a3CloudStateFlush(){clearTimeout(A3_CLOUD_STATE_TIMER);A3_CLOUD_STATE_TIMER=null;if(!A3_CLOUD_STATE_PENDING.size||window.a3IsLocalPreview())return;const actor=collabActor();if(!actor||actor.id!==A3_CLOUD_STATE_ACTOR)return;const changes=[...A3_CLOUD_STATE_PENDING.values()];A3_CLOUD_STATE_PENDING.clear();try{await collabApi('/state',{method:'POST',body:{changes}});}catch(e){for(const change of changes)if(!A3_CLOUD_STATE_PENDING.has(change.key))A3_CLOUD_STATE_PENDING.set(change.key,change);throw e}}
 function a3CloudStateClearLocal(){A3_CLOUD_STATE_APPLYING=true;try{for(const entry of a3CloudStateLocalEntries())A3_NATIVE_STORAGE_REMOVE.call(localStorage,entry.key);}finally{A3_CLOUD_STATE_APPLYING=false}A3_CLOUD_STATE_PENDING.clear();A3_CLOUD_STATE_ACTOR=''}
 async function a3CloudStateBootstrap(actorId){if(window.a3IsLocalPreview())return false;if(A3_CLOUD_STATE_PULL)return A3_CLOUD_STATE_PULL;A3_CLOUD_STATE_PULL=(async()=>{await a3CloudStateFlush();const data=await collabApi('/state'),entries=Array.isArray(data.entries)?data.entries:[],remoteKeys=new Set(),localBefore=new Map(a3CloudStateLocalEntries().map(x=>[x.key,x.value]));let changed=false;A3_CLOUD_STATE_APPLYING=true;try{for(const entry of entries){if(!a3CloudStateShareable(entry.key))continue;remoteKeys.add(entry.key);const before=localStorage.getItem(entry.key);if(entry.deleted){if(before!==null){A3_NATIVE_STORAGE_REMOVE.call(localStorage,entry.key);changed=true}}else if(before!==String(entry.value??'')){A3_NATIVE_STORAGE_SET.call(localStorage,entry.key,String(entry.value??''));changed=true}}}finally{A3_CLOUD_STATE_APPLYING=false}A3_CLOUD_STATE_ACTOR=actorId;const missing=[...localBefore].filter(([key])=>!remoteKeys.has(key)).map(([key,value])=>({key,value,deleted:false}));if(missing.length)await collabApi('/state',{method:'POST',body:{changes:missing}});A3_CLOUD_STATE_LAST_PULL=Date.now();return changed})().finally(()=>{A3_CLOUD_STATE_PULL=null});return A3_CLOUD_STATE_PULL}
-window.addEventListener('focus',()=>{const actor=collabActor();if(!actor||window.a3IsLocalPreview()||Date.now()-A3_CLOUD_STATE_LAST_PULL<5000)return;a3CloudStateBootstrap(actor.id).then(changed=>{if(changed)location.reload()}).catch(()=>{})});
+window.addEventListener('focus',()=>{
+  const actor=collabActor();
+  if(!actor||ACTIVE_WORKFLOW||window.a3IsLocalPreview()||Date.now()-A3_CLOUD_STATE_LAST_PULL<5000)return;
+  a3CloudStateBootstrap(actor.id).catch(()=>{});
+});
 const COLLAB_LOCAL_STORAGE='a3_collab_local_validation_v1';
 function collabLocalLoad(){try{const x=JSON.parse(localStorage.getItem(COLLAB_LOCAL_STORAGE)||'{}');return{tasks:Array.isArray(x.tasks)?x.tasks:[],versions:Array.isArray(x.versions)?x.versions:[],feedback:Array.isArray(x.feedback)?x.feedback:[]}}catch{return{tasks:[],versions:[],feedback:[]}}}
 function collabLocalSave(db){localStorage.setItem(COLLAB_LOCAL_STORAGE,JSON.stringify(db))}
@@ -6803,10 +6805,28 @@ function hfExtractLegacyPpt(buffer){const bytes=new Uint8Array(buffer),latin=new
 async function hfLoadPdfJs(){if(window.pdfjsLib)return window.pdfjsLib;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('PDF组件加载失败'));document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';return pdfjsLib;}
 async function hfExtractPdf(file){const lib=await hfLoadPdfJs(),pdf=await lib.getDocument({data:await file.arrayBuffer()}).promise,pages=[];for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n),content=await page.getTextContent(),text=content.items.map(x=>x.str).join(' ').replace(/\s+/g,' ').trim();let ocr='';if(text.length<30){const viewport=page.getViewport({scale:1.8}),canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;try{ocr=await hfOcr(canvas);}catch{}}pages.push(`第${n}页\n${text||ocr||'[未识别到文字]'}`);}return pages.join('\n\n');}
 async function hfExtractMaterialFile(file){const ext=(file.name.split('.').pop()||'').toLowerCase();if(file.type.startsWith('image/'))return{kind:'图片',text:`[图片说明：${file.name}]\nOCR文字：\n${await hfOcr(file)}`};if(['txt','md','csv','json'].includes(ext))return{kind:ext.toUpperCase(),text:await file.text()};if(ext==='docx')return{kind:'DOCX',text:await hfExtractDocx(file)};if(ext==='pptx')return{kind:'PPTX',text:await hfExtractPptx(file)};if(ext==='ppt')return{kind:'PPT',text:hfExtractLegacyPpt(await file.arrayBuffer())};if(ext==='pdf')return{kind:'PDF',text:await hfExtractPdf(file)};throw new Error('暂不支持该格式');}
+function hfExtensionSearch(keyword){
+  return new Promise((resolve,reject)=>{
+    const id='hf-search-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+    const finish=(error,items)=>{
+      clearTimeout(timer);
+      window.removeEventListener('message',receive);
+      if(error)reject(error);else resolve(items);
+    };
+    const receive=event=>{
+      if(event.source!==window||event.data?.type!=='A3_XHS_SEARCH_RESPONSE'||event.data.id!==id)return;
+      const response=event.data.response||{};
+      if(!response.ok){finish(new Error(response.message||'小红书扩展未返回正文'));return;}
+      finish(null,Array.isArray(response.items)?response.items:[]);
+    };
+    const timer=setTimeout(()=>finish(new Error('小红书扩展读取超过150秒，请查看小红书页面是否出现验证提示')),150000);
+    window.addEventListener('message',receive);
+    window.postMessage({type:'A3_XHS_SEARCH_REQUEST',id,keyword,limit:4},'*');
+  });
+}
 async function hfSearchXhsRecent(keyword){
-  if(window.xhsSearchDirect){const r=await window.xhsSearchDirect(keyword,{limit:12});if(r?.ok===false)throw new Error(r.message||'小红书搜索失败');return r?.items||r?.results||[];}
-  if(location.protocol==='file:'||/^(?:localhost|127\.0\.0\.1)$/.test(location.hostname))throw new Error('未检测到小红书读取助手。请在 Edge 或 Chrome 中重新加载扩展并刷新本页');
-  const response=await fetch(XHS_FETCH_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'search',keyword,limit:12})});if(!response.ok)throw new Error('小红书搜索服务暂不可用');const data=await response.json();if(data?.ok===false)throw new Error(data.message||'小红书搜索失败');return data.items||data.results||[];
+  if(window.xhsSearchDirect)return hfExtensionSearch(keyword);
+  throw new Error('未连接小红书读取助手，请在装有读取助手的 Chrome 或 Edge 中打开本页并刷新。');
 }
 function hfXhsQueryVariants(keyword){const raw=String(keyword||'').replace(/\s+/g,' ').trim(),broad=raw.replace(/(?:具体)?(?:优惠)?机制|写作方向|近期内容|相关讨论/g,' ').replace(/\s+/g,' ').trim();return[...new Set([raw,broad])].filter(Boolean).slice(0,2);}
 function hfDigestMechanisms(digest=HF.materialDigest){const rows=Array.isArray(digest?.mechanisms)?digest.mechanisms:[];return rows.map(x=>typeof x==='string'?{text:x,sources:[]}:{text:String(x?.text||'').trim(),sources:Array.isArray(x?.sources)?x.sources.filter(Boolean):[]}).filter(x=>x.text);}
@@ -6886,9 +6906,6 @@ function hfSaveReferences(rows){
 function hfLoadState(){
   try{
     const saved=JSON.parse(localStorage.getItem(hfStoreKey())||'{}');
-    if(saved.buildId!==(window.A3_BUILD_ID||'')){
-      ['latest','latestBatch','batchDraftContexts','batchWarnings','reviewDraftContext','generationVersions','generationSearchEvidence','generationRequirement','reviewReport','reviewIssues','reviewRewrite','performance','loopAnalysis'].forEach(key=>delete saved[key]);
-    }
     Object.assign(HF,{generationVersions:null,generationSearchEvidence:null},saved);
   }catch{}
   HF.buildId=window.A3_BUILD_ID||'';
@@ -6952,7 +6969,7 @@ function loadHqFullModule(){
     <div class="hf-grid">
       <div class="hf-card"><h3>待审核稿件</h3><div id="hf-review-batch" class="hf-hidden"><label for="hf-review-draft-select">选择本批稿件</label><select id="hf-review-draft-select" onchange="hfSelectReviewDraft(Number(this.value))"></select></div><textarea id="hf-review-input" style="min-height:300px"></textarea><label class="hf-toggle"><input id="hf-feedback-enabled" type="checkbox" onchange="hfToggleFeedback()">按客户反馈修改（选填）</label><div id="hf-feedback-panel" class="hf-hidden"><label>客户反馈原文</label><textarea id="hf-feedback" placeholder="粘贴客户原话；系统先定位受影响的标题、段落、事实和卖点。"></textarea></div><div class="hf-actions"><button id="hf-review-btn" class="hf-btn primary" onclick="hfReview()">开始审核</button></div><div id="hf-review-status" class="hf-status">等待审核</div></div>
       <div class="hf-card"><h3>审核报告</h3><div id="hf-review-output" class="hf-result">只列明确错误、依据和修改动作；不打分。</div></div>
-      <div id="hf-rewrite-card" class="hf-card wide hf-hidden"><h3 id="hf-rewrite-heading">写手选择修改路径</h3><div id="hf-feedback-auto-note" class="hf-good hf-hidden">仅修改客户反馈涉及的部分，其他内容保持不变。</div><div id="hf-manual-rewrite-choices" class="hf-row"><div><b>局部重写</b><p class="hf-hint">在同一个框里填写问题原句和希望怎么改，系统会自行定位并只修改必要位置。</p><textarea id="hf-rewrite-local-feedback" style="min-height:150px" placeholder="例如：原句“……”读起来太生硬；希望改得更口语，但保留活动机制。"></textarea><button class="hf-btn ghost" onclick="hfRewrite('local')">按意见局部修改</button></div><div><b>全文重写</b><p class="hf-hint">填写整篇修改方向，系统会结合背景资料、本次需求、参考稿和审核报告重写。</p><textarea id="hf-rewrite-full-feedback" style="min-height:150px" placeholder="填写整篇需要调整的重点；不填则只按审核报告重写。"></textarea><button class="hf-btn primary" onclick="hfRewrite('full')">按意见全文重写</button></div></div><div id="hf-rewrite-status" class="hf-status">等待写手选择</div><div id="hf-rewrite-output" class="hf-result" style="margin-top:12px">重写稿将在这里显示。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-rewrite-output')">复制重写稿</button><button class="hf-btn primary" onclick="hfSendHuman()">进入人工标注</button></div></div>
+      <div id="hf-rewrite-card" class="hf-card wide hf-hidden"><h3 id="hf-rewrite-heading">写手选择修改路径</h3><div id="hf-feedback-auto-note" class="hf-good hf-hidden">仅修改客户反馈涉及的部分，其他内容保持不变。</div><div id="hf-manual-rewrite-choices" class="hf-row"><div><b>局部重写</b><p class="hf-hint">在同一个框里填写问题原句和希望怎么改，系统会自行定位并只修改必要位置。</p><textarea id="hf-rewrite-local-feedback" style="min-height:150px" placeholder="例如：原句“……”读起来太生硬；希望改得更口语，但保留活动机制。"></textarea><button class="hf-btn ghost" onclick="hfRewrite('local')">按意见局部修改</button></div><div><b>全文重写</b><p class="hf-hint">填写整篇修改方向，系统会结合背景资料、本次需求、参考稿和审核报告重写。</p><textarea id="hf-rewrite-full-feedback" style="min-height:150px" placeholder="补充本轮修改意见（选填）。原需求、背景和对应参考稿会自动沿用。"></textarea><button class="hf-btn primary" onclick="hfRewrite('full')">按意见全文重写</button></div></div><div id="hf-rewrite-status" class="hf-status">等待写手选择</div><div id="hf-rewrite-output" class="hf-result" style="margin-top:12px">重写稿将在这里显示。</div><div class="hf-actions"><button class="hf-btn ghost" onclick="hfCopy('hf-rewrite-output')">复制重写稿</button><button class="hf-btn primary" onclick="hfSendHuman()">进入人工标注</button></div></div>
     </div>
   </section>
 
@@ -7515,7 +7532,7 @@ async function hfSearchRewriteBatch(){
   try{
     let items=[],searchNotice='';
     try{items=await hfSearchXhsRecent(keyword);}
-    catch{}
+    catch(error){searchNotice=String(error?.message||'小红书搜索请求未完成')+'。';}
     if(controller.signal.aborted||HF.latestBatch!==current)return;
     const rows=items.map(item=>({
       title:String(item.title||item.displayTitle||'').slice(0,200),
@@ -7540,7 +7557,7 @@ async function hfSearchRewriteBatch(){
     }else{
       HF.generationSearchEvidence=null;
       hfRefreshGenerationSearch();
-      searchNotice='未读取到可用的小红书正文，已按原要求补写。';
+      searchNotice=(searchNotice||'小红书搜索返回空正文。')+'本轮按原要求补写。';
     }
     status.textContent=`正在重新生成 ${drafts.length} 篇…`;
     const results=await Promise.allSettled(drafts.map(async(draft,index)=>{
@@ -7589,6 +7606,7 @@ async function hfSearchRewriteBatch(){
     hfResetBatchReview();
     hfRenderBatch(searchVersion.drafts,searchVersion.warnings);
     const updated=retained.filter(value=>!value).length;
+    HF.generationSearchNotice=searchNotice;
     status.textContent=`${searchNotice}本批共 ${drafts.length} 篇，可直接送审。已重新生成 ${drafts.length-updated} 篇${updated?`，其余 ${updated} 篇沿用初稿`:''}。`;
   }catch(error){
     if(!controller.signal.aborted)status.textContent='当前批次已保留，可查看稿件并继续送审。';
@@ -7768,7 +7786,7 @@ async function hfReview(){
   if(!hfDraftContext(draft)&&HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前审核配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,feedback=hfVal('hf-feedback');if(has&&!feedback){toast('请填写客户反馈原文');return;}
   const context=hfDraftContext(draft),config=context?.config,rule=context?.rule??hfRules()[HF.direction],ref=context?.reference??(HF.reference||hfVal('hf-reference')),product=config?.product||hfDetectProduct(draft),point=config?config.point:(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),noPoint=config?.noPoint??(HQ_CONTENT_MODE==='opinion'&&HF.sellingPoint==='__none__'),refBrief=hfReferencePrompt(ref,rule),aoBrief=context?.writingBrief??hfAoPrompt(rule,context?.angle??HF.angle,point,product),draftHistory=hqHistoricalSimilarity(draft),compactContext=hfCompactProductContext(product,point,noPoint);
-  const standingHuman=hfDraftContext(draft)?.requirement??(HF.generationRequirement||hfLiveRequirementText()),standingPriority=standingHuman?`\n\n【生成阶段人工输入】\n${standingHuman}\n重写继续执行其中的任务、场景和表达要求，但产品事实与合规边界保持最高优先级；缺失或冲突信息必须明确提示用户补充，不得编造。`:'',feedbackPriority=has?`\n\n【客户反馈】\n${feedback}\n在已确认产品事实与合规边界内，本轮反馈优先于其他写作资料和旧要求；反馈补充的信息默认只对当前稿件生效，不自动写入长期知识。`:'',backgroundContext=hfDraftBackground(hfDraftContext(draft)),reviewSys=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(product)}${backgroundContext}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${backgroundContext}${standingPriority}${feedbackPriority}`;
+  const standingHuman=hfDraftContext(draft)?.requirement??(HF.generationRequirement||hfLiveRequirementText()),standingPriority=standingHuman?`\n\n【生成阶段人工输入】\n${standingHuman}\n重写继续执行其中的任务、场景和表达要求，但产品事实与合规边界保持最高优先级；缺失或冲突信息必须明确提示用户补充，不得编造。`:'',feedbackPriority=has?`\n\n【客户反馈】\n${feedback}\n在已确认产品事实与合规边界内，本轮反馈优先于其他写作资料和旧要求；反馈补充的信息默认只对当前稿件生效，不自动写入长期知识。`:'',backgroundContext=hfDraftBackground(hfDraftContext(draft)),reviewSys=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(product)}${backgroundContext}${standingPriority}`,rewriteSys=`${HQ_WRITE_SYS}\n\n${compactContext}${aoBrief}${refBrief}${backgroundContext}${standingPriority}${feedbackPriority}`;
   const specialRequirementOnly=hfIsSpecialRequirementDraft(draft);
   const pointRule=noPoint?'本稿明确不带产品卖点；产品功能、参数、利益点和体验功效全部禁止。':point?`本稿选定的唯一卖点为“${point.label}”，其他卖点全部禁止。`:'必须检查全文是否只出现一个卖点并且只用一句话带过。',historyInstruction=draftHistory.blocked?`本地历史指纹风险：${draftHistory.reason}`:'本地历史指纹未发现高相似风险。';
   const btn=document.getElementById('hf-review-btn'),out=document.getElementById('hf-review-output'),status=document.getElementById('hf-review-status');btn.disabled=true;out.textContent='正在审核…';status.textContent='正在建立逐条核错清单…';
@@ -7817,7 +7835,7 @@ async function hfRewrite(mode){
   if(!hfDraftContext(draft)&&HQ_CONTENT_MODE==='ao'&&!HF.customDirection&&!hfAoSelectionValid(hfRules()[HF.direction],HF.product,HF.sellingPoint,HF.angle)){toast('当前重写配置不属于执行表分配，请先重新选择',3600);return;}
   const has=document.getElementById('hf-feedback-enabled').checked,writerFeedback=hfVal(mode==='local'?'hf-rewrite-local-feedback':'hf-rewrite-full-feedback');if(has){toast('有客户反馈时由AI自动定位并修改，无需选择重写路径');return;}
   if(mode==='local'&&!writerFeedback){toast('请在局部重写框中填写问题句或位置，并说明希望怎么改');return;}
-  if(mode==='full'&&!String(HF.reviewReport||'').trim()&&!writerFeedback){toast('请先完成核错，或填写写手修改意见');return;}
+  
   const context=hfDraftContext(draft),config=context?.config,rule=context?.rule??hfRules()[HF.direction],ref=context?.reference??(HF.reference||hfVal('hf-reference')),product=config?.product||hfDetectProduct(draft),point=config?config.point:(HQ_SELLING_POINTS[product]||[]).find(x=>x.key===HF.sellingPoint),noPoint=config?.noPoint??(HQ_CONTENT_MODE==='opinion'&&HF.sellingPoint==='__none__'),draftHistory=hqHistoricalSimilarity(draft),standingHuman=hfDraftContext(draft)?.requirement??(HF.generationRequirement||hfLiveRequirementText()),humanRequirements=[standingHuman,writerFeedback].filter(Boolean).join('\n'),humanPriority=humanRequirements?`\n\n【人工输入】\n${humanRequirements}\n在已确认产品事实与合规边界内，最新人工意见优先，其余人工要求优先于参考稿、背景资料、搜索结果和默认写法；补充信息默认只对当前稿件生效，缺失或冲突事实不得编造。`:'';
   const specialRequirementOnly=hfIsSpecialRequirementDraft(draft),backgroundContext=hfDraftBackground(hfDraftContext(draft)),pointRule=noPoint?'本稿明确不带产品卖点；产品功能、参数、利益点和体验功效全部禁止。':point?`本稿选定的唯一卖点为“${point.label}”，其他卖点全部禁止。`:'只核对知识库允许的卖点事实，不新增卖点。',historyInstruction=draftHistory.blocked?`本地历史指纹风险：${draftHistory.reason}`:'本地历史指纹未发现高相似风险。';
   hfLogWriterFeedback(writerFeedback,mode);
