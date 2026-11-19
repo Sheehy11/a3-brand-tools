@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-19">
+<meta name="a3-build" content="20261119-haoqi-20">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-19',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-20',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7345,6 +7345,11 @@ async function hfTaskReview(copy,context={}){
   const selectedPoint=context.config?.noPoint?'本稿不带任何产品卖点。':context.config?.point?.label?'本稿唯一卖点为'+context.config.point.label+'。':'';
   const system=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(context.config?.product||'')}\n${selectedPoint}\n\n人工明确要求优先于参考稿、背景、搜索和默认写法，产品事实与合规边界必须遵守。\n\n【人工要求】\n${requirements||'无'}\n\n【背景和搜索资料】\n${background||'无'}\n\n【对应参考稿】\n${reference||'无'}`;
   const data=await hfCallJson(system,`审核稿件是否满足已提供的全部写作约束。先逐条识别人工明确要求，再对照成稿，指出遗漏、相反表达、指定角度未落实、虚构经历、背景事实冲突、搜索来源未证实的说法，以及未遵循参考稿的段落功能、叙述顺序和语气。无需把所有资料塞进正文，搜索只作表达参考，搜索说法不能升级为官方事实。人工未要求时，不因背景或搜索信息未写入而报遗漏。\n\n同时检查K1产品与合规、K2未授权人物经历、K3因果、K4卖点、K5标题依据、K6评论相关性、K7现实逻辑、K8背景机制依据。\n\n每条问题只在证据明确时提出。来源为人工要求用R1，背景用R2，参考用R3，搜索用R4。sourceQuote逐字引用稿件，缺失内容时允许为空，requirementQuote必须逐字引用对应来源。只报告人工要求、背景事实、搜索信息与稿件的内容矛盾，或产品卖点错误。篇幅、段落数量、标签数量、评论字数和相似度均不属于审核错误。参考稿只提供内容组织和口吻。只返回严格JSON {"issues":[{"scope":"title|body|tags|comments","sourceQuote":"问题原文或空","requirementQuote":"来源中的明确要求或事实原文","problem":"差距","basis":"R1|R2|R3|R4|K1至K8","requiredChange":"具体修改动作"}]}。没有问题时issues为空。\n\n【待审核稿件】\n${copy}`,{maxTokens:1300,timeoutMs:context.config?.auditTimeoutMs||90000,signal:context.config?.signal||HF.generationController?.signal});
+  return hfTaskReviewResults(data,copy,context);
+}
+function hfTaskReviewResults(data,copy,context={}){
+  const requirements=hfReviewHumanRequirements(context),reference=context.reference||'',sources={R1:requirements,R2:context.background??hfMaterialContext(),R3:reference,R4:context.search||''};
+  const selectedPoint=context.config?.noPoint?'本稿不带任何产品卖点。':context.config?.point?.label?'本稿唯一卖点为'+context.config.point.label+'。':'';
   const issues=(Array.isArray(data?.issues)?data.issues:[]).filter(row=>{
     if(!row||!row.problem||!row.requiredChange)return false;
     if(row.scope==='tags'&&String(row.requiredChange).includes('＃'))return false;
@@ -7356,6 +7361,7 @@ async function hfTaskReview(copy,context={}){
   }).map((row,index)=>({...row,id:'T'+(index+1),basis:[row.basis,row.requirementQuote].filter(Boolean).join(' · ')}));
   return hfMergeReviewIssues(hfTaskFormatFindings(copy,requirements,reference),issues);
 }
+
 async function hfCompleteGenerationAudit(copy,cfg,ref=''){
   const results=await Promise.allSettled([
     hfSelectedDirectionAudit(copy,cfg),
@@ -7709,6 +7715,24 @@ function hfBatchPlans(count){
   if(plans.length!==count)throw new Error('未能分配足够的差异化写作路线');
   return plans;
 }
+function hfBatchEntries(data,indices){
+  const rows=Array.isArray(data)?data:Array.isArray(data?.drafts)?data.drafts:[],result=new Map();
+  rows.forEach((row,position)=>{
+    const index=row&&typeof row==='object'&&row.index!==undefined?Number(row.index)-1:indices[position];
+    if(!indices.includes(index)||result.has(index))return;
+    const copy=typeof row==='string'?row:String(row?.copy||'');
+    if(copy.trim()&&hfParseReference(copy).bodyChars>0)result.set(index,copy.trim());
+  });
+  return result;
+}
+async function hfBatchGenerationAudit(drafts,cfg,references,writingBrief=''){
+  const local=drafts.map((copy,index)=>hfGenerationAudit(copy,cfg,references[index]));
+  try{
+    const data=await hfCallJson(`${HQ_KB_FACT_REVIEW_SYS}\n${hfCompactProductContext(cfg.product,cfg.point,cfg.noPoint)}`,`逐篇核对本批成稿与人工要求、背景事实、对应参考稿的内容组织和所选方向。人工要求优先。只报内容矛盾、明确遗漏、产品事实和卖点错误。不要报告字数、段数、标签或历史相似度。事实核对只对照下面来源，不得自行补规则。每项 sourceQuote 必须逐字引用对应稿件，requirementQuote 必须逐字引用对应来源。缺失必写内容时 sourceQuote 可为空。来源编号 R1 人工要求，R2 背景，R3 对应参考稿，K1至K8 产品事实与现实逻辑。没有明确问题时 issues 为空。返回严格JSON {"drafts":[{"index":1,"issues":[{"scope":"body","sourceQuote":"原文","requirementQuote":"依据原文","basis":"R1","problem":"具体错误","requiredChange":"具体改法"}]}]}。每篇都返回。\n【R1人工要求】\n${cfg.requirementText}\n【R2背景】\n${cfg.background}\n【所选方向】\n${writingBrief}\n${drafts.map((copy,index)=>`【第${index+1}篇对应参考稿R3】\n${references[index]||'无'}\n【第${index+1}篇待审稿】\n${copy}`).join('\n\n')}`,{maxTokens:1200,timeoutMs:190000,signal:cfg.signal,skipSharedExamples:true});
+    const rows=Array.isArray(data?.drafts)?data.drafts:[];
+    return drafts.map((copy,index)=>[...new Set([...local[index],...hfTaskReviewResults({issues:rows.find(row=>Number(row.index)===index+1)?.issues||[]},copy,{requirement:cfg.requirementText,reference:references[index],background:cfg.background,config:cfg}).map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`)])]);
+  }catch(error){if(cfg.signal?.aborted)throw error;return local;}
+}
 function hfWaitForRetry(signal,delay){
   return new Promise((resolve,reject)=>{
     let timer;const abort=()=>{clearTimeout(timer);reject(new DOMException('已停止','AbortError'));};
@@ -7738,7 +7762,7 @@ async function hfGenerateBatch(){
   const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,noPoint,explicitLength,dynamicBans,requirementText,background:hfMaterialContext()};
   const background=hfMaterialContext();
   const manualPriority=humanText?`\n\n【本次人工输入】\n${humanText}\n可更新方向、场景、篇幅和表达方式，但不得覆盖已确认产品事实与合规边界；冲突或缺失事实不写进成稿，也不自动沉淀为团队知识。`:'';
-  const sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfGenerationMaterial(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`;
+  const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(HF.product,point,noPoint)}\n\n${background}${hfGenerationSourcePriority(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`;
   const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle,point,HF.product);
   const sharedPrompt=`所有稿件使用同一产品、卖点设置和人工输入，但必须是独立创作，不得互相改写或仅替换同义词。多篇参考稿只分别提供结构和语气范例，不得把多篇内容拼接进同一篇成稿。\n\n${aoBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- ${noPoint?'产品名只作为讨论对象自然出现，不介绍功能或体验。':'产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。'}\n${references.length?'- 每篇首先贴合自己对应参考稿的内容组织、信息顺序和语气强度；同批差异只体现在原创措辞与可替换细节，不得为了差异化改成另一种文案。':'- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。'}${hfRecentAvoidanceBrief()}${manualPriority}`;
   const fingerprint=JSON.stringify({count,mode:HQ_CONTENT_MODE,product:HF.product,point:HF.sellingPoint,angle:HF.angle,direction:HF.direction,custom:HF.customDirection,requirements:requirementText,background,references});
@@ -7746,19 +7770,28 @@ async function hfGenerateBatch(){
   const generationController=HF.generationController;const auditCfg={...cfg,signal:generationController.signal,auditTimeoutMs:25000};hfRefreshGenerationSearch();
   const showProgress=()=>{out.innerHTML=drafts.map((copy,i)=>`<article><h3>第${i+1}篇</h3>${copy?hfHtml(copy):'<div class="hf-hint">正在生成…</div>'}</article>`).join('');};
   try{
-    const bodyMax=explicitLength?.max??600,perDraftMaxTokens=Math.max(1100,Math.min(2600,Math.ceil(bodyMax*2.2)+700));let completed=drafts.filter(Boolean).length;
-    const generateOne=async(i,retry=false)=>{const spec=referenceSpecs[i],lengthRule=explicitLength?explicitLength.min+'—'+explicitLength.max+'字（人工要求）':spec.bodyChars?spec.minChars+'—'+spec.maxChars+'字（参考稿）':'以表达完整、自然为准',refBrief=hfReferencePrompt(assignedReferences[i],rule),route=assignedReferences[i]?`【本篇最终仿写裁决】生成第${i+1}篇必须对应参考稿${references.indexOf(assignedReferences[i])+1}。学习该参考稿的内容组织、标题功能和语气力度；下方差异化路线只能帮助原创措辞和非关键细节，不能改变文案类型或另写故事。`:'【本篇差异化路线】';return hfCallText(sys,`${sharedPrompt}${refBrief}\n\n${route}\n- 正文字数：${lengthRule}\n${hfDiversityInstruction(plans[i])}${retry?'\n\n上一轮本篇未能完整返回。请重新独立完成本篇，不能省略标题、正文、Tag或三条留言。':''}\n\n只输出这一篇完整稿件，不要JSON、代码块、解释、编号或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:60000,reasoningEffort:'minimal',signal:generationController.signal});};
-    const runIndices=async(indices,retry=false)=>{
-      const settled=await Promise.allSettled(indices.map(async i=>{
-        const value=(await generateOne(i,retry)).trim();
-        if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
-        if(!value)throw new Error('内容服务未返回正文');
-        drafts[i]=value;completed++;hfSaveState();showProgress();
-        status.textContent=`已返回 ${completed}/${count} 篇，正在完成其余稿件…`;
-      }));
-      const fatal=settled.find(result=>result.status==='rejected'&&/登录|无权限|欠费|余额不足|额度不足|无效.*Key|已过期/.test(String(result.reason?.message||'')));
-      if(fatal)throw fatal.reason;
-      return indices.filter((_,index)=>settled[index].status==='rejected');
+    const perDraftMaxTokens=2600;let completed=drafts.filter(Boolean).length;
+    const requestDrafts=async(indices,repairIssues=null)=>{
+      const specs=indices.map(i=>{
+        const spec=referenceSpecs[i],length=explicitLength?`${explicitLength.min}—${explicitLength.max}`:spec.bodyChars?`${spec.minChars}—${spec.maxChars}`:'按当前任务';
+        return `【第${i+1}篇独立任务】\n${hfReferencePrompt(assignedReferences[i],rule)}\n正文篇幅：${length}字。${assignedReferences[i]?'先按对应参考稿展开，人工要求覆盖冲突部分。':hfDiversityInstruction(plans[i])}${repairIssues?`\n【本篇需修改项】\n${JSON.stringify(repairIssues[i])}\n【当前稿件】\n${drafts[i]}\n保留已经正确的内容，修正所列问题。`:''}`;
+      }).join('\n\n');
+      const maxTokens=Math.min(4096,Math.max(1200,indices.reduce((sum,i)=>sum+Math.ceil((explicitLength?.max||referenceSpecs[i].maxChars||250)*2)+500,0)));
+      const data=await hfCallJson(sys,`${sharedPrompt}\n\n${specs}\n\n一次完整返回指定的${indices.length}篇稿件，各篇分别使用自己的参考稿。禁止缺篇、合篇或用“同上”代替。只返回严格JSON {"drafts":[{"index":${indices[0]+1},"copy":"标题：…\\n\\n正文：…\\n\\n#Tag\\n\\n评论：\\n1. …\\n2. …\\n3. …"}]}。index 必须对应本批原编号：${indices.map(i=>i+1).join('、')}。copy 为该篇完整文案字符串，换行使用合法JSON转义。`,{maxTokens,timeoutMs:190000,reasoningEffort:'minimal',signal:generationController.signal,skipSharedExamples:true});
+      if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
+      return hfBatchEntries(data,indices);
+    };
+    const runIndices=async(indices)=>{
+      if(!indices.length)return [];
+      let entries;
+      try{entries=await requestDrafts(indices);}
+      catch(error){
+        if(generationController.signal.aborted||/登录|无权限|欠费|余额不足|额度不足|无效.*Key|已过期/.test(String(error?.message||'')))throw error;
+        HF.pendingBatch.lastError=String(error?.message||'生成连接未完成');hfSaveState();return indices;
+      }
+      for(const [index,copy] of entries){if(!drafts[index])completed++;drafts[index]=copy;}
+      hfSaveState();showProgress();status.textContent=`已返回 ${completed}/${count} 篇，正在完成稿件…`;
+      return indices.filter(index=>!entries.has(index));
     };
     if(completed)showProgress();
     let pending=await runIndices(drafts.map((copy,index)=>copy?-1:index).filter(index=>index>=0));
@@ -7770,13 +7803,14 @@ async function hfGenerateBatch(){
     }
     if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
     status.textContent='稿件已返回，正在完成校验…';
-    let perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,auditCfg,assignedReferences[i]))),difference=hfBatchDifferenceIssues(drafts,assignedReferences),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
+    let perDraft=await hfBatchGenerationAudit(drafts,auditCfg,assignedReferences,aoBrief),difference=hfBatchDifferenceIssues(drafts,assignedReferences),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     for(let repairAttempt=0;needsRepair&&repairAttempt<1;repairAttempt++){
       if(generationController.signal.aborted)break;
       status.textContent='稿件已返回，正在完成校验…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
-      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0),settled=await Promise.allSettled(repairIndices.map(i=>hfCallText(sys,`修正这一篇稿件。在已确认产品事实与合规边界内执行人工输入，并解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。必须保持本篇原有故事与专属写作路线，不得改写成同批其他稿件。${hfReferencePrompt(assignedReferences[i],rule)}\n\n【人工输入】\n${humanText||'无'}\n\n【本篇问题】\n${JSON.stringify(repairIssues[i])}\n\n【当前稿件】\n${drafts[i]}\n\n只输出修正后的这一篇完整稿件，不要JSON、解释或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:60000,reasoningEffort:'minimal',signal:generationController.signal})));
-      settled.forEach((result,pos)=>{const i=repairIndices[pos];if(result.status==='fulfilled'&&result.value.trim())drafts[i]=result.value.trim();});showProgress();perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,auditCfg,assignedReferences[i])));difference=hfBatchDifferenceIssues(drafts,assignedReferences);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
+      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0);
+      try{const entries=await requestDrafts(repairIndices,repairIssues);for(const [index,copy] of entries)drafts[index]=copy;}catch(error){if(generationController.signal.aborted)throw error;}
+      hfSaveState();showProgress();perDraft=await hfBatchGenerationAudit(drafts,auditCfg,assignedReferences,aoBrief);difference=hfBatchDifferenceIssues(drafts,assignedReferences);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     const inputConflicts=requirementText?hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint):[],conflictWarnings=perDraft.map(rows=>requirementText?[...inputConflicts,...hfHardKnowledgeConflictIssues(rows,requirementText)]:[]);
     const reviewWarnings=perDraft.map((rows,index)=>[...new Set([...rows,...conflictWarnings[index]])]),hasHumanConflict=conflictWarnings.some(x=>x.length);
@@ -8285,7 +8319,7 @@ async function ensureLocalProxyReady(signal){
   }finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',forward);}
 }
 async function callAI(sys,usr,cb,signal,options={}){
-  if(['haoqi','bayer','sheyan'].includes(S.brand)){
+  if(!options.skipSharedExamples&&['haoqi','bayer','sheyan'].includes(S.brand)){
     const sharedExamples=options.maxAttempts===1?await new Promise(resolve=>{const timer=setTimeout(()=>resolve(''),2000);collabFewShot(collabCurrentModule()).then(text=>{clearTimeout(timer);resolve(text);},()=>{clearTimeout(timer);resolve('');});}):await collabFewShot(collabCurrentModule());
     if(sharedExamples)sys+=`\n\n【内部已确认参考稿｜只学习结构、节奏和自然表达，不覆盖正式产品事实】\n${sharedExamples}`;
   }
