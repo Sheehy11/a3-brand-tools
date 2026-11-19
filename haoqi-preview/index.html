@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-17">
+<meta name="a3-build" content="20261119-haoqi-18">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-17',VERSION_PARAM='__a3v';
+  const BUILD='20261119-haoqi-18',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7321,7 +7321,7 @@ async function hfSelectedDirectionAudit(copy,cfg){
   const rule=cfg.rule,brief=hfAoNaturalBrief(rule),angle=hfAoAngle(rule,HF.angle),point=cfg.point;if(!rule||!brief||!angle||!point)return['当前所选内容方向不完整，请重新选择'];
   const sys='你是中文品牌内容验收员。只判断成稿是否真正落实当前选择，不评价文采，不新增产品事实。只返回严格JSON。';
   const usr=`判断下方成稿是否同时落实四层选择。不能因为出现产品名、卖点词或近义词就判定通过，必须在故事人物状态、事件因果和最终态度中真实成立。\n\n【消费者阶段】${rule.stage}\n阶段在本文应体现为：${brief.psychology}\n【核心召回任务】${rule.task}\n任务在本文应自然落到：${brief.outcome}\n【所选内容切角】${angle.label}\n切角应按以下方式自然化：${angle.naturalCue||'保留该选题的核心事件与选择逻辑'}\n【所选唯一卖点】${point.label}\n卖点应由切角中的动作或观察自然引出，并直接解释人物为什么继续这次选择；卖点句前后必须仍是同一件事，不能成为可拆走的规格介绍。\n\n【成稿】\n${copy}\n\n返回：{"stage":true或false,"task":true或false,"angle":true或false,"pointFit":true或false,"reasons":["简短原因"]}。只有明显落实才为true；不要要求稿件出现上述内部术语。`;
-  const data=await hfCallJson(sys,usr,{maxTokens:420,timeoutMs:90000,reasoningEffort:'minimal',signal:HF.generationController?.signal}),issues=hfAoClaimAudit(copy,angle);
+  const data=await hfCallJson(sys,usr,{maxTokens:420,timeoutMs:cfg.auditTimeoutMs||90000,reasoningEffort:'minimal',signal:cfg.signal||HF.generationController?.signal}),issues=hfAoClaimAudit(copy,angle);
   if(data.stage!==true)issues.push(`未落实所选消费者阶段“${rule.stage}”`);
   if(data.task!==true)issues.push(`未落实所选核心召回任务“${rule.task}”`);
   if(data.angle!==true)issues.push(`未落实所选内容切角“${angle.label}”`);
@@ -7344,7 +7344,7 @@ async function hfTaskReview(copy,context={}){
   const sources={R1:requirements,R2:context.background??hfMaterialContext(),R3:reference,R4:context.search||''};
   const selectedPoint=context.config?.noPoint?'本稿不带任何产品卖点。':context.config?.point?.label?'本稿唯一卖点为'+context.config.point.label+'。':'';
   const system=`${HQ_KB_FACT_REVIEW_SYS}\n\n${hfReviewKnowledgeContext(context.config?.product||'')}\n${selectedPoint}\n\n人工明确要求优先于参考稿、背景、搜索和默认写法，产品事实与合规边界必须遵守。\n\n【人工要求】\n${requirements||'无'}\n\n【背景和搜索资料】\n${background||'无'}\n\n【对应参考稿】\n${reference||'无'}`;
-  const data=await hfCallJson(system,`审核稿件是否满足已提供的全部写作约束。先逐条识别人工明确要求，再对照成稿，指出遗漏、相反表达、指定角度未落实、虚构经历、背景事实冲突、搜索来源未证实的说法，以及未遵循参考稿的段落功能、叙述顺序和语气。无需把所有资料塞进正文，搜索只作表达参考，搜索说法不能升级为官方事实。人工未要求时，不因背景或搜索信息未写入而报遗漏。\n\n同时检查K1产品与合规、K2未授权人物经历、K3因果、K4卖点、K5标题依据、K6评论相关性、K7现实逻辑、K8背景机制依据。\n\n每条问题只在证据明确时提出。来源为人工要求用R1，背景用R2，参考用R3，搜索用R4。sourceQuote逐字引用稿件，缺失内容时允许为空，requirementQuote必须逐字引用对应来源。只报告人工要求、背景事实、搜索信息与稿件的内容矛盾，或产品卖点错误。篇幅、段落数量、标签数量、评论字数和相似度均不属于审核错误。参考稿只提供内容组织和口吻。只返回严格JSON {"issues":[{"scope":"title|body|tags|comments","sourceQuote":"问题原文或空","requirementQuote":"来源中的明确要求或事实原文","problem":"差距","basis":"R1|R2|R3|R4|K1至K8","requiredChange":"具体修改动作"}]}。没有问题时issues为空。\n\n【待审核稿件】\n${copy}`,{maxTokens:1300,timeoutMs:90000,signal:HF.generationController?.signal});
+  const data=await hfCallJson(system,`审核稿件是否满足已提供的全部写作约束。先逐条识别人工明确要求，再对照成稿，指出遗漏、相反表达、指定角度未落实、虚构经历、背景事实冲突、搜索来源未证实的说法，以及未遵循参考稿的段落功能、叙述顺序和语气。无需把所有资料塞进正文，搜索只作表达参考，搜索说法不能升级为官方事实。人工未要求时，不因背景或搜索信息未写入而报遗漏。\n\n同时检查K1产品与合规、K2未授权人物经历、K3因果、K4卖点、K5标题依据、K6评论相关性、K7现实逻辑、K8背景机制依据。\n\n每条问题只在证据明确时提出。来源为人工要求用R1，背景用R2，参考用R3，搜索用R4。sourceQuote逐字引用稿件，缺失内容时允许为空，requirementQuote必须逐字引用对应来源。只报告人工要求、背景事实、搜索信息与稿件的内容矛盾，或产品卖点错误。篇幅、段落数量、标签数量、评论字数和相似度均不属于审核错误。参考稿只提供内容组织和口吻。只返回严格JSON {"issues":[{"scope":"title|body|tags|comments","sourceQuote":"问题原文或空","requirementQuote":"来源中的明确要求或事实原文","problem":"差距","basis":"R1|R2|R3|R4|K1至K8","requiredChange":"具体修改动作"}]}。没有问题时issues为空。\n\n【待审核稿件】\n${copy}`,{maxTokens:1300,timeoutMs:context.config?.auditTimeoutMs||90000,signal:context.config?.signal||HF.generationController?.signal});
   const issues=(Array.isArray(data?.issues)?data.issues:[]).filter(row=>{
     if(!row||!row.problem||!row.requiredChange)return false;
     if(row.scope==='tags'&&String(row.requiredChange).includes('＃'))return false;
@@ -7357,12 +7357,12 @@ async function hfTaskReview(copy,context={}){
   return hfMergeReviewIssues(hfTaskFormatFindings(copy,requirements,reference),issues);
 }
 async function hfCompleteGenerationAudit(copy,cfg,ref=''){
-  let directionIssues=[],taskIssues=[];
-  try{directionIssues=await hfSelectedDirectionAudit(copy,cfg);}catch{}
-  try{
-    const issues=await hfTaskReview(copy,{requirement:cfg.requirementText,reference:ref,background:cfg.background??hfMaterialContext(),search:cfg.search||'',config:cfg});
-    taskIssues=issues.map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`);
-  }catch{taskIssues=hfTaskFormatFindings(copy,cfg.requirementText,ref).map(row=>row.problem);}
+  const results=await Promise.allSettled([
+    hfSelectedDirectionAudit(copy,cfg),
+    hfTaskReview(copy,{requirement:cfg.requirementText,reference:ref,background:cfg.background??hfMaterialContext(),search:cfg.search||'',config:cfg})
+  ]);
+  const directionIssues=results[0].status==='fulfilled'?results[0].value:[];
+  const taskIssues=results[1].status==='fulfilled'?results[1].value.map(row=>`任务要求未满足：${row.problem}；修改：${row.requiredChange}`):hfTaskFormatFindings(copy,cfg.requirementText,ref).map(row=>row.problem);
   const baseIssues=hfGenerationAudit(copy,cfg,ref).filter(problem=>!ref||!problem.startsWith('产品或机制重点进入过晚')).filter(problem=>!((ref||cfg.explicitLength)&&/^正文.*(?:字|区间)/.test(problem))).filter(problem=>!(/正文(?:分为|分成|分|为|写成|写|共|保持)?\s*[一二三四五六七八九十\d]+\s*(?:个)?(?:自然)?段/.test(cfg.requirementText||'')&&problem.startsWith('参考稿为')));
   return[...new Set([...baseIssues,...directionIssues,...taskIssues])];
 }
@@ -7393,9 +7393,9 @@ function hfParseNewSentence(raw){
   try{const a=clean.indexOf('{'),b=clean.lastIndexOf('}');if(a>=0&&b>a){const j=JSON.parse(clean.slice(a,b+1));if(j?.newSentence)return String(j.newSentence).trim();}}catch{}
   return clean.replace(/^(?:新句|newSentence)\s*[：:]\s*/i,'').replace(/^['“”]|['“”]$/g,'').trim();
 }
-async function hfCallText(sys,usr,options={}){const reliableOptions={stream:false,reasoningEffort:'minimal',...options};let buf='';await callAI(sys,usr,t=>{buf+=t;options.onChunk?.(t,buf);},reliableOptions.signal,reliableOptions);buf=buf.trim();if(!buf)throw new Error('内容服务没有返回有效正文');return buf;}
-async function hfCallJson(sys,usr,options={}){let lastError;for(let attempt=0;attempt<2;attempt++){const raw=await hfCallText(sys,attempt?`${usr}\n\n上一轮返回格式无法读取。请重新完成同一任务，只返回约定的严格 JSON，不要代码块、解释或前后缀。`:usr,options);try{return hfLiveParseJson(raw);}catch(e){lastError=e;}}throw new Error(`内容服务没有返回可读取的结构化结果：${lastError?.message||'JSON 格式错误'}`);}
-function hfCancelGeneration(){if(HF.generationController){HF.generationController.abort();HF.generationController=null;const s=document.getElementById('hf-gen-status');if(s)s.textContent='已取消生成；不会继续占用页面。';}}
+async function hfCallText(sys,usr,options={}){const reliableOptions={stream:false,reasoningEffort:'minimal',maxAttempts:1,...options};let buf='';await callAI(sys,usr,t=>{buf+=t;options.onChunk?.(t,buf);},reliableOptions.signal,reliableOptions);buf=buf.trim();if(!buf)throw new Error('内容服务没有返回有效正文');return buf;}
+async function hfCallJson(sys,usr,options={}){let lastError;for(let attempt=0;attempt<(options.jsonAttempts||1);attempt++){const raw=await hfCallText(sys,attempt?`${usr}\n\n上一轮返回格式无法读取。请重新完成同一任务，只返回约定的严格 JSON，不要代码块、解释或前后缀。`:usr,options);try{return hfLiveParseJson(raw);}catch(e){lastError=e;}}throw new Error(`内容服务没有返回可读取的结构化结果：${lastError?.message||'JSON 格式错误'}`);}
+function hfCancelGeneration(){if(HF.generationController){HF.generationController.abort();const s=document.getElementById('hf-gen-status');if(s)s.textContent='已取消生成；不会继续占用页面。';}}
 async function hfGenerate(){
   const point=(HQ_SELLING_POINTS[HF.product]||[]).find(x=>x.key===HF.sellingPoint);
   const noPoint=HQ_CONTENT_MODE==='opinion'&&HF.sellingPoint==='__none__';
@@ -7585,8 +7585,8 @@ function hfCommentOverlap(copy,otherDrafts=[]){
 }
 async function hfUniqueComments(copy,context,otherDrafts=[]){
   let result=copy;
-  for(let attempt=0;hfCommentOverlap(result,otherDrafts)&&attempt<3;attempt++){
-    let data;try{data=await hfCallJson(context.system||HQ_WRITE_SYS,'只重写三条评论，分别表达相似经历、具体感叹、个人习惯。围绕本篇已确认信息，避开下方已有句子和同义改写。只返回JSON {"comments":["评论1","评论2","评论3"]}。\n【稿件】\n'+result+'\n【人工要求】\n'+hfReviewHumanRequirements(context)+'\n【已有评论】\n'+[...(HF.generatedDrafts||[]).slice(0,20).map(row=>typeof row==='string'?row:row.copy),...otherDrafts].flatMap(hfCommentLines).join('\n'),{maxTokens:550,timeoutMs:90000});}catch{continue;}
+  for(let attempt=0;hfCommentOverlap(result,otherDrafts)&&attempt<1;attempt++){
+    let data;try{data=await hfCallJson(context.system||HQ_WRITE_SYS,'只重写三条评论，分别表达相似经历、具体感叹、个人习惯。围绕本篇已确认信息，避开下方已有句子和同义改写。只返回JSON {"comments":["评论1","评论2","评论3"]}。\n【稿件】\n'+result+'\n【人工要求】\n'+hfReviewHumanRequirements(context)+'\n【已有评论】\n'+[...(HF.generatedDrafts||[]).slice(0,20).map(row=>typeof row==='string'?row:row.copy),...otherDrafts].flatMap(hfCommentLines).join('\n'),{maxTokens:550,timeoutMs:15000,signal:context.config?.signal||HF.generationController?.signal});}catch{continue;}
     if(!Array.isArray(data.comments)||data.comments.length!==3)continue;
     const old=hfCommentLines(result),lines=result.split('\n');
     const marker=lines.findIndex(line=>/^\s*(?:评论|留言)(?:文案|区)?[：:]?\s*$/.test(line));
@@ -7710,6 +7710,7 @@ function hfBatchPlans(count){
   return plans;
 }
 async function hfGenerateBatch(){
+  if(HF.generationController)return;
   if(HF.generationSearchController){toast('请等待搜索改写完成');return;}
   const count=Math.max(1,Math.min(5,Number(document.getElementById('hf-generate-count')?.value)||1));
   if(count===1)return hfGenerate();
@@ -7732,34 +7733,45 @@ async function hfGenerateBatch(){
   const sys=`${HQ_WRITE_SYS}\n\n${hfKnowledge()}\n\n${hfGenerationMaterial(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`;
   const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle,point,HF.product);
   const sharedPrompt=`所有稿件使用同一产品、卖点设置和人工输入，但必须是独立创作，不得互相改写或仅替换同义词。多篇参考稿只分别提供结构和语气范例，不得把多篇内容拼接进同一篇成稿。\n\n${aoBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- ${noPoint?'产品名只作为讨论对象自然出现，不介绍功能或体验。':'产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。'}\n${references.length?'- 每篇首先贴合自己对应参考稿的内容组织、信息顺序和语气强度；同批差异只体现在原创措辞与可替换细节，不得为了差异化改成另一种文案。':'- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。'}${hfRecentAvoidanceBrief()}${manualPriority}`;
-  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status'),drafts=Array(count).fill('');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=assignedReferences[0]||'';status.textContent=`正在生成 ${count} 篇…`;out.textContent='正在生成并逐篇校验…';
+  const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status'),drafts=Array(count).fill('');btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=assignedReferences[0]||'';status.textContent=`正在生成 ${count} 篇…`;out.insertAdjacentHTML('afterbegin','<div class="hf-hint" data-generation-progress>正在生成新稿，返回后逐篇显示。</div>');
+  const generationController=HF.generationController;const auditCfg={...cfg,signal:generationController.signal,auditTimeoutMs:25000};hfRefreshGenerationSearch();
+  const generationDeadline=setTimeout(()=>generationController.abort('generation-deadline'),150000);
+  const showProgress=()=>{out.innerHTML=drafts.map((copy,i)=>`<article><h3>第${i+1}篇</h3>${copy?hfHtml(copy):'<div class="hf-hint">正在生成…</div>'}</article>`).join('');};
   try{
     const bodyMax=explicitLength?.max??600,perDraftMaxTokens=Math.max(1100,Math.min(2600,Math.ceil(bodyMax*2.2)+700));let completed=0;
-    const generateOne=async(i,retry=false)=>{const spec=referenceSpecs[i],lengthRule=explicitLength?explicitLength.min+'—'+explicitLength.max+'字（人工要求）':spec.bodyChars?spec.minChars+'—'+spec.maxChars+'字（参考稿）':'以表达完整、自然为准',refBrief=hfReferencePrompt(assignedReferences[i],rule),route=assignedReferences[i]?`【本篇最终仿写裁决】生成第${i+1}篇必须对应参考稿${references.indexOf(assignedReferences[i])+1}。学习该参考稿的内容组织、标题功能和语气力度；下方差异化路线只能帮助原创措辞和非关键细节，不能改变文案类型或另写故事。`:'【本篇差异化路线】';return hfCallText(sys,`${sharedPrompt}${refBrief}\n\n${route}\n- 正文字数：${lengthRule}\n${hfDiversityInstruction(plans[i])}${retry?'\n\n上一轮本篇未能完整返回。请重新独立完成本篇，不能省略标题、正文、Tag或三条留言。':''}\n\n只输出这一篇完整稿件，不要JSON、代码块、解释、编号或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal});};
-    const runIndices=async(indices,retry=false)=>{const settled=await Promise.allSettled(indices.map(i=>generateOne(i,retry)));const failed=[];settled.forEach((result,pos)=>{const i=indices[pos];if(result.status==='fulfilled'&&result.value.trim()){drafts[i]=result.value.trim();completed++;status.textContent=`豆包正在并行生成 ${count} 篇稿件… 已完成 ${Math.min(completed,count)}/${count}`;}else failed.push(i);});return failed;};
+    const generateOne=async(i,retry=false)=>{const spec=referenceSpecs[i],lengthRule=explicitLength?explicitLength.min+'—'+explicitLength.max+'字（人工要求）':spec.bodyChars?spec.minChars+'—'+spec.maxChars+'字（参考稿）':'以表达完整、自然为准',refBrief=hfReferencePrompt(assignedReferences[i],rule),route=assignedReferences[i]?`【本篇最终仿写裁决】生成第${i+1}篇必须对应参考稿${references.indexOf(assignedReferences[i])+1}。学习该参考稿的内容组织、标题功能和语气力度；下方差异化路线只能帮助原创措辞和非关键细节，不能改变文案类型或另写故事。`:'【本篇差异化路线】';return hfCallText(sys,`${sharedPrompt}${refBrief}\n\n${route}\n- 正文字数：${lengthRule}\n${hfDiversityInstruction(plans[i])}${retry?'\n\n上一轮本篇未能完整返回。请重新独立完成本篇，不能省略标题、正文、Tag或三条留言。':''}\n\n只输出这一篇完整稿件，不要JSON、代码块、解释、编号或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:60000,reasoningEffort:'minimal',signal:generationController.signal});};
+    const runIndices=async(indices,retry=false)=>{
+      const settled=await Promise.allSettled(indices.map(async i=>{
+        const value=(await generateOne(i,retry)).trim();
+        if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
+        if(!value)throw new Error('内容服务未返回正文');
+        drafts[i]=value;completed++;showProgress();
+        status.textContent=`已返回 ${completed}/${count} 篇，正在完成其余稿件…`;
+      }));
+      return indices.filter((_,index)=>settled[index].status==='rejected');
+    };
     let pending=await runIndices([...Array(count).keys()]);
-    for(let retry=1;pending.length&&retry<=3;retry++){status.textContent=`正在自动补齐未完成的 ${pending.length} 篇… ${retry}/3`;pending=await runIndices(pending,true);}
-    if(pending.length){
-      status.textContent=`正在为剩余 ${pending.length} 篇启用精简恢复通道…`;
-      const recovery=await Promise.allSettled(pending.map(i=>generateOne(i,true)));
-      const stillMissing=[];recovery.forEach((result,pos)=>{const i=pending[pos];if(result.status==='fulfilled'&&result.value.trim())drafts[i]=result.value.trim();else stillMissing.push(i);});pending=stillMissing;
-    }
-    if(pending.length)throw new Error(`第 ${pending.map(i=>i+1).join('、')} 篇未返回；其余稿件已生成但本批次未完成，请重试`);
-    let perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,cfg,assignedReferences[i]))),difference=hfBatchDifferenceIssues(drafts,assignedReferences),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
-    for(let repairAttempt=0;needsRepair&&repairAttempt<2;repairAttempt++){
-      status.textContent='正在完成稿件…';
+    if(pending.length&&!generationController.signal.aborted){status.textContent=`正在补齐 ${pending.length} 篇…`;pending=await runIndices(pending,true);}
+    if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
+    if(pending.length)throw new Error(`第 ${pending.map(i=>i+1).join('、')} 篇暂未返回`);
+    status.textContent='稿件已返回，正在完成校验…';
+    let perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,auditCfg,assignedReferences[i]))),difference=hfBatchDifferenceIssues(drafts,assignedReferences),needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
+    for(let repairAttempt=0;needsRepair&&repairAttempt<1;repairAttempt++){
+      if(generationController.signal.aborted)break;
+      status.textContent='稿件已返回，正在完成校验…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
-      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0),settled=await Promise.allSettled(repairIndices.map(i=>hfCallText(sys,`修正这一篇稿件。在已确认产品事实与合规边界内执行人工输入，并解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。必须保持本篇原有故事与专属写作路线，不得改写成同批其他稿件。${hfReferencePrompt(assignedReferences[i],rule)}\n\n【人工输入】\n${humanText||'无'}\n\n【本篇问题】\n${JSON.stringify(repairIssues[i])}\n\n【当前稿件】\n${drafts[i]}\n\n只输出修正后的这一篇完整稿件，不要JSON、解释或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:180000,reasoningEffort:'minimal',signal:HF.generationController.signal})));
-      settled.forEach((result,pos)=>{const i=repairIndices[pos];if(result.status==='fulfilled'&&result.value.trim())drafts[i]=result.value.trim();});perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,cfg,assignedReferences[i])));difference=hfBatchDifferenceIssues(drafts,assignedReferences);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
+      const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0),settled=await Promise.allSettled(repairIndices.map(i=>hfCallText(sys,`修正这一篇稿件。在已确认产品事实与合规边界内执行人工输入，并解决全部问题。只有标题有问题时只改标题，正文、Tag、评论逐字保留；其他情况也只修改解决问题所需的最小范围。必须保持本篇原有故事与专属写作路线，不得改写成同批其他稿件。${hfReferencePrompt(assignedReferences[i],rule)}\n\n【人工输入】\n${humanText||'无'}\n\n【本篇问题】\n${JSON.stringify(repairIssues[i])}\n\n【当前稿件】\n${drafts[i]}\n\n只输出修正后的这一篇完整稿件，不要JSON、解释或其他稿件。`,{maxTokens:perDraftMaxTokens,timeoutMs:60000,reasoningEffort:'minimal',signal:generationController.signal})));
+      settled.forEach((result,pos)=>{const i=repairIndices[pos];if(result.status==='fulfilled'&&result.value.trim())drafts[i]=result.value.trim();});showProgress();perDraft=await Promise.all(drafts.map((copy,i)=>hfCompleteGenerationAudit(copy,auditCfg,assignedReferences[i])));difference=hfBatchDifferenceIssues(drafts,assignedReferences);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     const inputConflicts=requirementText?hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint):[],conflictWarnings=perDraft.map(rows=>requirementText?[...inputConflicts,...hfHardKnowledgeConflictIssues(rows,requirementText)]:[]);
     const reviewWarnings=perDraft.map((rows,index)=>[...new Set([...rows,...conflictWarnings[index]])]),hasHumanConflict=conflictWarnings.some(x=>x.length);
     HF.batchDraftContexts=assignedReferences.map(reference=>({reference,rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));
-    for(let i=0;i<drafts.length;i++)drafts[i]=await hfUniqueComments(drafts[i],{system:sys,requirement:requirementText},drafts.filter((_,index)=>index!==i));
+    const comments=await Promise.all(drafts.map((copy,i)=>hfUniqueComments(copy,{system:sys,requirement:requirementText,config:auditCfg},drafts.filter((_,index)=>index!==i))));
+    comments.forEach((copy,i)=>drafts[i]=copy);
     drafts.forEach((copy,i)=>{hfRememberDraft(copy);hfCommitDiversityPlan(plans[i]);});HF.latestBatch=drafts;HF.latest=drafts[0];hfResetGenerationVersions();hfRenderBatch(drafts,reviewWarnings);hfSaveState();
     status.textContent=hasHumanConflict?`已生成 ${count} 篇；本次要求有知识库冲突。`:`已生成 ${count} 篇。`;
-  }catch(e){const message=e?.message||'批量生成失败',completedDrafts=drafts.filter(Boolean);if(completedDrafts.length&&e?.name!=='AbortError'){HF.batchDraftContexts=completedDrafts.map(copy=>({reference:assignedReferences[drafts.indexOf(copy)],rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));HF.latestBatch=completedDrafts;HF.latest=completedDrafts[0];hfResetGenerationVersions();completedDrafts.forEach(hfRememberDraft);hfRenderBatch(completedDrafts,completedDrafts.map(()=>[]));hfSaveState();status.textContent=`已返回 ${completedDrafts.length} 篇完整稿件`; }else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成请求未完成：${message}`;}}
-  finally{HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');hfRefreshGenerationSearch();}
+  }catch(e){const message=e?.message||'批量生成失败',completedDrafts=drafts.filter(Boolean);if(completedDrafts.length){HF.batchDraftContexts=completedDrafts.map(copy=>({reference:assignedReferences[drafts.indexOf(copy)],rule,angle:HF.angle,writingBrief:aoBrief,config:cfg,system:sys,requirement:requirementText,background}));HF.latestBatch=completedDrafts;HF.latest=completedDrafts[0];hfResetGenerationVersions();completedDrafts.forEach(hfRememberDraft);hfRenderBatch(completedDrafts,completedDrafts.map(()=>[]));hfSaveState();status.textContent=`已返回 ${completedDrafts.length}/${count} 篇完整稿件，可继续送审。`; }else if(e?.name==='AbortError'||/响应超时|已取消/.test(message)){out.innerHTML='<div class="hf-hint">本次批量生成已停止。</div>';status.textContent='本次批量生成已停止，不会继续占用页面。';}else{out.innerHTML=`<div class="hf-risk">${esc(message)}</div>`;status.textContent=`批量生成请求未完成：${message}`;}}
+  finally{clearTimeout(generationDeadline);HF.generationController=null;btn.disabled=false;cancelBtn?.classList.add('hf-hidden');hfRefreshGenerationSearch();}
 }
 function hfSendReview(index=0){
   if(!HF.latestBatch?.[index]){toast('暂无生成稿件');return;}
@@ -8215,9 +8227,9 @@ function syPromoteLoop(){if(!SY.loopAnalysis){toast('暂无回流结论');return
 function syRenderLoopHistory(){const el=document.getElementById('sy-loop-history');if(!el)return;if(!SY.loops.length){el.textContent='暂无记录';return;}el.innerHTML=SY.loops.slice(0,12).map((x,i)=>`<div class="sy-review-item"><b>${i+1}. ${syE(x.title||'未命名')}</b><div>${syE(x.time||'')}</div><div>${syE(String(x.analysis||'').slice(0,180))}${String(x.analysis||'').length>180?'…':''}</div></div>`).join('');}
 async function syMinimalRewrite(){if(SY.busy)return;const draft=syVal('sy-review-draft'),issues=(Array.isArray(SY.review?.issues)?SY.review.issues:[]).map((x,i)=>({...x,id:x.id||`S${i+1}`}));if(!draft){sySetStatus('sy-review-status','请先粘贴待审核稿','err');return;}if(!issues.length){sySetStatus('sy-review-status','请先完成审核并确认存在问题','err');return;}SY.busy=true;sySetStatus('sy-review-status','正在修正已定位的知识库问题…');try{const current=syParseDraftText(draft),fixed=syLocalFinalizeResult(await syKnowledgeRepairResult(current,issues.map(x=>({code:'review_issue',msg:`${x.id}：${x.reason||x.problem||'知识库问题'}`})),''),'',''),text=syFormatResult(fixed),unresolved=await syReviewIssueClosure(text,issues);SY.lastRewriteIssues=[...syKnowledgeValidationIssues(fixed),...unresolved];document.getElementById('sy-review-draft').value=text;SY.latestRewrite=text;sySave();sySetStatus('sy-review-status',SY.lastRewriteIssues.length?'已返回完整修订稿，仍有未关闭问题':'修订完成：审核问题已逐项关闭','ok');}catch(e){if(e.name!=='AbortError')sySetStatus('sy-review-status',e.message||'改写失败','err');}finally{SY.busy=false;}}
 
-function modelTimeoutMs(options={}){return Math.max(180000,Number(options.timeoutMs)||0);}
+function modelTimeoutMs(options={}){const requested=Number(options.timeoutMs);return Number.isFinite(requested)&&requested>0?Math.max(1000,requested):180000;}
 async function callSingleModel(model,sys,usr,signal,options={}){
-  const timeoutMs=modelTimeoutMs(options),label=MODEL_MAP[model]?.label||model,maxAttempts=2;
+  const timeoutMs=modelTimeoutMs(options),label=MODEL_MAP[model]?.label||model,maxAttempts=Math.max(1,Math.min(2,Number(options.maxAttempts)||2));
   for(let attempt=1;attempt<=maxAttempts;attempt++){
     let text='',timedOut=false;const requestId=makeRequestId(),collect=chunk=>{text+=chunk;},controller=new AbortController(),forwardAbort=()=>controller.abort(signal?.reason);
     if(signal){if(signal.aborted)forwardAbort();else signal.addEventListener('abort',forwardAbort,{once:true});}
@@ -8253,7 +8265,7 @@ async function ensureLocalProxyReady(signal){
 }
 async function callAI(sys,usr,cb,signal,options={}){
   if(['haoqi','bayer','sheyan'].includes(S.brand)){
-    const sharedExamples=await collabFewShot(collabCurrentModule());
+    const sharedExamples=options.maxAttempts===1?await new Promise(resolve=>{const timer=setTimeout(()=>resolve(''),2000);collabFewShot(collabCurrentModule()).then(text=>{clearTimeout(timer);resolve(text);},()=>{clearTimeout(timer);resolve('');});}):await collabFewShot(collabCurrentModule());
     if(sharedExamples)sys+=`\n\n【内部已确认参考稿｜只学习结构、节奏和自然表达，不覆盖正式产品事实】\n${sharedExamples}`;
   }
   const requestBrand=S.brand,requestEpoch=S.brandEpoch;
