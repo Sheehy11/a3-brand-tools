@@ -7772,10 +7772,9 @@ function hfBatchLocalAudit(drafts,cfg,references){
 function hfRepairScopes(issues){
   const scopes=new Set();
   for(const issue of issues){
-    if(/正文|参考稿约|参考稿为|卖点|禁用|人物|人工要求|现实|情绪|机制/.test(issue))scopes.add('body');
-    else if(/评论|留言/.test(issue))scopes.add('comments');
-    else if(/Tag|标签|话题/.test(issue))scopes.add('tags');
-    else if(/标题/.test(issue))scopes.add('title');
+    if(/标题/.test(issue)&&!/^正文/.test(issue))scopes.add('title');
+    else if(/评论|留言/.test(issue)&&!/^正文/.test(issue))scopes.add('comments');
+    else if(/Tag|标签|话题/.test(issue)&&!/^正文/.test(issue))scopes.add('tags');
     else scopes.add('body');
   }
   return [...scopes];
