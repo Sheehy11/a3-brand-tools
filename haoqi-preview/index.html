@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261119-haoqi-23">
+<meta name="a3-build" content="20261120-haoqi-24">
 <script>
 (()=>{
-  const BUILD='20261119-haoqi-23',VERSION_PARAM='__a3v';
+  const BUILD='20261120-haoqi-24',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -7592,7 +7592,7 @@ function hfCommentOverlap(copy,otherDrafts=[]){
 async function hfUniqueComments(copy,context,otherDrafts=[]){
   let result=copy;
   for(let attempt=0;hfCommentOverlap(result,otherDrafts)&&attempt<1;attempt++){
-    let data;try{data=await hfCallJson(context.system||HQ_WRITE_SYS,'只重写三条评论，分别表达相似经历、具体感叹、个人习惯。围绕本篇已确认信息，避开下方已有句子和同义改写。只返回JSON {"comments":["评论1","评论2","评论3"]}。\n【稿件】\n'+result+'\n【人工要求】\n'+hfReviewHumanRequirements(context)+'\n【已有评论】\n'+[...(HF.generatedDrafts||[]).slice(0,20).map(row=>typeof row==='string'?row:row.copy),...otherDrafts].flatMap(hfCommentLines).join('\n'),{maxTokens:550,timeoutMs:15000,signal:context.config?.signal||HF.generationController?.signal});}catch{continue;}
+    let data;try{data=await hfCallJson(context.system||HQ_WRITE_SYS,'只重写三条评论，分别表达相似经历、具体感叹、个人习惯。围绕本篇已确认信息，避开下方已有句子和同义改写。只返回JSON {"comments":["评论1","评论2","评论3"]}。\n【稿件】\n'+result+'\n【人工要求】\n'+hfReviewHumanRequirements(context)+'\n【已有评论】\n'+[...(HF.generatedDrafts||[]).slice(0,20).map(row=>typeof row==='string'?row:row.copy),...otherDrafts].flatMap(hfCommentLines).join('\n'),{maxTokens:550,timeoutMs:15000,stage:'评论去重',reason:'评论与已有稿件相似',signal:context.config?.signal||HF.generationController?.signal});}catch{continue;}
     if(!Array.isArray(data.comments)||data.comments.length!==3)continue;
     const old=hfCommentLines(result),lines=result.split('\n');
     const marker=lines.findIndex(line=>/^\s*(?:评论|留言)(?:文案|区)?[：:]?\s*$/.test(line));
@@ -7769,6 +7769,40 @@ function hfBatchLocalAudit(drafts,cfg,references){
     return [...new Set([...issues,...hfHumanStateAudit(copy,cfg.requirementText)])];
   });
 }
+function hfRepairScopes(issues){
+  const scopes=new Set();
+  for(const issue of issues){
+    if(/正文|参考稿约|参考稿为|卖点|禁用|人物|人工要求|现实|情绪|机制/.test(issue))scopes.add('body');
+    else if(/评论|留言/.test(issue))scopes.add('comments');
+    else if(/Tag|标签|话题/.test(issue))scopes.add('tags');
+    else if(/标题/.test(issue))scopes.add('title');
+    else scopes.add('body');
+  }
+  return [...scopes];
+}
+function hfApplyGenerationPatches(copy,patches,scopes){
+  let result=copy;
+  for(const patch of patches||[]){
+    const target=String(patch.target||''),replacement=String(patch.replacement??'');
+    if(!target||target===replacement||result.split(target).length!==2)throw new Error('修改位置不唯一或没有实际修改');
+    const spec=hfParseReference(result),body=spec.body;
+    const commentMatch=/(?:^|\n)\s*(?:评论|留言)(?:文案|区)?[：:]?\s*\n/.exec(result);
+    const commentRegion=commentMatch?result.slice(commentMatch.index).trim():hfCommentLines(result).join('\n');
+    const allowed=patch.scope==='body'?[body,'正文：'+body,'正文:'+body,'正文\n'+body].join('\n'):patch.scope==='title'?[spec.title,'标题：'+spec.title,'标题:'+spec.title].join('\n'):patch.scope==='comments'?commentRegion:spec.tags.join(' ');
+    if(!scopes.includes(patch.scope)||!allowed||!allowed.includes(target))throw new Error('修改超出本次问题范围');
+    result=result.replace(target,replacement);
+  }
+  return result;
+}
+function hfCompactPrompt(text){
+  const seen=new Set();return String(text||'').replace(/\r\n?/g,'\n').split('\n').filter(line=>{const key=line.trim();if(key.length<25)return true;if(seen.has(key))return false;seen.add(key);return true;}).join('\n').replace(/\n{3,}/g,'\n\n');
+}
+async function hfRepairGenerationDraft(copy,issues,context,attempt=0){
+  const scopes=hfRepairScopes(issues),spec=hfParseReference(copy),ref=hfParseReference(context.reference),length=context.config.explicitLength;
+  const target=length?Math.round((length.min+length.max)/2):ref.bodyChars||spec.bodyChars;
+  const paragraphs=hfExplicitParagraphCount(context.requirement)||ref.paragraphs.length||spec.paragraphs.length;
+  return hfCallJson(hfCompactPrompt(context.system),`只修改下方明确问题涉及的区域：${scopes.join('、')}。其他区域的任何字符必须保留。返回严格JSON {"patches":[{"scope":"title|body|tags|comments","target":"当前稿中唯一的一段原文","replacement":"替换后的文字"}]}。target 必须逐字复制原文，禁止返回整篇文案。只需一个标题时不改正文，只需评论时不改正文或标签。\n【问题】\n${issues.join('\n')}\n【人工要求】\n${context.requirement}\n【参考稿】\n${context.reference}\n【当前正文实测】${spec.bodyChars}字、${spec.paragraphs.length}段；目标正文约${target}字、${paragraphs}段。${attempt>0?'上次修改仍未解决问题。本轮改用完整替换对应问题区域的方式；只替换该区域，禁止再次给出同一版文字。':''}\n【当前稿】\n${copy}`,{maxTokens:scopes.includes('body')?1400:650,timeoutMs:190000,stream:true,skipSharedExamples:true,signal:context.signal,stage:'针对性修正',reason:issues.join('；'),isComplete:raw=>{try{return Array.isArray(hfLiveParseJson(raw).patches);}catch{return false;}}}).then(data=>hfApplyGenerationPatches(copy,data.patches,scopes));
+}
 function hfWaitForRetry(signal,delay){
   return new Promise((resolve,reject)=>{
     let timer;const abort=()=>{clearTimeout(timer);reject(new DOMException('已停止','AbortError'));};
@@ -7797,9 +7831,9 @@ async function hfGenerateBatch(){
   const cfg={rule,facts,product:HF.product,direction:HF.customDirection?'本次新增需求':HF.direction,point,noPoint,explicitLength,dynamicBans,requirementText,background:hfMaterialContext()};
   const background=hfMaterialContext();
   const manualPriority=humanText?`\n\n【本次人工输入】\n${humanText}\n可更新方向、场景、篇幅和表达方式，但不得覆盖已确认产品事实与合规边界；冲突或缺失事实不写进成稿，也不自动沉淀为团队知识。`:'';
-  const sys=`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(HF.product,point,noPoint)}\n\n${background}${hfGenerationSourcePriority(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`;
+  const sys=hfCompactPrompt(`${HQ_WRITE_SYS}\n\n${hfCompactProductContext(HF.product,point,noPoint)}\n\n${background}${hfGenerationSourcePriority(references[0]||'',requirementText)}${deliveryContract}${manualPriority}`);
   const defaultTarget=Math.round((rule.range[0]+rule.range[1])/2),aoBrief=HF.customDirection?`【本次临时新方向】\n${liveDirection}`:hfAoPrompt(rule,HF.angle,point,HF.product);
-  const sharedPrompt=`所有稿件使用同一产品、卖点设置和人工输入，但必须是独立创作，不得互相改写或仅替换同义词。多篇参考稿只分别提供结构和语气范例，不得把多篇内容拼接进同一篇成稿。\n\n${aoBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- ${noPoint?'产品名只作为讨论对象自然出现，不介绍功能或体验。':'产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。'}\n${references.length?'- 每篇首先贴合自己对应参考稿的内容组织、信息顺序和语气强度；同批差异只体现在原创措辞与可替换细节，不得为了差异化改成另一种文案。':'- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。'}${hfRecentAvoidanceBrief()}${manualPriority}\n输出前在内部逐条检查人工要求、背景事实与参考稿布局，先修正不满足项再交付。人工说已收到奖品时，每篇正文都必须明确写出已收到或拆包，不能只写报名和等待。不要输出检查过程。`;
+  const sharedPrompt=`所有稿件使用同一产品、卖点设置和人工输入，但必须是独立创作，不得互相改写或仅替换同义词。多篇参考稿只分别提供结构和语气范例，不得把多篇内容拼接进同一篇成稿。\n\n${aoBrief}\n\n【共同硬性配置】\n- 产品：好奇${HF.product}\n- ${noPoint?'本篇不带产品卖点，按系统中的“本篇无卖点合同”执行。':'唯一卖点按系统中的“本篇单卖点合同”执行，不在此重复定义。'}\n- 其他产品事实禁止出现：${otherFacts.join('、')||'无'}\n- 本品线禁用：${facts.bans.join('、')||'无'}${dynamicBans.length?`\n- 本次人工明确禁用：${dynamicBans.join('、')}`:''}\n- 标题必须来自正文，禁止出现“好奇”。\n- 稿件包含标题、正文、Tag和正好三条20—30字的自然宝妈留言。\n- ${noPoint?'产品名只作为讨论对象自然出现，不介绍功能或体验。':'产品在正文约30%—45%处通过动作或选择自然进入；产品前最多一个场景和一句动机。'}\n${references.length?'- 每篇首先贴合自己对应参考稿的内容组织、信息顺序和语气强度；同批差异只体现在原创措辞与可替换细节，不得为了差异化改成另一种文案。':'- 与同批其他稿件的标题功能、具体生活场景、首句、情绪推进、产品进入动作、段落节奏和收尾功能必须明显不同。'}${hfRecentAvoidanceBrief()}\n输出前在内部逐条检查人工要求、背景事实与参考稿布局，先修正不满足项再交付。人工说已收到奖品时，每篇正文都必须明确写出已收到或拆包，不能只写报名和等待。不要输出检查过程。`;
   const fingerprint=JSON.stringify({format:"structured-batch-v2",count,mode:HQ_CONTENT_MODE,product:HF.product,point:HF.sellingPoint,angle:HF.angle,direction:HF.direction,custom:HF.customDirection,requirements:requirementText,background,references});
   const btn=document.getElementById('hf-gen-btn'),cancelBtn=document.getElementById('hf-cancel-btn'),out=document.getElementById('hf-gen-output'),status=document.getElementById('hf-gen-status'),drafts=HF.pendingBatch?.fingerprint===fingerprint&&HF.pendingBatch.drafts?.length===count?HF.pendingBatch.drafts.slice():Array(count).fill('');HF.pendingBatch={fingerprint,drafts};hfSaveState();btn.disabled=true;cancelBtn?.classList.remove('hf-hidden');HF.generationController?.abort();HF.generationController=new AbortController();HF.reference=assignedReferences[0]||'';status.textContent=`正在生成 ${count} 篇…`;out.insertAdjacentHTML('afterbegin','<div class="hf-hint" data-generation-progress>正在生成新稿，返回后逐篇显示。</div>');
   const generationController=HF.generationController;const auditCfg={...cfg,signal:generationController.signal,auditTimeoutMs:25000};hfRefreshGenerationSearch();
@@ -7813,7 +7847,7 @@ async function hfGenerateBatch(){
       }).join('\n\n');
       const maxTokens=Math.min(4096,Math.max(1200,indices.reduce((sum,i)=>sum+Math.ceil((explicitLength?.max||referenceSpecs[i].maxChars||250)*2)+500,0)));
       const schema=JSON.stringify({drafts:indices.map(i=>({index:i+1,title:'原创标题',paragraphs:Array(Math.max(1,explicitParagraphs||referenceSpecs[i].paragraphs?.length||1)).fill('原创正文段落'),tags:Array(referenceSpecs[i].tags?.length||1).fill('相关话题'),comments:['相似经历','具体感叹','个人习惯']}))});
-      const data=await hfCallJson(sys,`${sharedPrompt}\n\n${specs}\n\n一次完整返回指定的${indices.length}篇稿件，各篇分别使用自己的参考稿。禁止缺篇、合篇或用“同上”代替。按下面完整结构填满每一篇，不得遗漏字段和条目，返回严格JSON ${schema}。index 必须对应本批原编号：${indices.map(i=>i+1).join('、')}。paragraphs 数组每项为一段有效正文，tags 不含正文，comments 恰好三条。`,{maxTokens,timeoutMs:190000,reasoningEffort:'minimal',signal:generationController.signal,skipSharedExamples:true,stream:true,isComplete:raw=>{try{return hfBatchEntries(hfLiveParseJson(raw),indices).size===indices.length;}catch{return false;}},onProgress:raw=>{const entries=hfBatchEntries({drafts:hfPartialBatchRows(raw)},indices);if(entries.size){for(const [index,copy] of entries)drafts[index]=copy;hfSaveState();showProgress();status.textContent=`已返回 ${drafts.filter(Boolean).length}/${count} 篇，正在完成稿件…`;}}});
+      const data=await hfCallJson(sys,`${sharedPrompt}\n\n${specs}\n\n一次完整返回指定的${indices.length}篇稿件，各篇分别使用自己的参考稿。禁止缺篇、合篇或用“同上”代替。按下面完整结构填满每一篇，不得遗漏字段和条目，返回严格JSON ${schema}。index 必须对应本批原编号：${indices.map(i=>i+1).join('、')}。paragraphs 数组每项为一段有效正文，tags 不含正文，comments 恰好三条。`,{maxTokens,timeoutMs:190000,reasoningEffort:'minimal',signal:generationController.signal,skipSharedExamples:true,stream:true,stage:indices.length===count?'首次生成':'补齐缺篇',reason:'生成第'+indices.map(i=>i+1).join('、')+'篇',isComplete:raw=>{try{return hfBatchEntries(hfLiveParseJson(raw),indices).size===indices.length;}catch{return false;}},onProgress:raw=>{const entries=hfBatchEntries({drafts:hfPartialBatchRows(raw)},indices);if(entries.size){for(const [index,copy] of entries)drafts[index]=copy;hfSaveState();showProgress();status.textContent=`已返回 ${drafts.filter(Boolean).length}/${count} 篇，正在完成稿件…`;}}});
       if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
       return hfBatchEntries(data,indices);
     };
@@ -7835,7 +7869,7 @@ async function hfGenerateBatch(){
     while(pending.length&&!generationController.signal.aborted){
       status.textContent=`已返回 ${completed}/${count} 篇，正在补齐第 ${pending.map(i=>i+1).join('、')} 篇…`;
       await hfWaitForRetry(generationController.signal,Math.min(5000,1000*(++retry)));
-      pending=await runIndices(pending,true);
+      pending=retry>=2&&pending.length>1?(await Promise.all(pending.map(index=>runIndices([index])))).flat():await runIndices(pending,true);
     }
     if(generationController.signal.aborted)throw new DOMException('已停止','AbortError');
     status.textContent='稿件已返回，正在完成校验…';
@@ -7845,7 +7879,10 @@ async function hfGenerateBatch(){
       status.textContent='稿件已返回，正在完成校验…';
       const repairIssues=drafts.map((_,i)=>[...perDraft[i],...difference[i]]);
       const repairIndices=repairIssues.map((rows,i)=>rows.length?i:-1).filter(i=>i>=0);
-      try{const entries=await requestDrafts(repairIndices,repairIssues);for(const [index,copy] of entries)drafts[index]=copy;}catch(error){if(generationController.signal.aborted)throw error;}
+      const repaired=await Promise.allSettled(repairIndices.map(index=>hfRepairGenerationDraft(drafts[index],repairIssues[index],{system:sys,requirement:requirementText,reference:assignedReferences[index],config:cfg,signal:generationController.signal},repairAttempt)));
+      let changed=false;
+      repaired.forEach((result,pos)=>{const index=repairIndices[pos];if(result.status==='fulfilled'&&result.value!==drafts[index]){drafts[index]=result.value;changed=true;}});
+      if(!changed)await hfWaitForRetry(generationController.signal,Math.min(15000,2000*(repairAttempt+1)));
       hfSaveState();showProgress();perDraft=hfBatchLocalAudit(drafts,cfg,assignedReferences);difference=hfBatchDifferenceIssues(drafts,assignedReferences);needsRepair=perDraft.some(x=>x.length)||difference.some(x=>x.length);
     }
     const inputConflicts=requirementText?hfHumanKnowledgeConflictAudit(requirementText,facts,point,noPoint):[],conflictWarnings=perDraft.map(rows=>requirementText?[...inputConflicts,...hfHardKnowledgeConflictIssues(rows,requirementText)]:[]);
@@ -8361,15 +8398,20 @@ async function callAI(sys,usr,cb,signal,options={}){
   }
   const requestBrand=S.brand,requestEpoch=S.brandEpoch;
   const requestId=makeRequestId();
-  const callContext={requestId,time:new Date().toLocaleString('zh-CN'),brand:BC()?.name||S.brand,workflow:ACTIVE_WORKFLOW||'当前工作台',models:[CONTENT_MODEL.id],selectedModel:CONTENT_MODEL.id,system:sys,user:usr};
+  const callContext={startedAt:Date.now(),stage:options.stage||'模型调用',reason:options.reason||'',status:'请求中',requestId,time:new Date().toLocaleString('zh-CN'),brand:BC()?.name||S.brand,workflow:ACTIVE_WORKFLOW||'当前工作台',models:[CONTENT_MODEL.id],selectedModel:CONTENT_MODEL.id,system:sys,user:usr};
   S.lastCallContext=callContext;
   if(!Array.isArray(S.callTrace))S.callTrace=[];
   S.callTrace.push(callContext);if(S.callTrace.length>40)S.callTrace=S.callTrace.slice(-40);
   const actualBtn=document.getElementById('actual-kb-btn');if(actualBtn)actualBtn.disabled=false;
   if(window.a3IsLocalPreview()&&!S.key){openModal();throw new Error('请先在顶部模型设置中填写管理员 A3 Key，再进行本地生成验收。');}
   await ensureLocalProxyReady(signal);
-  const text=await callSingleModel(CONTENT_MODEL.id,sys,usr,signal,options);
-  if(S.brand===requestBrand&&S.brandEpoch===requestEpoch)cb(text);
+  try{
+    const originalProgress=options.onProgress;
+    const text=await callSingleModel(CONTENT_MODEL.id,sys,usr,signal,{...options,onProgress:value=>{if(!callContext.firstTokenMs)callContext.firstTokenMs=Date.now()-callContext.startedAt;originalProgress?.(value);}});
+    callContext.status='成功';callContext.outputChars=Array.from(text).length;
+    if(S.brand===requestBrand&&S.brandEpoch===requestEpoch)cb(text);
+  }catch(error){callContext.status=signal?.aborted?'已取消':'失败';callContext.error=String(error?.message||error);throw error;}
+  finally{callContext.elapsedMs=Date.now()-callContext.startedAt;}
 }
 
 function makeRequestId(){
@@ -8378,7 +8420,7 @@ function makeRequestId(){
 function a3BeginCallTrace(label='本次任务'){S.callTrace=[];S.callTraceLabel=label;S.lastCallContext=null;const btn=document.getElementById('actual-kb-btn');if(btn)btn.disabled=true;}
 function a3CallTraceText(){
   const calls=Array.isArray(S.callTrace)&&S.callTrace.length?S.callTrace:(S.lastCallContext?[S.lastCallContext]:[]);
-  return calls.map((c,index)=>`========== 第 ${index+1}/${calls.length} 次真实 API 调用 ==========\n调用时间：${c.time}\n任务阶段：${c.workflow||'当前工作台'}\n模型：${MODEL_MAP[c.selectedModel]?.label||c.selectedModel||CONTENT_MODEL.label}\n请求编号：${c.requestId}\n\n【实际传给 AI 的完整系统知识与规则】\n${c.system}\n\n【实际传给 AI 的完整任务参数与输入】\n${c.user}`).join('\n\n');
+  return calls.map((c,index)=>`========== 第 ${index+1}/${calls.length} 次真实 API 调用 ==========\n调用时间：${c.time}\n任务阶段：${c.workflow||'当前工作台'}\n模型：${MODEL_MAP[c.selectedModel]?.label||c.selectedModel||CONTENT_MODEL.label}\n请求编号：${c.requestId}\n调用环节：${c.stage||"模型调用"}\n触发原因：${c.reason||"正常请求"}\n结果：${c.status||"未记录"}\n耗时：${c.elapsedMs===undefined?"进行中":(c.elapsedMs/1000).toFixed(1)+"秒"}\n首段响应：${c.firstTokenMs===undefined?"未记录":(c.firstTokenMs/1000).toFixed(1)+"秒"}${c.error?"\n错误："+c.error:""}\n\n【实际传给 AI 的完整系统知识与规则】\n${c.system}\n\n【实际传给 AI 的完整任务参数与输入】\n${c.user}`).join('\n\n');
 }
 window.a3BeginCallTrace=a3BeginCallTrace;window.a3CallTraceText=a3CallTraceText;
 function showActualKnowledge(){
