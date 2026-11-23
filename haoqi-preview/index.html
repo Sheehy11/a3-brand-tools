@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="a3-service-url" content="https://a3-brand-tools.pages.dev">
-<meta name="a3-build" content="20261120-public-30">
+<meta name="a3-build" content="20261123-public-31">
 <script>
 (()=>{
-  const BUILD='20261120-public-30',VERSION_PARAM='__a3v';
+  const BUILD='20261123-public-31',VERSION_PARAM='__a3v';
   window.A3_BUILD_ID=BUILD;
   const current=new URL(location.href),requestedBuild=current.searchParams.get(VERSION_PARAM)||'';
   let cleanUrl=false;
@@ -1470,7 +1470,7 @@ const collabEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 function collabActor(){return COLLAB_ACTORS[localStorage.getItem('a3_collab_actor')||'']||null}
 function collabRoleText(a=collabActor()){return a?`${a.name} · ${a.role==='reviewer'?'审核人':a.role==='admin'?'管理员':'写手'}`:'尚未选择身份'}
 function collabUpdateIdentity(){const a=collabActor(),chip=document.getElementById('collab-identity-chip'),btn=document.getElementById('collab-task-btn'),live=document.getElementById('live-requirements-btn');if(!chip||!btn)return;chip.style.display='';chip.textContent=a?collabRoleText(a):'选择身份';btn.style.display='flex';if(live)live.style.display='';document.getElementById('collab-new-btn')?.style.setProperty('display',a?.role==='writer'?'':'none');if(typeof hfLiveRender==='function')hfLiveRender();}
-async function ensureCollabIdentity(){collabUpdateIdentity();const actor=collabActor();if(!actor)return openCollabIdentity();try{if(!ACTIVE_WORKFLOW)await a3CloudStateBootstrap(actor.id);}catch(e){toast('跨设备历史读取失败：'+e.message,3200)}collabStartPolling();if(typeof hfLiveRemoteLoad==='function')hfLiveRemoteLoad().catch(e=>toast('跨设备要求读取失败：'+e.message,3200))}
+async function ensureCollabIdentity(){collabUpdateIdentity();const actor=collabActor();if(!actor)return openCollabIdentity();try{if(!ACTIVE_WORKFLOW){const changed=await a3CloudStateBootstrap(actor.id);if(changed){location.reload();return;}}}catch(e){toast('跨设备历史读取失败：'+e.message,3200)}collabStartPolling();if(typeof hfLiveRemoteLoad==='function')hfLiveRemoteLoad().catch(e=>toast('跨设备要求读取失败：'+e.message,3200))}
 function openCollabIdentity(){document.getElementById('collab-identity-modal').style.display='flex'}
 function closeCollabIdentity(){if(!collabActor())return toast('首次进入必须先选择使用人');document.getElementById('collab-identity-modal').style.display='none'}
 async function selectCollabActor(id){if(!COLLAB_ACTORS[id])return;const previous=collabActor();try{if(typeof hfLiveSyncDraft==='function')await hfLiveSyncDraft();await a3CloudStateFlush();}catch{}if(previous&&previous.id!==id)a3CloudStateClearLocal();A3_NATIVE_STORAGE_SET.call(localStorage,'a3_collab_actor',id);closeCollabIdentity();collabUpdateIdentity();COLLAB_ACTIVE_ID='';try{const changed=await a3CloudStateBootstrap(id);if(changed||previous&&previous.id!==id){location.reload();return;}if(typeof hfLiveRemoteLoad==='function')await hfLiveRemoteLoad();}catch(e){toast('身份已切换，但跨设备历史读取失败：'+e.message,3200)}collabRefresh().catch(()=>{});collabStartPolling();toast(`当前身份：${collabRoleText()} ✓`,1800)}
@@ -1490,7 +1490,7 @@ async function a3CloudStateBootstrap(actorId){if(window.a3IsLocalPreview())retur
 window.addEventListener('focus',()=>{
   const actor=collabActor();
   if(!actor||ACTIVE_WORKFLOW||window.a3IsLocalPreview()||Date.now()-A3_CLOUD_STATE_LAST_PULL<5000)return;
-  a3CloudStateBootstrap(actor.id).catch(()=>{});
+  a3CloudStateBootstrap(actor.id).then(changed=>{if(changed&&!ACTIVE_WORKFLOW)location.reload();}).catch(()=>{});
 });
 function a3RetryPendingCloudState(){if(A3_CLOUD_STATE_PENDING.size&&!window.a3IsLocalPreview())a3CloudStateFlush().catch(()=>{});}
 window.addEventListener('online',a3RetryPendingCloudState);
